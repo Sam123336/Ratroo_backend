@@ -1,0 +1,3110 @@
+[
+  {
+    "busName": "AADITRI",
+    "registrationNumber": "WB49C7440",
+    "direction": "UP",
+    "fingerprint": "gopiballabpur|lodhasuli|jhargram|dherua|lalgarh|kantapahari|ramgarh|brahmandiha|sarenga|p more|jambani|kankradara|khatra",
+    "origin": "Gopiballabpur",
+    "destination": "Khatra",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00001",
+        "name": "Gopiballabpur",
+        "time": "5:25 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00002",
+        "name": "Lodhasuli",
+        "time": "6:10 AM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00003",
+        "name": "Jhargram",
+        "time": "6:50 AM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00004",
+        "name": "Dherua",
+        "time": "7:40 AM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00005",
+        "name": "Lalgarh",
+        "time": "8:25 AM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00006",
+        "name": "Kantapahari",
+        "time": null
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00007",
+        "name": "Ramgarh",
+        "time": "8:45 AM"
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00008",
+        "name": "Brahmandiha",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00009",
+        "name": "Sarenga",
+        "time": "9:20 AM"
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00010",
+        "name": "P More",
+        "time": "9:45 AM"
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00011",
+        "name": "Jambani",
+        "time": null
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00012",
+        "name": "Kankradara",
+        "time": null
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00013",
+        "name": "Khatra",
+        "time": "10:45 AM"
+      }
+    ]
+  },
+  {
+    "busName": "AADITRI",
+    "registrationNumber": "WB49C7440",
+    "direction": "DOWN",
+    "fingerprint": "khatra|kankradara|jambani|p more|sarenga|brahmandiha|ramgarh|kantapahari|lalgarh|dherua|jhargram|lodhasuli|gopiballabpur",
+    "origin": "Khatra",
+    "destination": "Gopiballabpur",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00013",
+        "name": "Khatra",
+        "time": "11:35 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00012",
+        "name": "Kankradara",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00011",
+        "name": "Jambani",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00010",
+        "name": "P More",
+        "time": "12:45 PM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00009",
+        "name": "Sarenga",
+        "time": "1:05 PM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00008",
+        "name": "Brahmandiha",
+        "time": null
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00007",
+        "name": "Ramgarh",
+        "time": "1:40 PM"
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00006",
+        "name": "Kantapahari",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00005",
+        "name": "Lalgarh",
+        "time": "2:00 PM"
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00004",
+        "name": "Dherua",
+        "time": "2:40 PM"
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00003",
+        "name": "Jhargram",
+        "time": "4:05 PM"
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00002",
+        "name": "Lodhasuli",
+        "time": "4:45 PM"
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00001",
+        "name": "Gopiballabpur",
+        "time": "5:25 PM"
+      }
+    ]
+  },
+  {
+    "busName": "AADRIKA",
+    "registrationNumber": "WB29F6903",
+    "direction": "UP",
+    "fingerprint": "durgachak|chaitanyapur|mahishadal|nandakumar|tamluk|mecheda|mechogram|panskura|debra|madpur|kharagpur|nimpura|guptamoni|lodhasuli|jhargram",
+    "origin": "Durgachak",
+    "destination": "Jhargram",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00014",
+        "name": "Durgachak",
+        "time": "6:55 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00015",
+        "name": "Chaitanyapur",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00016",
+        "name": "Mahishadal",
+        "time": "7:40 AM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00017",
+        "name": "Nandakumar",
+        "time": "7:55 AM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00018",
+        "name": "Tamluk",
+        "time": "8:10 AM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00019",
+        "name": "Mecheda",
+        "time": "8:50 AM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00020",
+        "name": "Mechogram",
+        "time": "9:20 AM"
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00021",
+        "name": "Panskura",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00022",
+        "name": "Debra",
+        "time": "9:50 AM"
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00023",
+        "name": "Madpur",
+        "time": "10:05 AM"
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00024",
+        "name": "Kharagpur",
+        "time": "10:50 AM"
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00025",
+        "name": "Nimpura",
+        "time": null
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00026",
+        "name": "Guptamoni",
+        "time": "11:35 AM"
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00002",
+        "name": "Lodhasuli",
+        "time": "11:50 AM"
+      },
+      {
+        "sequence": 15,
+        "stopId": "STOP_00003",
+        "name": "Jhargram",
+        "time": "12:20 PM"
+      }
+    ]
+  },
+  {
+    "busName": "AADRIKA",
+    "registrationNumber": "WB29F6903",
+    "direction": "DOWN",
+    "fingerprint": "jhargram|lodhasuli|guptamoni|nimpura|kharagpur|madpur|debra|panskura|mechogram|mecheda|tamluk|nandakumar|mahishadal|chaitanyapur|durgachak",
+    "origin": "Jhargram",
+    "destination": "Durgachak",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00003",
+        "name": "Jhargram",
+        "time": "12:50 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00002",
+        "name": "Lodhasuli",
+        "time": "1:25 PM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00026",
+        "name": "Guptamoni",
+        "time": "1:45 PM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00025",
+        "name": "Nimpura",
+        "time": null
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00024",
+        "name": "Kharagpur",
+        "time": "2:20 PM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00023",
+        "name": "Madpur",
+        "time": "3:00 PM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00022",
+        "name": "Debra",
+        "time": "3:15 PM"
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00021",
+        "name": "Panskura",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00020",
+        "name": "Mechogram",
+        "time": "3:45 PM"
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00019",
+        "name": "Mecheda",
+        "time": "4:20 PM"
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00018",
+        "name": "Tamluk",
+        "time": "4:50 PM"
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00017",
+        "name": "Nandakumar",
+        "time": "5:15 PM"
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00016",
+        "name": "Mahishadal",
+        "time": "5:35 PM"
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00015",
+        "name": "Chaitanyapur",
+        "time": null
+      },
+      {
+        "sequence": 15,
+        "stopId": "STOP_00014",
+        "name": "Durgachak",
+        "time": "6:30 PM"
+      }
+    ]
+  },
+  {
+    "busName": "AANI",
+    "registrationNumber": "WB37D6281",
+    "direction": "UP",
+    "fingerprint": "chittaranjan|rupnarayanpur|asansol|raniganj|andal|durgapur (city center)|durgapur (muchipara)|panagarh|piyariganj|illambazar|bolpur|kirnahar|futishanko|marut|sundarpur|kuli|kandi",
+    "origin": "Chittaranjan",
+    "destination": "Kandi",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00027",
+        "name": "Chittaranjan",
+        "time": "4:50 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00028",
+        "name": "Rupnarayanpur",
+        "time": "5:15 AM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00029",
+        "name": "Asansol",
+        "time": "5:50 AM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00030",
+        "name": "Raniganj",
+        "time": "6:15 AM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00031",
+        "name": "Andal",
+        "time": null
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00032",
+        "name": "Durgapur (City Center)",
+        "time": "6:50 AM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00033",
+        "name": "Durgapur (Muchipara)",
+        "time": null
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00034",
+        "name": "Panagarh",
+        "time": "7:15 AM"
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00035",
+        "name": "Piyariganj",
+        "time": null
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00036",
+        "name": "Illambazar",
+        "time": "7:45 AM"
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00037",
+        "name": "Bolpur",
+        "time": "8:30 AM"
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00038",
+        "name": "Kirnahar",
+        "time": "9:50 AM"
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00039",
+        "name": "Futishanko",
+        "time": "10:00 AM"
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00040",
+        "name": "Marut",
+        "time": null
+      },
+      {
+        "sequence": 15,
+        "stopId": "STOP_00041",
+        "name": "Sundarpur",
+        "time": null
+      },
+      {
+        "sequence": 16,
+        "stopId": "STOP_00042",
+        "name": "Kuli",
+        "time": null
+      },
+      {
+        "sequence": 17,
+        "stopId": "STOP_00043",
+        "name": "Kandi",
+        "time": "11:15 AM"
+      }
+    ]
+  },
+  {
+    "busName": "AANI",
+    "registrationNumber": "WB37D6281",
+    "direction": "DOWN",
+    "fingerprint": "kandi|kuli|sundarpur|marut|futishanko|kirnahar|bolpur|illambazar|piyariganj|panagarh|durgapur (muchipara)|durgapur (city center)|andal|raniganj|asansol|rupnarayanpur|chittaranjan",
+    "origin": "Kandi",
+    "destination": "Chittaranjan",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00043",
+        "name": "Kandi",
+        "time": "12:30 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00042",
+        "name": "Kuli",
+        "time": "12:45 PM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00041",
+        "name": "Sundarpur",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00040",
+        "name": "Marut",
+        "time": null
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00039",
+        "name": "Futishanko",
+        "time": "1:45 PM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00038",
+        "name": "Kirnahar",
+        "time": "2:05 PM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00037",
+        "name": "Bolpur",
+        "time": "3:45 PM"
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00036",
+        "name": "Illambazar",
+        "time": "4:20 PM"
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00035",
+        "name": "Piyariganj",
+        "time": null
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00034",
+        "name": "Panagarh",
+        "time": "5:00 PM"
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00033",
+        "name": "Durgapur (Muchipara)",
+        "time": null
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00032",
+        "name": "Durgapur (City Center)",
+        "time": "5:20 PM"
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00031",
+        "name": "Andal",
+        "time": null
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00030",
+        "name": "Raniganj",
+        "time": null
+      },
+      {
+        "sequence": 15,
+        "stopId": "STOP_00029",
+        "name": "Asansol",
+        "time": "6:20 PM"
+      },
+      {
+        "sequence": 16,
+        "stopId": "STOP_00028",
+        "name": "Rupnarayanpur",
+        "time": null
+      },
+      {
+        "sequence": 17,
+        "stopId": "STOP_00027",
+        "name": "Chittaranjan",
+        "time": "8:00 PM"
+      }
+    ]
+  },
+  {
+    "busName": "AAYAN",
+    "registrationNumber": "WB15B5564",
+    "direction": "UP",
+    "fingerprint": "jamtora|kamalpur|kharbona|chhatna|bankura|dhaldanga|puabagan|sunukpahari|indpur|bangla|boga|molian|pairachali|manbazar",
+    "origin": "Jamtora",
+    "destination": "Manbazar",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00044",
+        "name": "Jamtora",
+        "time": "6:40 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00045",
+        "name": "Kamalpur",
+        "time": "6:00 AM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00046",
+        "name": "Kharbona",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00047",
+        "name": "Chhatna",
+        "time": null
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00048",
+        "name": "Bankura",
+        "time": "7:20 AM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00049",
+        "name": "Dhaldanga",
+        "time": "7:45 AM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00050",
+        "name": "Puabagan",
+        "time": "7:55 AM"
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00051",
+        "name": "Sunukpahari",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00052",
+        "name": "Indpur",
+        "time": null
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00053",
+        "name": "Bangla",
+        "time": "8:20 AM"
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00054",
+        "name": "Boga",
+        "time": null
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00055",
+        "name": "Molian",
+        "time": "8:40 AM"
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00056",
+        "name": "Pairachali",
+        "time": null
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00057",
+        "name": "Manbazar",
+        "time": "9:20 AM"
+      }
+    ]
+  },
+  {
+    "busName": "AAYAN",
+    "registrationNumber": "WB15B5564",
+    "direction": "DOWN",
+    "fingerprint": "manbazar|pairachali|molian|boga|bangla|indpur|sunukpahari|puabagan|dhaldanga|bankura|chhatna|kharbona|kamalpur|jamtora",
+    "origin": "Manbazar",
+    "destination": "Jamtora",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00057",
+        "name": "Manbazar",
+        "time": "2:40 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00056",
+        "name": "Pairachali",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00055",
+        "name": "Molian",
+        "time": "3:30 PM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00054",
+        "name": "Boga",
+        "time": "3:45 PM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00053",
+        "name": "Bangla",
+        "time": null
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00052",
+        "name": "Indpur",
+        "time": null
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00051",
+        "name": "Sunukpahari",
+        "time": null
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00050",
+        "name": "Puabagan",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00049",
+        "name": "Dhaldanga",
+        "time": null
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00048",
+        "name": "Bankura",
+        "time": "4:45 PM"
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00047",
+        "name": "Chhatna",
+        "time": null
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00046",
+        "name": "Kharbona",
+        "time": null
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00045",
+        "name": "Kamalpur",
+        "time": null
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00044",
+        "name": "Jamtora",
+        "time": "6:00 PM"
+      }
+    ]
+  },
+  {
+    "busName": "AAYAN",
+    "registrationNumber": "WB33D0882",
+    "direction": "UP",
+    "fingerprint": "bankura|makurgram|beliatore|barjora|durgapur (station)",
+    "origin": "Bankura",
+    "destination": "Durgapur (Station)",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00048",
+        "name": "Bankura",
+        "time": "8:05 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00058",
+        "name": "Makurgram",
+        "time": "8:30 AM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00059",
+        "name": "Beliatore",
+        "time": "8:55 AM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00060",
+        "name": "Barjora",
+        "time": "9:15 AM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00061",
+        "name": "Durgapur (Station)",
+        "time": "9:35 AM"
+      }
+    ]
+  },
+  {
+    "busName": "AAYAN",
+    "registrationNumber": "WB33D0882",
+    "direction": "DOWN",
+    "fingerprint": "durgapur (station)|barjora|beliatore|makurgram|bankura",
+    "origin": "Durgapur (Station)",
+    "destination": "Bankura",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00061",
+        "name": "Durgapur (Station)",
+        "time": "10:10 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00060",
+        "name": "Barjora",
+        "time": "10:30 AM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00059",
+        "name": "Beliatore",
+        "time": "10:50 AM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00058",
+        "name": "Makurgram",
+        "time": "11:10 AM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00048",
+        "name": "Bankura",
+        "time": "11:40 AM"
+      }
+    ]
+  },
+  {
+    "busName": "AAYAN",
+    "registrationNumber": "WB33D0882",
+    "direction": "UP",
+    "fingerprint": "bankura|makurgram|beliatore|barjora|durgapur (station)",
+    "origin": "Bankura",
+    "destination": "Durgapur (Station)",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00048",
+        "name": "Bankura",
+        "time": "1:10 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00058",
+        "name": "Makurgram",
+        "time": "1:40 PM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00059",
+        "name": "Beliatore",
+        "time": "2:00 PM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00060",
+        "name": "Barjora",
+        "time": "2:20 PM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00061",
+        "name": "Durgapur (Station)",
+        "time": "2:40 PM"
+      }
+    ]
+  },
+  {
+    "busName": "AAYAN",
+    "registrationNumber": "WB33D0882",
+    "direction": "DOWN",
+    "fingerprint": "durgapur (station)|barjora|beliatore|makurgram|bankura",
+    "origin": "Durgapur (Station)",
+    "destination": "Bankura",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00061",
+        "name": "Durgapur (Station)",
+        "time": "4:25 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00060",
+        "name": "Barjora",
+        "time": "4:45 PM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00059",
+        "name": "Beliatore",
+        "time": "5:05 PM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00058",
+        "name": "Makurgram",
+        "time": "5:25 PM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00048",
+        "name": "Bankura",
+        "time": "5:50 PM"
+      }
+    ]
+  },
+  {
+    "busName": "ABBA MAYER DUA",
+    "registrationNumber": "WB29E6925",
+    "direction": "UP",
+    "fingerprint": "kaktiya|mecheda|kolaghat|bagnan|uluberia|dhulagarh|kona express more|salap|bally|dakshineswar|dunlop|dum dum airport|karunamoyee",
+    "origin": "Kaktiya",
+    "destination": "Karunamoyee",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00062",
+        "name": "Kaktiya",
+        "time": "7:40 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00019",
+        "name": "Mecheda",
+        "time": "7:50 AM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00063",
+        "name": "Kolaghat",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00064",
+        "name": "Bagnan",
+        "time": null
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00065",
+        "name": "Uluberia",
+        "time": null
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00066",
+        "name": "Dhulagarh",
+        "time": null
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00067",
+        "name": "Kona Express More",
+        "time": null
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00068",
+        "name": "Salap",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00069",
+        "name": "Bally",
+        "time": null
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00070",
+        "name": "Dakshineswar",
+        "time": null
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00071",
+        "name": "Dunlop",
+        "time": "9:30 AM"
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00072",
+        "name": "Dum Dum Airport",
+        "time": null
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00073",
+        "name": "Karunamoyee",
+        "time": null
+      }
+    ]
+  },
+  {
+    "busName": "ABBA MAYER DUA",
+    "registrationNumber": "WB29E6925",
+    "direction": "DOWN",
+    "fingerprint": "karunamoyee|dum dum airport|dunlop|dakshineswar|bally|salap|kona express more|dhulagarh|uluberia|bagnan|kolaghat|mecheda|kaktiya",
+    "origin": "Karunamoyee",
+    "destination": "Kaktiya",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00073",
+        "name": "Karunamoyee",
+        "time": "1:25 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00072",
+        "name": "Dum Dum Airport",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00071",
+        "name": "Dunlop",
+        "time": "2:30 PM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00070",
+        "name": "Dakshineswar",
+        "time": null
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00069",
+        "name": "Bally",
+        "time": null
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00068",
+        "name": "Salap",
+        "time": null
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00067",
+        "name": "Kona Express More",
+        "time": null
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00066",
+        "name": "Dhulagarh",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00065",
+        "name": "Uluberia",
+        "time": null
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00064",
+        "name": "Bagnan",
+        "time": null
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00063",
+        "name": "Kolaghat",
+        "time": null
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00019",
+        "name": "Mecheda",
+        "time": null
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00062",
+        "name": "Kaktiya",
+        "time": null
+      }
+    ]
+  },
+  {
+    "busName": "ABHA",
+    "registrationNumber": "WB41K3592",
+    "direction": "UP",
+    "fingerprint": "natunhat|guskara|budbud|panagarh|durgapur (muchipara)|durgapur (city center)|andal|raniganj|asansol",
+    "origin": "Natunhat",
+    "destination": "Asansol",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00074",
+        "name": "Natunhat",
+        "time": "5:25 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00075",
+        "name": "Guskara",
+        "time": "6:15 AM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00076",
+        "name": "Budbud",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00034",
+        "name": "Panagarh",
+        "time": null
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00033",
+        "name": "Durgapur (Muchipara)",
+        "time": null
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00032",
+        "name": "Durgapur (City Center)",
+        "time": "8:05 AM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00031",
+        "name": "Andal",
+        "time": null
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00030",
+        "name": "Raniganj",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00029",
+        "name": "Asansol",
+        "time": "9:10 AM"
+      }
+    ]
+  },
+  {
+    "busName": "ABHA",
+    "registrationNumber": "WB41K3592",
+    "direction": "DOWN",
+    "fingerprint": "asansol|raniganj|andal|durgapur (city center)|durgapur (muchipara)|panagarh|budbud|guskara|natunhat",
+    "origin": "Asansol",
+    "destination": "Natunhat",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00029",
+        "name": "Asansol",
+        "time": "12:20 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00030",
+        "name": "Raniganj",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00031",
+        "name": "Andal",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00032",
+        "name": "Durgapur (City Center)",
+        "time": "1:25 PM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00033",
+        "name": "Durgapur (Muchipara)",
+        "time": "1:40 PM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00034",
+        "name": "Panagarh",
+        "time": null
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00076",
+        "name": "Budbud",
+        "time": null
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00075",
+        "name": "Guskara",
+        "time": "3:30 PM"
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00074",
+        "name": "Natunhat",
+        "time": "4:45 PM"
+      }
+    ]
+  },
+  {
+    "busName": "ABHIJAN",
+    "registrationNumber": "WB41C1304",
+    "direction": "UP",
+    "fingerprint": "sarenga|ramgarh|lalgarh|bhimpur|pirakata|moupal|patharkumkumi|bhadutala|medinipur",
+    "origin": "Sarenga",
+    "destination": "Medinipur",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00009",
+        "name": "Sarenga",
+        "time": "7:30 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00007",
+        "name": "Ramgarh",
+        "time": "8:30 AM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00005",
+        "name": "Lalgarh",
+        "time": "9:05 AM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00077",
+        "name": "Bhimpur",
+        "time": null
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00078",
+        "name": "Pirakata",
+        "time": "9:45 AM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00079",
+        "name": "Moupal",
+        "time": null
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00080",
+        "name": "Patharkumkumi",
+        "time": null
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00081",
+        "name": "Bhadutala",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00082",
+        "name": "Medinipur",
+        "time": "10:20 AM"
+      }
+    ]
+  },
+  {
+    "busName": "ABHIJAN",
+    "registrationNumber": "WB41C1304",
+    "direction": "DOWN",
+    "fingerprint": "medinipur|bhadutala|patharkumkumi|moupal|pirakata|bhimpur|lalgarh|ramgarh|sarenga",
+    "origin": "Medinipur",
+    "destination": "Sarenga",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00082",
+        "name": "Medinipur",
+        "time": "12:00 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00081",
+        "name": "Bhadutala",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00080",
+        "name": "Patharkumkumi",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00079",
+        "name": "Moupal",
+        "time": null
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00078",
+        "name": "Pirakata",
+        "time": "1:15 PM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00077",
+        "name": "Bhimpur",
+        "time": null
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00005",
+        "name": "Lalgarh",
+        "time": "1:40 PM"
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00007",
+        "name": "Ramgarh",
+        "time": "2:00 PM"
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00009",
+        "name": "Sarenga",
+        "time": "2:30 PM"
+      }
+    ]
+  },
+  {
+    "busName": "ABHISEK",
+    "registrationNumber": "WB29B8386",
+    "direction": "UP",
+    "fingerprint": "haldia|durgachak|chaitanyapur|mahishadal|nandakumar|tamluk|mecheda|mechogram|keshapat|khukur daha|goura|sultannagar|daspur|ghatal|baroda chowkan|khirpai|chandrakona town|raskundu|garhbeta|dhadika|bankadaha|bishnupur|ramsagar|onda|dhaldanga|bankura",
+    "origin": "Haldia",
+    "destination": "Bankura",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00083",
+        "name": "Haldia",
+        "time": "12:55 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00014",
+        "name": "Durgachak",
+        "time": "1:25 AM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00015",
+        "name": "Chaitanyapur",
+        "time": "1:40 AM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00016",
+        "name": "Mahishadal",
+        "time": "2:00 AM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00017",
+        "name": "Nandakumar",
+        "time": "2:10 AM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00018",
+        "name": "Tamluk",
+        "time": "2:30 AM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00019",
+        "name": "Mecheda",
+        "time": "3:15 AM"
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00020",
+        "name": "Mechogram",
+        "time": "3:30 AM"
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00084",
+        "name": "Keshapat",
+        "time": null
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00085",
+        "name": "Khukur Daha",
+        "time": null
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00086",
+        "name": "Goura",
+        "time": null
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00087",
+        "name": "Sultannagar",
+        "time": null
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00088",
+        "name": "Daspur",
+        "time": "4:00 AM"
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00089",
+        "name": "Ghatal",
+        "time": "4:20 AM"
+      },
+      {
+        "sequence": 15,
+        "stopId": "STOP_00090",
+        "name": "Baroda Chowkan",
+        "time": null
+      },
+      {
+        "sequence": 16,
+        "stopId": "STOP_00091",
+        "name": "Khirpai",
+        "time": null
+      },
+      {
+        "sequence": 17,
+        "stopId": "STOP_00092",
+        "name": "Chandrakona Town",
+        "time": "5:00 AM"
+      },
+      {
+        "sequence": 18,
+        "stopId": "STOP_00093",
+        "name": "Raskundu",
+        "time": "5:20 AM"
+      },
+      {
+        "sequence": 19,
+        "stopId": "STOP_00094",
+        "name": "Garhbeta",
+        "time": "5:40 AM"
+      },
+      {
+        "sequence": 20,
+        "stopId": "STOP_00095",
+        "name": "Dhadika",
+        "time": "5:50 AM"
+      },
+      {
+        "sequence": 21,
+        "stopId": "STOP_00096",
+        "name": "Bankadaha",
+        "time": "6:05 AM"
+      },
+      {
+        "sequence": 22,
+        "stopId": "STOP_00097",
+        "name": "Bishnupur",
+        "time": "6:25 AM"
+      },
+      {
+        "sequence": 23,
+        "stopId": "STOP_00098",
+        "name": "Ramsagar",
+        "time": "6:35 AM"
+      },
+      {
+        "sequence": 24,
+        "stopId": "STOP_00099",
+        "name": "Onda",
+        "time": "6:55 AM"
+      },
+      {
+        "sequence": 25,
+        "stopId": "STOP_00049",
+        "name": "Dhaldanga",
+        "time": "7:10 AM"
+      },
+      {
+        "sequence": 26,
+        "stopId": "STOP_00048",
+        "name": "Bankura",
+        "time": "7:35 AM"
+      }
+    ]
+  },
+  {
+    "busName": "ABHISEK",
+    "registrationNumber": "WB29B8386",
+    "direction": "DOWN",
+    "fingerprint": "bankura|dhaldanga|onda|ramsagar|bishnupur|bankadaha|dhadika|garhbeta|raskundu|chandrakona town|khirpai|baroda chowkan|ghatal|daspur|sultannagar|goura|khukur daha|keshapat|mechogram|mecheda|tamluk|nandakumar|mahishadal|chaitanyapur|durgachak|haldia",
+    "origin": "Bankura",
+    "destination": "Haldia",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00048",
+        "name": "Bankura",
+        "time": "8:20 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00049",
+        "name": "Dhaldanga",
+        "time": "8:45 AM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00099",
+        "name": "Onda",
+        "time": "9:05 AM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00098",
+        "name": "Ramsagar",
+        "time": "9:25 AM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00097",
+        "name": "Bishnupur",
+        "time": "9:35 AM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00096",
+        "name": "Bankadaha",
+        "time": "9:55 AM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00095",
+        "name": "Dhadika",
+        "time": "10:10 AM"
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00094",
+        "name": "Garhbeta",
+        "time": "10:25 AM"
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00093",
+        "name": "Raskundu",
+        "time": "10:45 AM"
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00092",
+        "name": "Chandrakona Town",
+        "time": "11:10 AM"
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00091",
+        "name": "Khirpai",
+        "time": "11:30 AM"
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00090",
+        "name": "Baroda Chowkan",
+        "time": null
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00089",
+        "name": "Ghatal",
+        "time": "12:05 PM"
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00088",
+        "name": "Daspur",
+        "time": "12:20 PM"
+      },
+      {
+        "sequence": 15,
+        "stopId": "STOP_00087",
+        "name": "Sultannagar",
+        "time": null
+      },
+      {
+        "sequence": 16,
+        "stopId": "STOP_00086",
+        "name": "Goura",
+        "time": null
+      },
+      {
+        "sequence": 17,
+        "stopId": "STOP_00085",
+        "name": "Khukur Daha",
+        "time": null
+      },
+      {
+        "sequence": 18,
+        "stopId": "STOP_00084",
+        "name": "Keshapat",
+        "time": null
+      },
+      {
+        "sequence": 19,
+        "stopId": "STOP_00020",
+        "name": "Mechogram",
+        "time": null
+      },
+      {
+        "sequence": 20,
+        "stopId": "STOP_00019",
+        "name": "Mecheda",
+        "time": "1:50 PM"
+      },
+      {
+        "sequence": 21,
+        "stopId": "STOP_00018",
+        "name": "Tamluk",
+        "time": "2:10 PM"
+      },
+      {
+        "sequence": 22,
+        "stopId": "STOP_00017",
+        "name": "Nandakumar",
+        "time": null
+      },
+      {
+        "sequence": 23,
+        "stopId": "STOP_00016",
+        "name": "Mahishadal",
+        "time": null
+      },
+      {
+        "sequence": 24,
+        "stopId": "STOP_00015",
+        "name": "Chaitanyapur",
+        "time": null
+      },
+      {
+        "sequence": 25,
+        "stopId": "STOP_00014",
+        "name": "Durgachak",
+        "time": null
+      },
+      {
+        "sequence": 26,
+        "stopId": "STOP_00083",
+        "name": "Haldia",
+        "time": "3:30 PM"
+      }
+    ]
+  },
+  {
+    "busName": "ABHISHEK",
+    "registrationNumber": "WB41J5258",
+    "direction": "UP",
+    "fingerprint": "nabadwip|hematpur|nadanghat|samudragarh|satgachia|bardhaman|galsi|budbud|panagarh|durgapur (muchipara)|durgapur (city center)|andal|raniganj|asansol",
+    "origin": "Nabadwip",
+    "destination": "Asansol",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00100",
+        "name": "Nabadwip",
+        "time": "7:20 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00101",
+        "name": "Hematpur",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00102",
+        "name": "Nadanghat",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00103",
+        "name": "Samudragarh",
+        "time": null
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00104",
+        "name": "Satgachia",
+        "time": "8:50 AM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00105",
+        "name": "Bardhaman",
+        "time": "10:20 AM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00106",
+        "name": "Galsi",
+        "time": null
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00076",
+        "name": "Budbud",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00034",
+        "name": "Panagarh",
+        "time": "11:25 AM"
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00033",
+        "name": "Durgapur (Muchipara)",
+        "time": "11:40 AM"
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00032",
+        "name": "Durgapur (City Center)",
+        "time": "11:55 AM"
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00031",
+        "name": "Andal",
+        "time": null
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00030",
+        "name": "Raniganj",
+        "time": null
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00029",
+        "name": "Asansol",
+        "time": "12:55 PM"
+      }
+    ]
+  },
+  {
+    "busName": "ABHISHEK",
+    "registrationNumber": "WB41J5258",
+    "direction": "DOWN",
+    "fingerprint": "asansol|raniganj|andal|durgapur (city center)|durgapur (muchipara)|panagarh|budbud|galsi|bardhaman|satgachia|samudragarh|nadanghat|hematpur|nabadwip",
+    "origin": "Asansol",
+    "destination": "Nabadwip",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00029",
+        "name": "Asansol",
+        "time": "2:10 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00030",
+        "name": "Raniganj",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00031",
+        "name": "Andal",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00032",
+        "name": "Durgapur (City Center)",
+        "time": "3:15 PM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00033",
+        "name": "Durgapur (Muchipara)",
+        "time": "3:25 PM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00034",
+        "name": "Panagarh",
+        "time": "3:45 PM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00076",
+        "name": "Budbud",
+        "time": null
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00106",
+        "name": "Galsi",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00105",
+        "name": "Bardhaman",
+        "time": "5:05 PM"
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00104",
+        "name": "Satgachia",
+        "time": "6:30 PM"
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00103",
+        "name": "Samudragarh",
+        "time": null
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00102",
+        "name": "Nadanghat",
+        "time": null
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00101",
+        "name": "Hematpur",
+        "time": null
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00100",
+        "name": "Nabadwip",
+        "time": "7:40 PM"
+      }
+    ]
+  },
+  {
+    "busName": "ABHISHEK",
+    "registrationNumber": "WB41G9349",
+    "direction": "UP",
+    "fingerprint": "benachity|durgapur (city center)|durgapur (muchipara)|panagarh|budbud|guskara|balgona|srikhanda|katwa|parulia|hematpur|nabadwip",
+    "origin": "Benachity",
+    "destination": "Nabadwip",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00107",
+        "name": "Benachity",
+        "time": "6:00 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00032",
+        "name": "Durgapur (City Center)",
+        "time": "6:15 AM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00033",
+        "name": "Durgapur (Muchipara)",
+        "time": "6:25 AM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00034",
+        "name": "Panagarh",
+        "time": "6:45 AM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00076",
+        "name": "Budbud",
+        "time": "7:05 AM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00075",
+        "name": "Guskara",
+        "time": "7:55 AM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00108",
+        "name": "Balgona",
+        "time": "8:45 AM"
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00109",
+        "name": "Srikhanda",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00110",
+        "name": "Katwa",
+        "time": "9:40 AM"
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00111",
+        "name": "Parulia",
+        "time": null
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00101",
+        "name": "Hematpur",
+        "time": null
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00100",
+        "name": "Nabadwip",
+        "time": "10:50 AM"
+      }
+    ]
+  },
+  {
+    "busName": "ABHISHEK",
+    "registrationNumber": "WB41G9349",
+    "direction": "DOWN",
+    "fingerprint": "nabadwip|hematpur|parulia|katwa|srikhanda|balgona|guskara|budbud|panagarh|durgapur (muchipara)|durgapur (city center)|benachity",
+    "origin": "Nabadwip",
+    "destination": "Benachity",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00100",
+        "name": "Nabadwip",
+        "time": "12:20 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00101",
+        "name": "Hematpur",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00111",
+        "name": "Parulia",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00110",
+        "name": "Katwa",
+        "time": "2:00 PM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00109",
+        "name": "Srikhanda",
+        "time": null
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00108",
+        "name": "Balgona",
+        "time": "3:00 PM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00075",
+        "name": "Guskara",
+        "time": "3:50 PM"
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00076",
+        "name": "Budbud",
+        "time": "5:00 PM"
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00034",
+        "name": "Panagarh",
+        "time": "5:20 PM"
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00033",
+        "name": "Durgapur (Muchipara)",
+        "time": "5:40 PM"
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00032",
+        "name": "Durgapur (City Center)",
+        "time": "5:50 PM"
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00107",
+        "name": "Benachity",
+        "time": "6:05 PM"
+      }
+    ]
+  },
+  {
+    "busName": "ABHISHEK",
+    "registrationNumber": "WB55F6221",
+    "direction": "UP",
+    "fingerprint": "khatra|ranibandh|poradih|kuilapal|chhirudi|bandwan|katin|barabazar|salboni|balarampur|urma|damda|simulia|purulia",
+    "origin": "Khatra",
+    "destination": "Purulia",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00013",
+        "name": "Khatra",
+        "time": "5:40 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00112",
+        "name": "Ranibandh",
+        "time": "6:10 AM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00113",
+        "name": "Poradih",
+        "time": "6:50 AM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00114",
+        "name": "Kuilapal",
+        "time": null
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00115",
+        "name": "Chhirudi",
+        "time": null
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00116",
+        "name": "Bandwan",
+        "time": "7:40 AM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00117",
+        "name": "Katin",
+        "time": "8:10 AM"
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00118",
+        "name": "Barabazar",
+        "time": "8:50 AM"
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00119",
+        "name": "Salboni",
+        "time": "9:20 AM"
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00120",
+        "name": "Balarampur",
+        "time": "9:40 AM"
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00121",
+        "name": "Urma",
+        "time": null
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00122",
+        "name": "Damda",
+        "time": null
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00123",
+        "name": "Simulia",
+        "time": null
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00124",
+        "name": "Purulia",
+        "time": "10:50 AM"
+      }
+    ]
+  },
+  {
+    "busName": "ABHISHEK",
+    "registrationNumber": "WB55F6221",
+    "direction": "DOWN",
+    "fingerprint": "purulia|simulia|damda|urma|balarampur|salboni|barabazar|katin|bandwan|chhirudi|kuilapal|poradih|ranibandh|khatra",
+    "origin": "Purulia",
+    "destination": "Khatra",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00124",
+        "name": "Purulia",
+        "time": "1:40 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00123",
+        "name": "Simulia",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00122",
+        "name": "Damda",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00121",
+        "name": "Urma",
+        "time": null
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00120",
+        "name": "Balarampur",
+        "time": "2:50 PM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00119",
+        "name": "Salboni",
+        "time": "3:10 PM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00118",
+        "name": "Barabazar",
+        "time": "3:40 PM"
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00117",
+        "name": "Katin",
+        "time": "4:10 PM"
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00116",
+        "name": "Bandwan",
+        "time": "4:45 PM"
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00115",
+        "name": "Chhirudi",
+        "time": null
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00114",
+        "name": "Kuilapal",
+        "time": null
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00113",
+        "name": "Poradih",
+        "time": "5:20 PM"
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00112",
+        "name": "Ranibandh",
+        "time": "6:00 PM"
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00013",
+        "name": "Khatra",
+        "time": "6:30 PM"
+      }
+    ]
+  },
+  {
+    "busName": "ABIR SUPER",
+    "registrationNumber": "WB05C4556",
+    "direction": "UP",
+    "fingerprint": "taldangra|panchmura|sabrakon|bishnupur|joypur|kotulpur|khatul|bengai|arambagh|mayapur|champadanga|siakhala|mosat|chanditala|dankuni|salap|kona express more|santragachi|kolkata (esplanade)",
+    "origin": "Taldangra",
+    "destination": "Kolkata (Esplanade)",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00125",
+        "name": "Taldangra",
+        "time": "4:25 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00126",
+        "name": "Panchmura",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00127",
+        "name": "Sabrakon",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00097",
+        "name": "Bishnupur",
+        "time": "5:45 AM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00128",
+        "name": "Joypur",
+        "time": null
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00129",
+        "name": "Kotulpur",
+        "time": "6:30 AM"
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00130",
+        "name": "Khatul",
+        "time": null
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00131",
+        "name": "Bengai",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00132",
+        "name": "Arambagh",
+        "time": "7:15 AM"
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00133",
+        "name": "Mayapur",
+        "time": null
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00134",
+        "name": "Champadanga",
+        "time": null
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00135",
+        "name": "Siakhala",
+        "time": null
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00136",
+        "name": "Mosat",
+        "time": null
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00137",
+        "name": "Chanditala",
+        "time": null
+      },
+      {
+        "sequence": 15,
+        "stopId": "STOP_00138",
+        "name": "Dankuni",
+        "time": null
+      },
+      {
+        "sequence": 16,
+        "stopId": "STOP_00068",
+        "name": "Salap",
+        "time": null
+      },
+      {
+        "sequence": 17,
+        "stopId": "STOP_00067",
+        "name": "Kona Express More",
+        "time": null
+      },
+      {
+        "sequence": 18,
+        "stopId": "STOP_00139",
+        "name": "Santragachi",
+        "time": "8:50 AM"
+      },
+      {
+        "sequence": 19,
+        "stopId": "STOP_00140",
+        "name": "Kolkata (Esplanade)",
+        "time": "9:15 AM"
+      }
+    ]
+  },
+  {
+    "busName": "ABIR SUPER",
+    "registrationNumber": "WB05C4556",
+    "direction": "DOWN",
+    "fingerprint": "kolkata (esplanade)|santragachi|kona express more|salap|dankuni|chanditala|mosat|siakhala|champadanga|mayapur|arambagh|bengai|khatul|kotulpur|joypur|bishnupur|sabrakon|panchmura|taldangra",
+    "origin": "Kolkata (Esplanade)",
+    "destination": "Taldangra",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00140",
+        "name": "Kolkata (Esplanade)",
+        "time": "12:15 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00139",
+        "name": "Santragachi",
+        "time": "12:35 PM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00067",
+        "name": "Kona Express More",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00068",
+        "name": "Salap",
+        "time": null
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00138",
+        "name": "Dankuni",
+        "time": null
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00137",
+        "name": "Chanditala",
+        "time": null
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00136",
+        "name": "Mosat",
+        "time": null
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00135",
+        "name": "Siakhala",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00134",
+        "name": "Champadanga",
+        "time": null
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00133",
+        "name": "Mayapur",
+        "time": null
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00132",
+        "name": "Arambagh",
+        "time": "2:20 PM"
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00131",
+        "name": "Bengai",
+        "time": null
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00130",
+        "name": "Khatul",
+        "time": null
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00129",
+        "name": "Kotulpur",
+        "time": "3:10 PM"
+      },
+      {
+        "sequence": 15,
+        "stopId": "STOP_00128",
+        "name": "Joypur",
+        "time": null
+      },
+      {
+        "sequence": 16,
+        "stopId": "STOP_00097",
+        "name": "Bishnupur",
+        "time": "4:20 PM"
+      },
+      {
+        "sequence": 17,
+        "stopId": "STOP_00127",
+        "name": "Sabrakon",
+        "time": null
+      },
+      {
+        "sequence": 18,
+        "stopId": "STOP_00126",
+        "name": "Panchmura",
+        "time": null
+      },
+      {
+        "sequence": 19,
+        "stopId": "STOP_00125",
+        "name": "Taldangra",
+        "time": "5:15 PM"
+      }
+    ]
+  },
+  {
+    "busName": "ADDYA SHAKTI",
+    "registrationNumber": "WB531693",
+    "direction": "UP",
+    "fingerprint": "bolpur|nanoor|kirnahar|futishanko|marut|sundarpur|kuli|kandi|gokarna|khagraghat|baharampur",
+    "origin": "Bolpur",
+    "destination": "Baharampur",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00037",
+        "name": "Bolpur",
+        "time": "7:00 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00141",
+        "name": "Nanoor",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00038",
+        "name": "Kirnahar",
+        "time": "8:05 AM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00039",
+        "name": "Futishanko",
+        "time": "8:25 AM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00040",
+        "name": "Marut",
+        "time": null
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00041",
+        "name": "Sundarpur",
+        "time": null
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00042",
+        "name": "Kuli",
+        "time": "9:25 AM"
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00043",
+        "name": "Kandi",
+        "time": "9:45 AM"
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00142",
+        "name": "Gokarna",
+        "time": null
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00143",
+        "name": "Khagraghat",
+        "time": null
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00144",
+        "name": "Baharampur",
+        "time": "10:40 AM"
+      }
+    ]
+  },
+  {
+    "busName": "ADDYA SHAKTI",
+    "registrationNumber": "WB531693",
+    "direction": "DOWN",
+    "fingerprint": "baharampur|khagraghat|gokarna|kandi|kuli|sundarpur|marut|futishanko|kirnahar|nanoor|bolpur",
+    "origin": "Baharampur",
+    "destination": "Bolpur",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00144",
+        "name": "Baharampur",
+        "time": "11:50 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00143",
+        "name": "Khagraghat",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00142",
+        "name": "Gokarna",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00043",
+        "name": "Kandi",
+        "time": "1:05 PM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00042",
+        "name": "Kuli",
+        "time": "1:20 PM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00041",
+        "name": "Sundarpur",
+        "time": null
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00040",
+        "name": "Marut",
+        "time": null
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00039",
+        "name": "Futishanko",
+        "time": "2:20 PM"
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00038",
+        "name": "Kirnahar",
+        "time": "2:50 PM"
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00141",
+        "name": "Nanoor",
+        "time": null
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00037",
+        "name": "Bolpur",
+        "time": "4:10 PM"
+      }
+    ]
+  },
+  {
+    "busName": "ADDYA SHAKTI",
+    "registrationNumber": "WB31A7525",
+    "direction": "UP",
+    "fingerprint": "digha|ramnagar|contai|henria|bajkul|chandipur|nandakumar|nimtouri|mecheda|mechogram|keshapat|khukur daha|goura|sultannagar|daspur|ghatal|baroda chowkan|radhanagar|khirpai|kamarpukur|srinagar|goghat|arambagh",
+    "origin": "Digha",
+    "destination": "Arambagh",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00145",
+        "name": "Digha",
+        "time": "4:00 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00146",
+        "name": "Ramnagar",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00147",
+        "name": "Contai",
+        "time": "5:20 AM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00148",
+        "name": "Henria",
+        "time": "5:55 AM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00149",
+        "name": "Bajkul",
+        "time": null
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00150",
+        "name": "Chandipur",
+        "time": null
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00017",
+        "name": "Nandakumar",
+        "time": null
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00151",
+        "name": "Nimtouri",
+        "time": null
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00019",
+        "name": "Mecheda",
+        "time": "7:40 AM"
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00020",
+        "name": "Mechogram",
+        "time": "8:00 AM"
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00084",
+        "name": "Keshapat",
+        "time": null
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00085",
+        "name": "Khukur Daha",
+        "time": null
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00086",
+        "name": "Goura",
+        "time": null
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00087",
+        "name": "Sultannagar",
+        "time": null
+      },
+      {
+        "sequence": 15,
+        "stopId": "STOP_00088",
+        "name": "Daspur",
+        "time": null
+      },
+      {
+        "sequence": 16,
+        "stopId": "STOP_00089",
+        "name": "Ghatal",
+        "time": "8:50 AM"
+      },
+      {
+        "sequence": 17,
+        "stopId": "STOP_00090",
+        "name": "Baroda Chowkan",
+        "time": null
+      },
+      {
+        "sequence": 18,
+        "stopId": "STOP_00152",
+        "name": "Radhanagar",
+        "time": null
+      },
+      {
+        "sequence": 19,
+        "stopId": "STOP_00091",
+        "name": "Khirpai",
+        "time": "9:30 AM"
+      },
+      {
+        "sequence": 20,
+        "stopId": "STOP_00153",
+        "name": "Kamarpukur",
+        "time": "10:30 AM"
+      },
+      {
+        "sequence": 21,
+        "stopId": "STOP_00154",
+        "name": "Srinagar",
+        "time": null
+      },
+      {
+        "sequence": 22,
+        "stopId": "STOP_00155",
+        "name": "Goghat",
+        "time": null
+      },
+      {
+        "sequence": 23,
+        "stopId": "STOP_00132",
+        "name": "Arambagh",
+        "time": "11:00 AM"
+      }
+    ]
+  },
+  {
+    "busName": "ADDYA SHAKTI",
+    "registrationNumber": "WB31A7525",
+    "direction": "DOWN",
+    "fingerprint": "arambagh|goghat|srinagar|kamarpukur|khirpai|radhanagar|baroda chowkan|ghatal|daspur|sultannagar|goura|khukur daha|keshapat|mechogram|mecheda|nimtouri|nandakumar|chandipur|bajkul|henria|contai|ramnagar|digha",
+    "origin": "Arambagh",
+    "destination": "Digha",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00132",
+        "name": "Arambagh",
+        "time": "12:10 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00155",
+        "name": "Goghat",
+        "time": null
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00154",
+        "name": "Srinagar",
+        "time": null
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00153",
+        "name": "Kamarpukur",
+        "time": "12:45 PM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00091",
+        "name": "Khirpai",
+        "time": "1:40 PM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00152",
+        "name": "Radhanagar",
+        "time": null
+      },
+      {
+        "sequence": 7,
+        "stopId": "STOP_00090",
+        "name": "Baroda Chowkan",
+        "time": null
+      },
+      {
+        "sequence": 8,
+        "stopId": "STOP_00089",
+        "name": "Ghatal",
+        "time": "2:00 PM"
+      },
+      {
+        "sequence": 9,
+        "stopId": "STOP_00088",
+        "name": "Daspur",
+        "time": null
+      },
+      {
+        "sequence": 10,
+        "stopId": "STOP_00087",
+        "name": "Sultannagar",
+        "time": null
+      },
+      {
+        "sequence": 11,
+        "stopId": "STOP_00086",
+        "name": "Goura",
+        "time": null
+      },
+      {
+        "sequence": 12,
+        "stopId": "STOP_00085",
+        "name": "Khukur Daha",
+        "time": null
+      },
+      {
+        "sequence": 13,
+        "stopId": "STOP_00084",
+        "name": "Keshapat",
+        "time": null
+      },
+      {
+        "sequence": 14,
+        "stopId": "STOP_00020",
+        "name": "Mechogram",
+        "time": "3:00 PM"
+      },
+      {
+        "sequence": 15,
+        "stopId": "STOP_00019",
+        "name": "Mecheda",
+        "time": "3:20 PM"
+      },
+      {
+        "sequence": 16,
+        "stopId": "STOP_00151",
+        "name": "Nimtouri",
+        "time": null
+      },
+      {
+        "sequence": 17,
+        "stopId": "STOP_00017",
+        "name": "Nandakumar",
+        "time": null
+      },
+      {
+        "sequence": 18,
+        "stopId": "STOP_00150",
+        "name": "Chandipur",
+        "time": null
+      },
+      {
+        "sequence": 19,
+        "stopId": "STOP_00149",
+        "name": "Bajkul",
+        "time": null
+      },
+      {
+        "sequence": 20,
+        "stopId": "STOP_00148",
+        "name": "Henria",
+        "time": "4:30 PM"
+      },
+      {
+        "sequence": 21,
+        "stopId": "STOP_00147",
+        "name": "Contai",
+        "time": "5:00 PM"
+      },
+      {
+        "sequence": 22,
+        "stopId": "STOP_00146",
+        "name": "Ramnagar",
+        "time": null
+      },
+      {
+        "sequence": 23,
+        "stopId": "STOP_00145",
+        "name": "Digha",
+        "time": "6:30 PM"
+      }
+    ]
+  },
+  {
+    "busName": "ADDYA SHAKTI",
+    "registrationNumber": "WB53A4193",
+    "direction": "UP",
+    "fingerprint": "futishanko|khujutipara|charkalgram|bolpur",
+    "origin": "Futishanko",
+    "destination": "Bolpur",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00039",
+        "name": "Futishanko",
+        "time": "6:20 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00156",
+        "name": "Khujutipara",
+        "time": "7:00 AM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00157",
+        "name": "Charkalgram",
+        "time": "7:25 AM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00037",
+        "name": "Bolpur",
+        "time": "8:30 AM"
+      }
+    ]
+  },
+  {
+    "busName": "ADDYA SHAKTI",
+    "registrationNumber": "WB53A4193",
+    "direction": "DOWN",
+    "fingerprint": "bolpur|charkalgram|khujutipara|futishanko",
+    "origin": "Bolpur",
+    "destination": "Futishanko",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00037",
+        "name": "Bolpur",
+        "time": "3:10 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00157",
+        "name": "Charkalgram",
+        "time": "4:15 PM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00156",
+        "name": "Khujutipara",
+        "time": "4:30 PM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00039",
+        "name": "Futishanko",
+        "time": "5:10 PM"
+      }
+    ]
+  },
+  {
+    "busName": "ADDYA SHAKTI",
+    "registrationNumber": "WB53A4193",
+    "direction": "UP",
+    "fingerprint": "bolpur|charkalgram|khujutipara|futishanko|pachundi|salar",
+    "origin": "Bolpur",
+    "destination": "Salar",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00037",
+        "name": "Bolpur",
+        "time": "8:55 AM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00157",
+        "name": "Charkalgram",
+        "time": "9:50 AM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00156",
+        "name": "Khujutipara",
+        "time": "10:10 AM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00039",
+        "name": "Futishanko",
+        "time": "10:35 AM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00158",
+        "name": "Pachundi",
+        "time": "11:00 AM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00159",
+        "name": "Salar",
+        "time": "11:45 AM"
+      }
+    ]
+  },
+  {
+    "busName": "ADDYA SHAKTI",
+    "registrationNumber": "WB53A4193",
+    "direction": "DOWN",
+    "fingerprint": "salar|pachundi|futishanko|khujutipara|charkalgram|bolpur",
+    "origin": "Salar",
+    "destination": "Bolpur",
+    "stops": [
+      {
+        "sequence": 1,
+        "stopId": "STOP_00159",
+        "name": "Salar",
+        "time": "12:10 PM"
+      },
+      {
+        "sequence": 2,
+        "stopId": "STOP_00158",
+        "name": "Pachundi",
+        "time": "12:40 PM"
+      },
+      {
+        "sequence": 3,
+        "stopId": "STOP_00039",
+        "name": "Futishanko",
+        "time": "1:10 PM"
+      },
+      {
+        "sequence": 4,
+        "stopId": "STOP_00156",
+        "name": "Khujutipara",
+        "time": "1:40 PM"
+      },
+      {
+        "sequence": 5,
+        "stopId": "STOP_00157",
+        "name": "Charkalgram",
+        "time": "2:00 PM"
+      },
+      {
+        "sequence": 6,
+        "stopId": "STOP_00037",
+        "name": "Bolpur",
+        "time": "2:55 PM"
+      }
+    ]
+  }
+]
