@@ -11,7 +11,7 @@ See also: [architecture.md](architecture.md), [adr/0003-hexagonal-architecture.m
 | Mobile app | Flutter |
 | API | NestJS |
 | Database | PostgreSQL with PostGIS |
-| ORM | TypeORM |
+| ORM | Sequelize |
 | Queue | BullMQ with Redis |
 | Provider jobs | Worker app |
 | Routing | PostGIS first, RAPTOR/CSA later |
@@ -47,12 +47,41 @@ flowchart LR
 
 ## Architectural Rules
 
-- Domain modules must not import NestJS or TypeORM.
+- Domain modules must not import NestJS or Sequelize.
 - Providers emit canonical transit records, not database entities.
 - Database entities stay in infrastructure.
 - Use cases orchestrate repositories and domain services.
 - Provider-specific quirks stay inside provider adapters.
 - Every imported record must retain source metadata.
+
+## Feature-Driven Module Pattern
+
+New backend code should be organized by feature first, layer second:
+
+```text
+modules/
+  transit/
+    domain/
+    application/
+    infrastructure/
+      sequelize/
+        models/
+        repositories/
+        mappers/
+    presentation/
+  regions/
+    domain/
+    application/
+    infrastructure/
+    presentation/
+  journey/
+    domain/
+    application/
+    infrastructure/
+    presentation/
+```
+
+This keeps a developer inside one feature folder for most changes. Shared utilities belong in `shared/`; provider-specific logic belongs in provider drivers.
 
 ## Region-Scoped API Pattern
 

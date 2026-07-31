@@ -27,6 +27,7 @@ The numbered documents are product and system planning artifacts. The existing i
 | [17-state-data-sources.md](17-state-data-sources.md) | State-wise source catalog |
 | [18-business-model.md](18-business-model.md) | Monetization, partnerships, and operating model |
 | [19-future.md](19-future.md) | Long-term capabilities and open questions |
+| [adr/0009-use-sequelize.md](adr/0009-use-sequelize.md) | Sequelize and feature-driven NestJS module decision |
 
 ## Source Status
 
@@ -38,4 +39,3 @@ The state data catalog is a research backlog, not a legally approved ingestion m
 - Rate limits and robots policy
 - Data freshness and coverage
 - Whether attribution is required
-

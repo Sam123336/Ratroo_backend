@@ -1,5 +1,9 @@
 # ADR-0006: TypeORM QueryBuilder Over Raw SQL
 
+## Status
+
+Superseded by [ADR-0009: Use Sequelize ORM With Feature-Driven NestJS Modules](0009-use-sequelize.md) for new implementation work.
+
 **Status:** Accepted  
 **Date:** 2026-07-30
 

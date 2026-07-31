@@ -2,6 +2,18 @@
 
 See also: [database.md](database.md).
 
+## ORM Direction
+
+The target API stack is NestJS with Sequelize. Sequelize models live inside feature infrastructure folders, not in one global model directory.
+
+```text
+modules/transit/infrastructure/sequelize/models/
+modules/regions/infrastructure/sequelize/models/
+modules/community/infrastructure/sequelize/models/
+```
+
+Repository interfaces stay in the domain/application boundary so the ORM can change without leaking into use cases.
+
 ## Schemas
 
 | Schema | Purpose |
@@ -43,4 +55,3 @@ Every imported entity should be traceable back to:
 - Raw payload checksum
 - Parser version
 - Timestamp imported
-

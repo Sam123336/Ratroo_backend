@@ -5,11 +5,11 @@
 
 ## Context
 
-In a hexagonal architecture, the domain layer must not depend on infrastructure concerns like TypeORM, SQL queries, or database connections. However, the application still needs to persist and retrieve entities. Without a clear abstraction, use cases would either call TypeORM directly (violating dependency inversion) or be forced to implement persistence logic themselves (violating single responsibility).
+In a hexagonal architecture, the domain layer must not depend on infrastructure concerns like Sequelize, SQL queries, or database connections. However, the application still needs to persist and retrieve entities. Without a clear abstraction, use cases would either call Sequelize models directly (violating dependency inversion) or be forced to implement persistence logic themselves (violating single responsibility).
 
 ## Decision
 
-The domain layer defines **repository interfaces** as contracts for data access. The infrastructure layer provides **concrete implementations** that fulfill these contracts using TypeORM with PostGIS.
+The domain layer defines **repository interfaces** as contracts for data access. The infrastructure layer provides **concrete implementations** that fulfill these contracts using Sequelize with PostgreSQL/PostGIS.
 
 ### Interface Definition (Domain Layer)
 
@@ -27,14 +27,10 @@ export interface StopRepository {
 ### Implementation (Infrastructure Layer)
 
 ```typescript
-// apps/api/src/modules/transit/infrastructure/repositories/TypeOrmStopRepository.ts
+// apps/api/src/modules/transit/infrastructure/sequelize/repositories/SequelizeStopRepository.ts
 @Injectable()
-export class TypeOrmStopRepository implements StopRepository {
-  constructor(
-    @InjectRepository(TypeOrmStopEntity)
-    private readonly repo: Repository<TypeOrmStopEntity>,
-    private readonly mapper: StopMapper,
-  ) {}
+export class SequelizeStopRepository implements StopRepository {
+  constructor(private readonly stopModel: typeof StopModel) {}
 
   async findNearby(params: FindNearbyStopsParams): Promise<Stop[]> {
     const { lat, lng, radius } = params;
@@ -75,7 +71,7 @@ Repository interfaces are bound to implementations via NestJS module configurati
 ## Consequences
 
 - **Positive:** Use cases are testable with in-memory repository stubs — no database required.
-- **Positive:** Changing from TypeORM to another ORM or database requires only rewriting the infrastructure repository implementations — domain and application layers are untouched.
+- **Positive:** Changing from Sequelize to another ORM or database requires only rewriting the infrastructure repository implementations — domain and application layers are untouched.
 - **Positive:** Query logic is centralized in repositories, making it easy to review and optimize SQL/PostGIS queries.
 - **Positive:** Repository interfaces act as a clear contract between domain and infrastructure — both sides can be developed in parallel.
 - **Negative:** One extra layer of mapping (domain ↔ ORM entity) per aggregate — additional boilerplate files.

@@ -36,7 +36,7 @@ The provider system is responsible for ingesting transit data from multiple Indi
            ▼  (Stop, Route, Trip, StopTime entities)
 ┌─────────────────────────────────────────────────────┐
 │             Repository (Transit Context)              │
-│  Persists domain entities via TypeORM repositories   │
+│  Persists domain entities via Sequelize repositories │
 └─────────────────────────────────────────────────────┘
 ```
 
