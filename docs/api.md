@@ -206,9 +206,13 @@ Provider registry APIs expose ingestion configuration only. They do not scrape o
 ```
 GET /v1/provider-registry/west-bengal
 GET /v1/provider-registry/west-bengal/WBBUS
+GET /v1/provider-registry/bengaluru
+GET /v1/provider-registry/bengaluru/BMTC_OFFICIAL
 ```
 
 The West Bengal registry currently includes WBBus, WBTC routes, NBSTC, Kolkata Metro, SBSTC, ferry, Eastern Railway suburban, Kolkata auto notifications, and Kolkata Tram.
+
+The Bengaluru registry currently includes BMTC official, Namma BMTC AVLS, BMTC GTFS references, BMRCL, BMTC airport, BMTC metro feeder, BMTC facilities, DULT TransitGIS, KSRTC, KRIDE suburban rail, Indian Railways Bengaluru stations, community mobility, and OSM network.
 
 Every provider must follow:
 

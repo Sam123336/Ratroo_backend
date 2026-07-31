@@ -9,7 +9,7 @@ export const LAUNCH_REGIONS: LaunchRegion[] = [
     priority: 'P0',
     scope: {
       country: 'India',
-      providerCodes: ['WBBUS', 'WBTC', 'BMTC', 'KSRTC_KA', 'KERALA_RTC', 'DELHI_OTD'],
+      providerCodes: ['WBBUS', 'WBTC', 'BMTC_OFFICIAL', 'KSRTC_KARNATAKA', 'KERALA_RTC', 'DELHI_OTD'],
     },
     providers: [
       {
@@ -120,11 +120,11 @@ export const LAUNCH_REGIONS: LaunchRegion[] = [
       country: 'India',
       state: 'Karnataka',
       city: 'Bengaluru',
-      providerCodes: ['BMTC', 'BMRCL'],
+      providerCodes: ['BMTC_OFFICIAL', 'BMTC_METRO_FEEDER', 'BMTC_FACILITIES', 'BMRCL'],
     },
     providers: [
       {
-        code: 'BMTC',
+        code: 'BMTC_OFFICIAL',
         name: 'Bengaluru Metropolitan Transport Corporation',
         modes: ['BUS'],
         status: 'research',
@@ -150,18 +150,18 @@ export const LAUNCH_REGIONS: LaunchRegion[] = [
     scope: {
       country: 'India',
       state: 'Karnataka',
-      providerCodes: ['BMTC', 'KSRTC_KA', 'NWKRTC', 'KKRTC', 'BMRCL'],
+      providerCodes: ['BMTC_OFFICIAL', 'KSRTC_KARNATAKA', 'NWKRTC', 'KKRTC', 'BMRCL'],
     },
     providers: [
       {
-        code: 'KSRTC_KA',
+        code: 'KSRTC_KARNATAKA',
         name: 'Karnataka State Road Transport Corporation',
         modes: ['BUS'],
         status: 'research',
         adapterKey: 'ksrtc-karnataka',
       },
       {
-        code: 'BMTC',
+        code: 'BMTC_OFFICIAL',
         name: 'Bengaluru Metropolitan Transport Corporation',
         modes: ['BUS'],
         status: 'research',
@@ -198,4 +198,3 @@ export const LAUNCH_REGIONS: LaunchRegion[] = [
     notes: 'Reserved for non-India expansion; provider drivers should still implement the same contracts.',
   },
 ];
-

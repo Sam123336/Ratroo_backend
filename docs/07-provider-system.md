@@ -47,6 +47,19 @@ The provider-ingestion module owns provider registry, provider runs, raw source 
 8. Auto routes
 9. Tram
 
+## Bengaluru Provider Priority
+
+1. BMTC official data
+2. BMRCL Metro
+3. BMTC metro feeders
+4. BMTC stations/TTMCs
+5. Vayu Vajra
+6. OpenStreetMap walking
+7. Namma BMTC realtime, only after access review
+8. KSRTC
+9. Suburban rail
+10. Community auto/shuttle data
+
 ## Generic Interface
 
 ```typescript

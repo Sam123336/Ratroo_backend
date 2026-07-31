@@ -1,14 +1,21 @@
 export type TransportMode =
   | 'BUS'
   | 'METRO'
+  | 'INTERCITY_BUS'
   | 'SUBURBAN_RAIL'
   | 'TRAM'
   | 'FERRY'
   | 'SHARED_AUTO'
-  | 'WALKING';
+  | 'AUTO'
+  | 'SHUTTLE'
+  | 'WALKING'
+  | 'CYCLING'
+  | 'ROAD';
 
 export type SourceType =
   | 'GOVERNMENT'
+  | 'GOVERNMENT_APP'
+  | 'GOVERNMENT_GIS'
   | 'OPERATOR'
   | 'COMMUNITY'
   | 'OPEN_DATA'
@@ -16,9 +23,15 @@ export type SourceType =
 
 export type NodeType =
   | 'BUS_STOP'
+  | 'BUS_STATION'
   | 'BUS_TERMINAL'
+  | 'TTMC'
+  | 'DEPOT'
+  | 'PASS_COUNTER'
   | 'METRO_STATION'
+  | 'METRO_ENTRANCE'
   | 'RAILWAY_STATION'
+  | 'AIRPORT_TERMINAL'
   | 'TRAM_STOP'
   | 'FERRY_TERMINAL'
   | 'AUTO_STAND'
@@ -26,9 +39,12 @@ export type NodeType =
 
 export type OperationalStatus =
   | 'ACTIVE'
+  | 'INACTIVE'
   | 'SUSPENDED'
   | 'HISTORICAL'
   | 'PLANNED'
+  | 'UNDER_CONSTRUCTION'
+  | 'PARTIALLY_OPERATIONAL'
   | 'UNKNOWN';
 
 export type VerificationStatus =
@@ -40,8 +56,12 @@ export type VerificationStatus =
 
 export interface CanonicalGeography {
   countryCode: 'IN';
-  stateCode: 'WB';
+  stateCode: 'WB' | 'KA' | string;
   district?: string;
+  metropolitanArea?: string;
+  localAuthority?: string;
+  zone?: string;
+  ward?: string;
   subdivision?: string;
   municipality?: string;
   city?: string;
@@ -166,4 +186,3 @@ export interface CanonicalMobilityDataset {
   fares: CanonicalFare[];
   observations: CanonicalSourceObservation[];
 }
-

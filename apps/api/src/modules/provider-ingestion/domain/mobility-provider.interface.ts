@@ -68,13 +68,27 @@ export interface ProviderRegistryEntry {
   code: string;
   adapterKey: string;
   name: string;
-  sourceType: 'GOVERNMENT' | 'OPERATOR' | 'COMMUNITY' | 'OPEN_DATA' | 'THIRD_PARTY';
+  sourceType:
+    | 'GOVERNMENT'
+    | 'GOVERNMENT_APP'
+    | 'GOVERNMENT_GIS'
+    | 'OPERATOR'
+    | 'COMMUNITY'
+    | 'OPEN_DATA'
+    | 'THIRD_PARTY';
   website: string;
   version: string;
   priority: 'P0' | 'P1' | 'P2' | 'P3';
   modes: TransportMode[];
   access: string;
-  status: ProviderRunStatus | 'PLANNED' | 'RESEARCH';
+  status:
+    | ProviderRunStatus
+    | 'PLANNED'
+    | 'RESEARCH'
+    | 'ACTIVE_DEVELOPMENT'
+    | 'RESEARCH_REQUIRED'
+    | 'RESEARCH_ONLY'
+    | 'RESEARCH_REQUIRES_ACCESS_REVIEW';
   sourceUrls: string[];
   notes: string[];
   canonicalTargets: Array<keyof CanonicalMobilityDataset | string>;

@@ -22,5 +22,22 @@ export class ProviderRegistryController {
       data: this.registry.getWestBengalProvider(code),
     };
   }
-}
 
+  @Get('bengaluru')
+  listBengaluruProviders() {
+    const providers = this.registry.listBengaluruProviders();
+
+    return {
+      data: providers,
+      count: providers.length,
+      rule: 'Ingestion must save raw source records before parsing, validation, mapping, staging, or promotion.',
+    };
+  }
+
+  @Get('bengaluru/:code')
+  getBengaluruProvider(@Param('code') code: string) {
+    return {
+      data: this.registry.getBengaluruProvider(code),
+    };
+  }
+}
