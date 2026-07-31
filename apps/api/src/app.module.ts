@@ -62,6 +62,7 @@ function databaseConfig(config: ConfigService): SequelizeModuleOptions {
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env', '../../.env'],
     }),
     SequelizeModule.forRootAsync({
       imports: [ConfigModule],
