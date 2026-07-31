@@ -47,11 +47,21 @@ export interface WorkerMobilityProvider<TDiscoveryItem, TRawRecord, TCanonicalRe
 }
 
 export interface RawSourceSink {
+  findLatestContentHash(providerCode: string, sourceUrl: string): Promise<string | null>;
   saveRawSource(
     providerCode: string,
     runId: string,
     response: WorkerRawProviderResponse,
   ): Promise<{ rawRecordId: string }>;
+  markItemStatus(input: {
+    providerCode: string;
+    runId: string;
+    externalId: string;
+    sourceUrl: string;
+    status: 'PENDING' | 'FETCHED' | 'PARSED' | 'MAPPED' | 'FAILED' | 'SKIPPED_UNCHANGED';
+    contentHash?: string;
+    errorMessage?: string;
+  }): Promise<void>;
 }
 
 export interface DatasetVersionSink<TCanonicalRecord> {
@@ -75,10 +85,53 @@ export class ProviderIngestionPipeline<TDiscoveryItem, TRawRecord, TCanonicalRec
     let canonicalCount = 0;
 
     for await (const discoveryItem of provider.discover(context)) {
+      const discovered = this.toDiscoveryMetadata(discoveryItem);
+      await this.rawSourceSink.markItemStatus({
+        providerCode: provider.providerCode,
+        runId: context.runId,
+        externalId: discovered.externalId,
+        sourceUrl: discovered.sourceUrl,
+        status: 'PENDING',
+      });
+
       const response = await provider.fetch(discoveryItem, context);
+      const latestHash = await this.rawSourceSink.findLatestContentHash(
+        provider.providerCode,
+        response.sourceUrl,
+      );
+
+      if (latestHash === response.contentHash) {
+        await this.rawSourceSink.markItemStatus({
+          providerCode: provider.providerCode,
+          runId: context.runId,
+          externalId: discovered.externalId,
+          sourceUrl: response.sourceUrl,
+          status: 'SKIPPED_UNCHANGED',
+          contentHash: response.contentHash,
+        });
+        continue;
+      }
+
       await this.rawSourceSink.saveRawSource(provider.providerCode, context.runId, response);
+      await this.rawSourceSink.markItemStatus({
+        providerCode: provider.providerCode,
+        runId: context.runId,
+        externalId: discovered.externalId,
+        sourceUrl: response.sourceUrl,
+        status: 'FETCHED',
+        contentHash: response.contentHash,
+      });
 
       const rawRecords = await provider.parse(response);
+      await this.rawSourceSink.markItemStatus({
+        providerCode: provider.providerCode,
+        runId: context.runId,
+        externalId: discovered.externalId,
+        sourceUrl: response.sourceUrl,
+        status: 'PARSED',
+        contentHash: response.contentHash,
+      });
+
       const validation = await provider.validate(rawRecords);
 
       if (validation.blockedReason) {
@@ -91,6 +144,14 @@ export class ProviderIngestionPipeline<TDiscoveryItem, TRawRecord, TCanonicalRec
 
       const canonicalRecords = await provider.map(rawRecords, context);
       canonicalCount += canonicalRecords.length;
+      await this.rawSourceSink.markItemStatus({
+        providerCode: provider.providerCode,
+        runId: context.runId,
+        externalId: discovered.externalId,
+        sourceUrl: response.sourceUrl,
+        status: 'MAPPED',
+        contentHash: response.contentHash,
+      });
 
       await this.datasetVersionSink.persistDatasetVersion(
         provider.providerCode,
@@ -100,5 +161,13 @@ export class ProviderIngestionPipeline<TDiscoveryItem, TRawRecord, TCanonicalRec
     }
 
     return { status: 'PROMOTION_READY', canonicalCount };
+  }
+
+  private toDiscoveryMetadata(discoveryItem: TDiscoveryItem): { externalId: string; sourceUrl: string } {
+    const item = discoveryItem as Record<string, unknown>;
+    const sourceUrl = String(item.sourceUrl || item.url || item.href || 'unknown');
+    const externalId = String(item.externalId || item.id || sourceUrl);
+
+    return { externalId, sourceUrl };
   }
 }

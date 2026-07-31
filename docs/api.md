@@ -215,3 +215,26 @@ Every provider must follow:
 ```text
 Discover -> Fetch -> Save raw source -> Parse -> Validate -> Map -> Version -> Promote
 ```
+
+## Ingestion Visibility
+
+Administrative visibility endpoints:
+
+```text
+GET /v1/provider-runs
+GET /v1/provider-runs/:id
+GET /v1/provider-runs/:id/report
+GET /v1/dataset-versions
+GET /v1/dataset-versions/:id
+GET /v1/source-observations/:id
+GET /v1/canonical-conflicts
+```
+
+Internal command endpoints:
+
+```text
+POST /internal/providers/:code/sync
+POST /internal/dataset-versions/:id/promote
+POST /internal/dataset-versions/:id/reject
+POST /internal/node-mappings/:id/resolve
+```

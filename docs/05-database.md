@@ -38,6 +38,19 @@ Repository interfaces stay in the domain/application boundary so the ORM can cha
 | `datasets` | Logical provider dataset |
 | `dataset_versions` | Versioned validated canonical observations |
 | `source_observations` | Provenance and confidence for mapped records |
+| `provider_item_checkpoints` | Per-discovered-item status for resumable imports |
+| `staged_agencies` | Staged canonical agency records before promotion |
+| `staged_nodes` | Staged canonical mobility nodes before promotion |
+| `staged_routes` | Staged canonical route patterns before promotion |
+| `staged_route_stops` | Staged route stop order before promotion |
+| `staged_trips` | Staged canonical trips before promotion |
+| `staged_stop_times` | Staged stop times before promotion |
+| `staged_fares` | Staged fare observations before promotion |
+| `provider_agency_mappings` | Provider agency identity resolution |
+| `provider_node_mappings` | Provider node identity resolution |
+| `provider_route_mappings` | Provider route identity resolution |
+| `provider_trip_mappings` | Provider trip identity resolution |
+| `canonical_conflicts` | Conflicting canonical candidates needing review |
 | `coverage.states` | Normalized Indian state and UT records |
 | `coverage.districts` | District hierarchy |
 | `coverage.cities` | City/town coverage status |

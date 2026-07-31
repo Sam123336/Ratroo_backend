@@ -32,13 +32,6 @@ export class RawSourceRecordRepository {
   }
 
   private serializeBody(body: RawProviderResponse['body']): unknown {
-    if (Buffer.isBuffer(body)) {
-      return {
-        encoding: 'base64',
-        body: body.toString('base64'),
-      };
-    }
-
     if (typeof body === 'string') {
       return { body };
     }
@@ -46,4 +39,3 @@ export class RawSourceRecordRepository {
     return body;
   }
 }
-

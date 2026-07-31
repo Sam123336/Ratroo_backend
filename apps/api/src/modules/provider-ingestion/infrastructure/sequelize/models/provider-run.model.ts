@@ -21,6 +21,24 @@ export class ProviderRunModel extends Model {
   @Column({ type: DataType.TEXT, allowNull: true })
   declare checkpoint?: string;
 
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare lastDiscoveryCursor?: string;
+
+  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
+  declare discoveredCount: number;
+
+  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
+  declare fetchedCount: number;
+
+  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
+  declare parsedCount: number;
+
+  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
+  declare failedCount: number;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare lastProcessedExternalId?: string;
+
   @Column({ type: DataType.JSONB, allowNull: false, defaultValue: {} })
   declare metrics: Record<string, unknown>;
 
@@ -38,4 +56,3 @@ export class ProviderRunModel extends Model {
     model.id = ensureUuidV7(model.id);
   }
 }
-

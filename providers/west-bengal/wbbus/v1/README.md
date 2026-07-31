@@ -19,3 +19,18 @@ discovery -> client -> raw_source_records -> parser -> validation -> mapper -> d
 
 WBBus is treated as a community/private source. It can contribute useful route, stop, trip, vehicle, and timing observations, but it should not automatically override official sources.
 
+## Files
+
+```text
+wbbus.discovery.ts
+wbbus.client.ts
+wbbus.parser.ts
+wbbus.validator.ts
+wbbus.mapper.ts
+wbbus.provider.ts
+wbbus.types.ts
+fixtures/
+tests/
+```
+
+The mapper does not deduplicate against other providers. Identity resolution belongs to provider mapping and promotion workflows.

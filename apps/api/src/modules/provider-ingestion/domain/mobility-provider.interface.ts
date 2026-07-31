@@ -31,7 +31,7 @@ export interface RawProviderResponse {
   fetchedAt: string;
   statusCode?: number;
   contentType?: string;
-  body: string | Buffer | Record<string, unknown>;
+  body: string | Record<string, unknown>;
   contentHash: string;
   metadata?: Record<string, unknown>;
 }
@@ -79,4 +79,3 @@ export interface ProviderRegistryEntry {
   notes: string[];
   canonicalTargets: Array<keyof CanonicalMobilityDataset | string>;
 }
-

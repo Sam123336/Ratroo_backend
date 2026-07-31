@@ -18,7 +18,7 @@ export class DatasetVersionModel extends Model {
   @Column({ type: DataType.JSONB, allowNull: false, defaultValue: {} })
   declare validationSummary: Record<string, unknown>;
 
-  @Column({ type: DataType.STRING(40), allowNull: false, defaultValue: 'DRAFT' })
+  @Column({ type: DataType.STRING(40), allowNull: false, defaultValue: 'DISCOVERING' })
   declare status: string;
 
   @CreatedAt
@@ -32,4 +32,3 @@ export class DatasetVersionModel extends Model {
     model.id = ensureUuidV7(model.id);
   }
 }
-
