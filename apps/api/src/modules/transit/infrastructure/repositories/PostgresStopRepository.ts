@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { StopRepository, NearbyStopResult } from '../../domain/repositories/StopRepository';
+import {
+  StopRepository,
+  NearbyStopResult,
+  TransitQueryScope,
+} from '../../domain/repositories/StopRepository';
 import { Stop } from '../../domain/entities/Stop';
 import { Coordinates } from '../../domain/value-objects/Coordinates';
 import { TypeOrmStopEntity } from '../typeorm/entities/typeorm-stop.entity';
@@ -24,10 +28,14 @@ export class PostgresStopRepository implements StopRepository {
     return entity ? StopMapper.toDomain(entity) : null;
   }
 
-  async findNearby(coordinates: Coordinates, radiusMeters: number): Promise<NearbyStopResult[]> {
+  async findNearby(
+    coordinates: Coordinates,
+    radiusMeters: number,
+    scope?: TransitQueryScope,
+  ): Promise<NearbyStopResult[]> {
     const { latitude: lat, longitude: lng } = coordinates;
 
-    const rawResults = await this.repo
+    const rawQueryBuilder = this.repo
       .createQueryBuilder('stop')
       .select([
         'stop.id',
@@ -53,8 +61,11 @@ export class PostgresStopRepository implements StopRepository {
       )
       .setParameters({ lng, lat, radius: radiusMeters })
       .orderBy('distanceMeters', 'ASC')
-      .limit(100)
-      .getRawMany();
+      .limit(100);
+
+    this.applyScope(rawQueryBuilder, scope);
+
+    const rawResults = await rawQueryBuilder.getRawMany();
 
     return rawResults.map(r => ({
       stop: StopMapper.toDomain({
@@ -76,11 +87,17 @@ export class PostgresStopRepository implements StopRepository {
     }));
   }
 
-  async findAll(page = 1, limit = 50, search?: string): Promise<{ items: Stop[]; total: number }> {
+  async findAll(
+    page = 1,
+    limit = 50,
+    search?: string,
+    scope?: TransitQueryScope,
+  ): Promise<{ items: Stop[]; total: number }> {
     const qb = this.repo.createQueryBuilder('stop');
     if (search) {
       qb.where('stop.name ILIKE :search OR stop.normalizedName ILIKE :search', { search: `%${search}%` });
     }
+    this.applyScope(qb, scope);
     qb.skip((page - 1) * limit).take(limit);
 
     const [entities, total] = await qb.getManyAndCount();
@@ -94,5 +111,32 @@ export class PostgresStopRepository implements StopRepository {
     const persistenceData = StopMapper.toPersistence(stop);
     const savedEntity = await this.repo.save(persistenceData);
     return StopMapper.toDomain(savedEntity);
+  }
+
+  private applyScope(
+    qb: ReturnType<Repository<TypeOrmStopEntity>['createQueryBuilder']>,
+    scope?: TransitQueryScope,
+  ): void {
+    if (!scope) {
+      return;
+    }
+
+    if (scope.providerCodes?.length) {
+      qb.andWhere('stop.provider IN (:...providerCodes)', {
+        providerCodes: scope.providerCodes,
+      });
+    }
+
+    if (scope.state) {
+      qb.andWhere('stop.state = :state', { state: scope.state });
+    }
+
+    if (scope.district) {
+      qb.andWhere('stop.district = :district', { district: scope.district });
+    }
+
+    if (scope.city) {
+      qb.andWhere('stop.city = :city', { city: scope.city });
+    }
   }
 }

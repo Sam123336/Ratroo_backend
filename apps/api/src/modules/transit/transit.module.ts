@@ -23,6 +23,8 @@ import { FindRoutesUseCase } from './application/use-cases/FindRoutesUseCase';
 
 import { StopsController } from './presentation/controllers/stops.controller';
 import { RoutesController } from './presentation/controllers/routes.controller';
+import { RegionTransitController } from './presentation/controllers/region-transit.controller';
+import { RegionsModule } from '../regions/regions.module';
 
 const repositoryProviders = [
   {
@@ -52,6 +54,7 @@ const useCaseProviders = [
 
 @Module({
   imports: [
+    RegionsModule,
     TypeOrmModule.forFeature([
       TypeOrmStopEntity,
       TypeOrmRouteEntity,
@@ -60,7 +63,7 @@ const useCaseProviders = [
       TypeOrmStopTimeEntity,
     ]),
   ],
-  controllers: [StopsController, RoutesController],
+  controllers: [StopsController, RoutesController, RegionTransitController],
   providers: [
     ...repositoryProviders,
     ...useCaseProviders,

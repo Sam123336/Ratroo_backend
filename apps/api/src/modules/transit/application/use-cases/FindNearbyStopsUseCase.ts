@@ -1,11 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { STOP_REPOSITORY_TOKEN, StopRepository } from '../../domain/repositories/StopRepository';
+import {
+  STOP_REPOSITORY_TOKEN,
+  StopRepository,
+  TransitQueryScope,
+} from '../../domain/repositories/StopRepository';
 import { Coordinates } from '../../domain/value-objects/Coordinates';
 
 export interface FindNearbyStopsInput {
   latitude: number;
   longitude: number;
   radiusMeters?: number;
+  scope?: TransitQueryScope;
 }
 
 export interface NearbyStopOutput {
@@ -29,7 +34,7 @@ export class FindNearbyStopsUseCase {
     const coordinates = new Coordinates(input.latitude, input.longitude);
     const radius = input.radiusMeters || 2000;
 
-    const results = await this.stopRepository.findNearby(coordinates, radius);
+    const results = await this.stopRepository.findNearby(coordinates, radius, input.scope);
 
     return results.map(r => ({
       id: r.stop.id,
@@ -38,6 +43,9 @@ export class FindNearbyStopsUseCase {
       latitude: r.stop.coordinates?.latitude,
       longitude: r.stop.coordinates?.longitude,
       provider: r.stop.provider,
+      city: r.stop.city,
+      district: r.stop.district,
+      state: r.stop.state,
       distanceMeters: Math.round(r.distanceMeters),
     }));
   }

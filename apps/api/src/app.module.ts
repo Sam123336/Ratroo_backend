@@ -9,6 +9,7 @@ import { StopTimeEntity } from './database/entities/stop-time.entity';
 import { TransitSourceRecordEntity } from './database/entities/transit-source-record.entity';
 import { HealthController } from './modules/health/health.controller';
 import { TransitModule } from './modules/transit/transit.module';
+import { RegionsModule } from './modules/regions/regions.module';
 import { WBBusModule } from './integrations/transit-providers/wbbus/wbbus.module';
 import { ImportWBBusService } from './database/seeds/import-wbbus.service';
 
@@ -39,6 +40,7 @@ import { ImportWBBusService } from './database/seeds/import-wbbus.service';
       }),
     }),
     TransitModule,
+    RegionsModule,
     WBBusModule,
   ],
   controllers: [HealthController],
