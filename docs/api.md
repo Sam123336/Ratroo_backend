@@ -157,3 +157,44 @@ Response (200):
 | NOT_FOUND | 404 | Resource not found |
 | VALIDATION_ERROR | 400 | Invalid input parameters |
 | INTERNAL | 500 | Unexpected server error |
+
+## Coverage and Launch Regions
+
+Launch regions are modular API scopes for state, city, country, and future global rollout.
+
+### List Regions
+
+```
+GET /v1/coverage/regions
+```
+
+Example region slugs:
+
+| Slug | Meaning |
+|------|---------|
+| `india` | National API shell |
+| `west-bengal` | West Bengal state launch |
+| `kerala` | Kerala state launch |
+| `karnataka` | Karnataka state launch |
+| `bengaluru` | Bengaluru city launch |
+| `global` | Future non-India expansion shell |
+
+### Region Details
+
+```
+GET /v1/coverage/regions/west-bengal
+GET /v1/coverage/regions/west-bengal/providers
+```
+
+### Region-Scoped Transit APIs
+
+These endpoints use the same transit use cases as global APIs but apply the launch region's provider and geography scope.
+
+```
+GET /v1/regions/west-bengal/stops/nearby?lat=22.5726&lng=88.3639&radius=2000
+GET /v1/regions/west-bengal/routes?page=1&limit=50
+GET /v1/regions/kerala/routes
+GET /v1/regions/bengaluru/stops/nearby?lat=12.9716&lng=77.5946
+```
+
+Region configuration lives in the coverage module, so adding a new launch state or global geography does not require changing the transit controllers.
