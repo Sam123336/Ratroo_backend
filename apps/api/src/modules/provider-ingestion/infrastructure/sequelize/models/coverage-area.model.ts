@@ -46,7 +46,7 @@ export class CoverageAreaModel extends Model {
 }
 
 function coverageMappingModel(tableName: string, ownerColumnName: string) {
-  @Table({ tableName, timestamps: true })
+  @Table({ tableName, modelName: tableName, timestamps: true })
   class CoverageMappingModel extends Model {
     @Column({ type: DataType.UUID, primaryKey: true })
     declare id: string;

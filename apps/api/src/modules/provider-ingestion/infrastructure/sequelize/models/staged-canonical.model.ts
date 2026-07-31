@@ -2,7 +2,7 @@ import { BeforeCreate, Column, CreatedAt, DataType, Model, Table, UpdatedAt } fr
 import { ensureUuidV7 } from '../../../../../shared/ids/uuid-v7';
 
 function stagedModel(tableName: string) {
-  @Table({ tableName, timestamps: true })
+  @Table({ tableName, modelName: tableName, timestamps: true })
   class StagedCanonicalModel extends Model {
     @Column({ type: DataType.UUID, primaryKey: true })
     declare id: string;
@@ -62,4 +62,3 @@ export const StagedRouteStopModel = stagedModel('staged_route_stops');
 export const StagedTripModel = stagedModel('staged_trips');
 export const StagedStopTimeModel = stagedModel('staged_stop_times');
 export const StagedFareModel = stagedModel('staged_fares');
-

@@ -2,7 +2,7 @@ import { BeforeCreate, Column, CreatedAt, DataType, Model, Table, UpdatedAt } fr
 import { ensureUuidV7 } from '../../../../../shared/ids/uuid-v7';
 
 function mappingModel(tableName: string, canonicalColumnName: string) {
-  @Table({ tableName, timestamps: true })
+  @Table({ tableName, modelName: tableName, timestamps: true })
   class ProviderMappingModel extends Model {
     @Column({ type: DataType.UUID, primaryKey: true })
     declare id: string;
@@ -44,4 +44,3 @@ export const ProviderAgencyMappingModel = mappingModel('provider_agency_mappings
 export const ProviderNodeMappingModel = mappingModel('provider_node_mappings', 'nodeId');
 export const ProviderRouteMappingModel = mappingModel('provider_route_mappings', 'routeId');
 export const ProviderTripMappingModel = mappingModel('provider_trip_mappings', 'tripId');
-
