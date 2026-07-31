@@ -45,39 +45,45 @@ export class CoverageAreaModel extends Model {
   }
 }
 
-function coverageMappingModel(tableName: string, ownerColumnName: string) {
-  @Table({ tableName, modelName: tableName, timestamps: true })
-  class CoverageMappingModel extends Model {
-    @Column({ type: DataType.UUID, primaryKey: true })
-    declare id: string;
+abstract class BaseCoverageMappingModel extends Model {
+  @Column({ type: DataType.UUID, primaryKey: true })
+  declare id: string;
 
-    @Column({ type: DataType.UUID, allowNull: false, field: ownerColumnName })
-    declare ownerId: string;
+  @Column({ type: DataType.UUID, allowNull: false })
+  declare coverageAreaId: string;
 
-    @Column({ type: DataType.UUID, allowNull: false })
-    declare coverageAreaId: string;
+  @Column({ type: DataType.STRING(40), allowNull: false, defaultValue: 'SERVES' })
+  declare relationshipType: string;
 
-    @Column({ type: DataType.STRING(40), allowNull: false, defaultValue: 'SERVES' })
-    declare relationshipType: string;
+  @Column({ type: DataType.JSONB, allowNull: false, defaultValue: {} })
+  declare metadata: Record<string, unknown>;
 
-    @Column({ type: DataType.JSONB, allowNull: false, defaultValue: {} })
-    declare metadata: Record<string, unknown>;
+  @CreatedAt
+  declare createdAt: Date;
 
-    @CreatedAt
-    declare createdAt: Date;
+  @UpdatedAt
+  declare updatedAt: Date;
 
-    @UpdatedAt
-    declare updatedAt: Date;
-
-    @BeforeCreate
-    static assignId(model: CoverageMappingModel): void {
-      model.id = ensureUuidV7(model.id);
-    }
+  @BeforeCreate
+  static assignId(model: BaseCoverageMappingModel): void {
+    model.id = ensureUuidV7(model.id);
   }
-
-  return CoverageMappingModel;
 }
 
-export const ProviderCoverageAreaModel = coverageMappingModel('provider_coverage_areas', 'providerId');
-export const RouteCoverageAreaModel = coverageMappingModel('route_coverage_areas', 'routeId');
-export const DatasetCoverageAreaModel = coverageMappingModel('dataset_coverage_areas', 'datasetId');
+@Table({ tableName: 'provider_coverage_areas', timestamps: true })
+export class ProviderCoverageAreaModel extends BaseCoverageMappingModel {
+  @Column({ type: DataType.UUID, allowNull: false, field: 'providerId' })
+  declare ownerId: string;
+}
+
+@Table({ tableName: 'route_coverage_areas', timestamps: true })
+export class RouteCoverageAreaModel extends BaseCoverageMappingModel {
+  @Column({ type: DataType.UUID, allowNull: false, field: 'routeId' })
+  declare ownerId: string;
+}
+
+@Table({ tableName: 'dataset_coverage_areas', timestamps: true })
+export class DatasetCoverageAreaModel extends BaseCoverageMappingModel {
+  @Column({ type: DataType.UUID, allowNull: false, field: 'datasetId' })
+  declare ownerId: string;
+}
