@@ -54,6 +54,17 @@ export type VerificationStatus =
   | 'OPERATOR_VERIFIED'
   | 'OFFICIAL';
 
+export type ServiceClass =
+  | 'REGULAR'
+  | 'EXPRESS'
+  | 'LIMITED_STOP'
+  | 'AIRPORT'
+  | 'METRO_FEEDER'
+  | 'INTERCITY'
+  | 'NIGHT'
+  | 'PREMIUM'
+  | 'UNKNOWN';
+
 export interface CanonicalGeography {
   countryCode: 'IN';
   stateCode: 'WB' | 'KA' | string;
@@ -110,6 +121,7 @@ export interface CanonicalRoutePattern {
   longName: string;
   directionId?: string;
   operationalStatus: OperationalStatus;
+  serviceClass?: ServiceClass;
   stops: Array<{
     nodeExternalId?: string;
     name: string;
@@ -140,6 +152,7 @@ export interface CanonicalTrip {
   effectiveFrom?: string;
   effectiveUntil?: string;
   operationalStatus: OperationalStatus;
+  serviceClass?: ServiceClass;
   stopTimes: CanonicalStopTime[];
 }
 

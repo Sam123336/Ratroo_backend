@@ -120,7 +120,7 @@ export const LAUNCH_REGIONS: LaunchRegion[] = [
       country: 'India',
       state: 'Karnataka',
       city: 'Bengaluru',
-      providerCodes: ['BMTC_OFFICIAL', 'BMTC_METRO_FEEDER', 'BMTC_FACILITIES', 'BMRCL'],
+      providerCodes: ['BMTC_OFFICIAL', 'BMTC_FACILITIES', 'BMRCL'],
     },
     providers: [
       {

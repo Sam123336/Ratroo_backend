@@ -31,3 +31,18 @@ tests/
 
 Every metro record should include `operationalStatus`, `effectiveFrom`, `effectiveUntil`, and `lastObservedAt` where available.
 
+## First Static Dataset Milestone
+
+```text
+Discover BMRCL static pages
+-> Fetch
+-> Save raw source
+-> Parse lines/stations/interchanges
+-> Validate status and source provenance
+-> Map canonical agencies/nodes/route patterns/source observations
+-> Stage
+-> Promote
+-> Query Bengaluru metro stations and lines
+```
+
+Do not begin with live train timing. Start with static network, stations, interchanges, operating hours, first/last train references, and fare structure.

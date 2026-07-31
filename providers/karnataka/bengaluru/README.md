@@ -26,7 +26,7 @@ Discover
 
 1. BMTC official data
 2. BMRCL Metro
-3. BMTC metro feeders
+3. BMTC metro feeders as `serviceClass = METRO_FEEDER`
 4. BMTC stations/TTMCs
 5. Vayu Vajra
 6. OpenStreetMap walking
@@ -43,7 +43,6 @@ Discover
 | Namma BMTC AVLS | `namma-bmtc-avls-provider` | BUS, realtime | Access review required |
 | BMRCL Metro | `bmrcl-metro-provider` | METRO | Active development |
 | BMTC airport | `bmtc-airport-provider` | BUS | Research |
-| BMTC metro feeder | `bmtc-metro-feeder-provider` | BUS | Active development |
 | BMTC facilities | `bmtc-facilities-provider` | BUS facilities | Active development |
 | DULT TransitGIS | `dult-transitgis-provider` | GIS layers | Research required |
 | KSRTC | `ksrtc-karnataka-provider` | INTERCITY_BUS | Planned |
@@ -74,3 +73,15 @@ Do not bypass authentication, CAPTCHA, session controls, proprietary API restric
 
 Unofficial BMTC GTFS datasets are fixtures/research only unless publisher, license, freshness, and permissions are verified.
 
+## Service Classes
+
+Service class is independent of transport mode and provider identity.
+
+BMTC metro feeder routes are modeled under `BMTC_OFFICIAL` with:
+
+```text
+mode = BUS
+serviceClass = METRO_FEEDER
+```
+
+Use separate providers only when the data source, ownership, ingestion rules, or update lifecycle is genuinely different.

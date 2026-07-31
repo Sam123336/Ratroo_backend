@@ -22,6 +22,7 @@ export const BENGALURU_PROVIDER_REGISTRY: ProviderRegistryEntry[] = [
     notes: [
       'Authoritative parent source for BMTC city, suburban, feeder, facility, pass, and notice data.',
       'Parse facilities separately from route stops.',
+      'Metro feeder routes are serviceClass = METRO_FEEDER under BMTC_OFFICIAL, not a separate provider identity.',
     ],
     canonicalTargets: [
       'providers',
@@ -139,21 +140,6 @@ export const BENGALURU_PROVIDER_REGISTRY: ProviderRegistryEntry[] = [
       'Third-party airport timing pages are discovery/comparison only.',
     ],
     canonicalTargets: ['routePatterns', 'trips', 'fares', 'frequencies', 'observations', 'AirportTerminal'],
-  },
-  {
-    code: 'BMTC_METRO_FEEDER',
-    adapterKey: 'bmtc-metro-feeder-provider',
-    name: 'BMTC metro feeder routes',
-    sourceType: 'GOVERNMENT',
-    website: 'https://mybmtc.karnataka.gov.in/new-page/Metro%20Feeder%20Route%20details/en',
-    version: 'v1',
-    priority: 'P0',
-    modes: ['BUS'],
-    access: 'Official feeder route page',
-    status: 'ACTIVE_DEVELOPMENT',
-    sourceUrls: ['https://mybmtc.karnataka.gov.in/new-page/Metro%20Feeder%20Route%20details/en'],
-    notes: ['Critical for BMTC stop to metro station journey planning.'],
-    canonicalTargets: ['routePatterns', 'frequencies', 'observations', 'MetroInterchange'],
   },
   {
     code: 'BMTC_FACILITIES',
@@ -274,7 +260,6 @@ export const BENGALURU_PROVIDER_REGISTRY: ProviderRegistryEntry[] = [
 export const BENGALURU_PROVIDER_PRIORITY = [
   'BMTC_OFFICIAL',
   'BMRCL',
-  'BMTC_METRO_FEEDER',
   'BMTC_FACILITIES',
   'BMTC_AIRPORT',
   'OSM_BENGALURU',
@@ -286,4 +271,3 @@ export const BENGALURU_PROVIDER_PRIORITY = [
   'DULT_TRANSITGIS',
   'INDIAN_RAILWAYS_BENGALURU',
 ];
-

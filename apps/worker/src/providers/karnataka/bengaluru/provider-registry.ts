@@ -22,7 +22,11 @@ export const BENGALURU_WORKER_PROVIDER_REGISTRY: WorkerBengaluruProviderRegistry
     ],
     access: 'Official HTML pages and PDFs',
     status: 'ACTIVE_DEVELOPMENT',
-    notes: ['Raw-source-first ingestion.', 'Facilities are not route stops until resolved.'],
+    notes: [
+      'Raw-source-first ingestion.',
+      'Facilities are not route stops until resolved.',
+      'Metro feeder routes are serviceClass = METRO_FEEDER under BMTC_OFFICIAL.',
+    ],
   },
   {
     code: 'BMRCL',
@@ -38,16 +42,6 @@ export const BENGALURU_WORKER_PROVIDER_REGISTRY: WorkerBengaluruProviderRegistry
     access: 'Official metro HTML pages',
     status: 'ACTIVE_DEVELOPMENT',
     notes: ['Do not mark planned lines active.', 'Include operational status and effective dates.'],
-  },
-  {
-    code: 'BMTC_METRO_FEEDER',
-    adapterKey: 'bmtc-metro-feeder-provider',
-    priority: 'P0',
-    modes: ['BUS'],
-    sourceUrls: ['https://mybmtc.karnataka.gov.in/new-page/Metro%20Feeder%20Route%20details/en'],
-    access: 'Official feeder route page',
-    status: 'ACTIVE_DEVELOPMENT',
-    notes: ['Critical for BMTC to Metro interchanges.'],
   },
   {
     code: 'OSM_BENGALURU',
@@ -70,4 +64,3 @@ export const BENGALURU_WORKER_PROVIDER_REGISTRY: WorkerBengaluruProviderRegistry
     notes: ['Do not bypass authentication, tokens, CAPTCHA, rate limits, or technical restrictions.'],
   },
 ];
-

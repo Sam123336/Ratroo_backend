@@ -51,7 +51,7 @@ The provider-ingestion module owns provider registry, provider runs, raw source 
 
 1. BMTC official data
 2. BMRCL Metro
-3. BMTC metro feeders
+3. BMTC metro feeders as `serviceClass = METRO_FEEDER` under `BMTC_OFFICIAL`
 4. BMTC stations/TTMCs
 5. Vayu Vajra
 6. OpenStreetMap walking
@@ -59,6 +59,8 @@ The provider-ingestion module owns provider registry, provider runs, raw source 
 8. KSRTC
 9. Suburban rail
 10. Community auto/shuttle data
+
+Service class is independent of transport mode and provider identity. Do not create a new provider for every service category when ownership, source, and update lifecycle are the same.
 
 ## Generic Interface
 
