@@ -3,8 +3,8 @@
 ## Technology Stack
 
 - **Database:** PostgreSQL 16 with PostGIS 3.4 extension
-- **ORM:** TypeORM 0.3 with `@nestjs/typeorm`
-- **Migrations:** TypeORM migration system (`typeorm migration:generate` / `typeorm migration:run`)
+- **ORM:** Sequelize with NestJS integration
+- **Migrations:** Sequelize/Umzug-style migration scripts
 - **Schema per bounded context:** PostgreSQL schemas for logical separation
 
 ## Schema Structure
@@ -25,7 +25,7 @@ postgres
 
 | Column | Type | Constraints | Notes |
 |--------|------|-------------|-------|
-| `id` | `UUID` | PK | Domain entity ID |
+| `id` | `UUID` | PK | Domain entity ID, generated as UUID v7 by the API |
 | `external_id` | `VARCHAR(255)` | UNIQUE, NOT NULL | Provider-prefixed ID (e.g., `wbbus:123`) |
 | `name` | `VARCHAR(255)` | NOT NULL | Stop name |
 | `code` | `VARCHAR(50)` | NULLABLE | Short stop code |
@@ -104,41 +104,32 @@ postgres
 
 ### Approach
 
-TypeORM migrations are used for all schema changes. The workflow is:
+Sequelize/Umzug-style migrations are used for all schema changes. The workflow is:
 
-1. **Generate migration** from entity changes: `npx typeorm migration:generate -d data-source.ts src/migrations/MigrationName`
-2. **Review migration** — TypeORM-generated migrations must always be reviewed before running. PostGIS operations (`CREATE EXTENSION`, spatial index creation) are hand-written if TypeORM cannot generate them.
-3. **Run migrations** automatically on application startup (in production via deployment pipeline, locally via `migration:run`).
+1. **Create migration** for the feature change.
+2. **Review migration** before running. PostGIS operations (`CREATE EXTENSION`, spatial index creation, geography columns) should be explicit and hand-written when needed.
+3. **Run migrations** through the deployment pipeline, and locally through the API migration command once Sequelize is wired.
 
 ### Conventions
 
-- Migration files are stored in `apps/api/src/migrations/` with filenames like `1711828800000-CreateStopsTable.ts`
+- Migration files are stored in `apps/api/src/database/migrations/` or a feature-owned migration folder if the runner supports it.
 - Each migration file is a single concern (do not combine unrelated schema changes)
 - PostGIS extension is created in the first migration: `query('CREATE EXTENSION IF NOT EXISTS postgis')`
 - Indexes are created in the same migration as the table they belong to
 - Down migrations are written for all production migrations
 
-### Data Source Configuration
+### Sequelize Configuration
 
 ```typescript
-// apps/api/src/data-source.ts
-import { DataSource, DataSourceOptions } from 'typeorm';
-import { config } from './config';
-
-export const dataSourceOptions: DataSourceOptions = {
-  type: 'postgres',
-  host: config.db.host,
-  port: config.db.port,
-  username: config.db.username,
-  password: config.db.password,
-  database: config.db.database,
-  schema: 'transit',
-  entities: [__dirname + '/**/*.entity{.ts,.js}'],
-  migrations: [__dirname + '/migrations/*{.ts,.js}'],
-  migrationsTableName: 'typeorm_migrations',
+// apps/api/src/database/sequelize.config.ts
+export const sequelizeConfig = {
+  dialect: 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+  port: Number(process.env.DB_PORT || 5432),
+  username: process.env.DB_USER || 'transit_admin',
+  password: process.env.DB_PASSWORD || 'transit_password',
+  database: process.env.DB_NAME || 'transit_db',
 };
-
-export default new DataSource(dataSourceOptions);
 ```
 
 ### Local Development

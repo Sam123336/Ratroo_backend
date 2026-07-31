@@ -1,15 +1,17 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { TypeOrmStopEntity } from './infrastructure/typeorm/entities/typeorm-stop.entity';
-import { TypeOrmRouteEntity } from './infrastructure/typeorm/entities/typeorm-route.entity';
-import { TypeOrmTripEntity } from './infrastructure/typeorm/entities/typeorm-trip.entity';
-import { TypeOrmAgencyEntity } from './infrastructure/typeorm/entities/typeorm-agency.entity';
-import { TypeOrmStopTimeEntity } from './infrastructure/typeorm/entities/typeorm-stop-time.entity';
+import { SequelizeModule } from '@nestjs/sequelize';
+import {
+  AgencyModel,
+  RouteModel,
+  StopModel,
+  StopTimeModel,
+  TripModel,
+} from './infrastructure/sequelize/models';
 
-import { PostgresStopRepository } from './infrastructure/repositories/PostgresStopRepository';
-import { PostgresRouteRepository } from './infrastructure/repositories/PostgresRouteRepository';
-import { PostgresTripRepository } from './infrastructure/repositories/PostgresTripRepository';
-import { PostgresAgencyRepository } from './infrastructure/repositories/PostgresAgencyRepository';
+import { SequelizeStopRepository } from './infrastructure/sequelize/repositories/SequelizeStopRepository';
+import { SequelizeRouteRepository } from './infrastructure/sequelize/repositories/SequelizeRouteRepository';
+import { SequelizeTripRepository } from './infrastructure/sequelize/repositories/SequelizeTripRepository';
+import { SequelizeAgencyRepository } from './infrastructure/sequelize/repositories/SequelizeAgencyRepository';
 
 import { STOP_REPOSITORY_TOKEN } from './domain/repositories/StopRepository';
 import { ROUTE_REPOSITORY_TOKEN } from './domain/repositories/RouteRepository';
@@ -29,19 +31,19 @@ import { RegionsModule } from '../regions/regions.module';
 const repositoryProviders = [
   {
     provide: STOP_REPOSITORY_TOKEN,
-    useClass: PostgresStopRepository,
+    useClass: SequelizeStopRepository,
   },
   {
     provide: ROUTE_REPOSITORY_TOKEN,
-    useClass: PostgresRouteRepository,
+    useClass: SequelizeRouteRepository,
   },
   {
     provide: TRIP_REPOSITORY_TOKEN,
-    useClass: PostgresTripRepository,
+    useClass: SequelizeTripRepository,
   },
   {
     provide: AGENCY_REPOSITORY_TOKEN,
-    useClass: PostgresAgencyRepository,
+    useClass: SequelizeAgencyRepository,
   },
 ];
 
@@ -55,22 +57,22 @@ const useCaseProviders = [
 @Module({
   imports: [
     RegionsModule,
-    TypeOrmModule.forFeature([
-      TypeOrmStopEntity,
-      TypeOrmRouteEntity,
-      TypeOrmTripEntity,
-      TypeOrmAgencyEntity,
-      TypeOrmStopTimeEntity,
+    SequelizeModule.forFeature([
+      AgencyModel,
+      StopModel,
+      RouteModel,
+      TripModel,
+      StopTimeModel,
     ]),
   ],
   controllers: [StopsController, RoutesController, RegionTransitController],
   providers: [
     ...repositoryProviders,
     ...useCaseProviders,
-    PostgresStopRepository,
-    PostgresRouteRepository,
-    PostgresTripRepository,
-    PostgresAgencyRepository,
+    SequelizeStopRepository,
+    SequelizeRouteRepository,
+    SequelizeTripRepository,
+    SequelizeAgencyRepository,
   ],
   exports: [
     STOP_REPOSITORY_TOKEN,

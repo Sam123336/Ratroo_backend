@@ -100,7 +100,7 @@ transit-platform/
 apps/api/src/
 │
 ├── main.ts                           # Bootstrap NestJS app
-├── app.module.ts                     # Root module (TypeORM, Config, modules)
+├── app.module.ts                     # Root module (Sequelize, Config, modules)
 │
 ├── shared/                           # Shared Kernel (framework-independent)
 │   ├── errors/
@@ -145,9 +145,9 @@ apps/api/src/
 │   │   │   └── events/               # Future: app-level event handlers
 │   │   │
 │   │   ├── infrastructure/           # Framework/DB concerns
-│   │   │   ├── typeorm/entities/     # TypeOrmStopEntity, TypeOrmRouteEntity, TypeOrmTripEntity, TypeOrmAgencyEntity, TypeOrmStopTimeEntity
-│   │   │   ├── repositories/         # PostgresStopRepository, PostgresRouteRepository, PostgresTripRepository, PostgresAgencyRepository
-│   │   │   └── mappers/              # StopMapper, RouteMapper, TripMapper, AgencyMapper
+│   │   │   └── sequelize/
+│   │   │       ├── models/           # AgencyModel, StopModel, RouteModel, TripModel, StopTimeModel
+│   │   │       └── repositories/     # SequelizeStopRepository, SequelizeRouteRepository, SequelizeTripRepository, SequelizeAgencyRepository
 │   │   │
 │   │   └── presentation/             # HTTP layer
 │   │       ├── controllers/          # stops.controller.ts, routes.controller.ts
@@ -172,11 +172,9 @@ apps/api/src/
 │   ├── fare/                         # Pricing (future)
 │   └── admin/                        # Admin dashboard (future)
 │
-├── database/                         # Database layer
-│   ├── entities/                     # TypeORM entity definitions (with decorators)
-│   ├── data-source.ts                # TypeORM DataSource config for migrations
-│   ├── migrations/                   # Generated migration files (filled via npm run migration:generate)
-│   ├── seeds/                        # import-wbbus.service.ts, test-wbbus-import.ts
+├── database/                         # Database support
+│   ├── migrations/                   # Sequelize/Umzug-style migrations (future)
+│   ├── seeds/                        # Sequelize-backed seeds/imports (future)
 │   ├── views/                        # PostgreSQL views (future)
 │   └── functions/                    # PostgreSQL functions (future)
 │
@@ -198,7 +196,7 @@ apps/api/src/
 
 ### 3.1 Core Rule: Zero Framework Dependencies
 
-The domain layer has **no NestJS imports, no TypeORM decorators, no framework coupling of any kind**. It is pure TypeScript.
+The domain layer has **no NestJS imports, no Sequelize decorators, no framework coupling of any kind**. It is pure TypeScript.
 
 ```typescript
 // ✅ GOOD - domain/entities/Stop.ts
@@ -221,7 +219,7 @@ export class Stop {
   }
 }
 
-// ❌ NEVER - no NestJS @Injectable(), no TypeORM @Entity() in domain
+// NEVER - no NestJS @Injectable(), no Sequelize @Table() in domain
 ```
 
 ### 3.2 Domain Entities

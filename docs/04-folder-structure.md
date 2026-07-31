@@ -24,13 +24,12 @@ apps/
       modules/
         transit/
         journey/
-        coverage/
+        regions/
         community/
         admin/
         ai-planner/
-      integrations/
-      database/
       shared/
+      database/
   worker/
     src/
       jobs/
@@ -59,7 +58,19 @@ infrastructure/
 docs/
 ```
 
+## Feature Module Contract
+
+```text
+modules/<feature>/
+  domain/              # Pure business model, no NestJS or Sequelize
+  application/         # Use cases and ports
+  infrastructure/      # Sequelize models, repositories, external clients
+  presentation/        # Controllers, DTOs, API serializers
+  <feature>.module.ts  # NestJS wiring
+```
+
+Developers should be able to add or change a feature without hunting across global `controllers/`, `services/`, `models/`, and `repositories/` folders.
+
 ## Migration Rule
 
 Do not move early scripts only for neatness. Move them when the production worker job or provider adapter replaces their responsibility.
-
