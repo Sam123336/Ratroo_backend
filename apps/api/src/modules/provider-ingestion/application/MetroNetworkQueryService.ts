@@ -21,7 +21,7 @@ export class MetroNetworkQueryService {
   async listLines(regionSlug: string) {
     const activeVersion = await this.getActiveBmrclVersion(regionSlug);
     const lines = await this.metroLineModel.findAll({
-      where: { providerCode: 'BMRCL', datasetVersionId: activeVersion.id },
+      where: { providerCode: 'BMRCL_METRO', datasetVersionId: activeVersion.id },
       order: [['name', 'ASC']],
     });
 
@@ -32,7 +32,7 @@ export class MetroNetworkQueryService {
     const activeVersion = await this.getActiveBmrclVersion(regionSlug);
     const line = await this.metroLineModel.findOne({
       where: {
-        providerCode: 'BMRCL',
+        providerCode: 'BMRCL_METRO',
         datasetVersionId: activeVersion.id,
         [Op.or]: [{ id }, { externalId: id }],
       },
@@ -48,7 +48,7 @@ export class MetroNetworkQueryService {
   async listStations(regionSlug: string, filters: { lineId?: string; search?: string }) {
     const activeVersion = await this.getActiveBmrclVersion(regionSlug);
     const stationWhere: Record<string, unknown> = {
-      providerCode: 'BMRCL',
+      providerCode: 'BMRCL_METRO',
       datasetVersionId: activeVersion.id,
     };
 
@@ -62,7 +62,7 @@ export class MetroNetworkQueryService {
     if (filters.lineId) {
       const line = await this.metroLineModel.findOne({
         where: {
-          providerCode: 'BMRCL',
+          providerCode: 'BMRCL_METRO',
           datasetVersionId: activeVersion.id,
           [Op.or]: [{ id: filters.lineId }, { externalId: filters.lineId }],
         },
@@ -103,7 +103,7 @@ export class MetroNetworkQueryService {
     const activeVersion = await this.getActiveBmrclVersion(regionSlug);
     const station = await this.metroStationModel.findOne({
       where: {
-        providerCode: 'BMRCL',
+        providerCode: 'BMRCL_METRO',
         datasetVersionId: activeVersion.id,
         [Op.or]: [{ id }, { externalId: id }],
       },
@@ -123,7 +123,7 @@ export class MetroNetworkQueryService {
 
     const dataset = await this.datasetModel.findOne({
       where: {
-        providerCode: 'BMRCL',
+        providerCode: 'BMRCL_METRO',
         name: 'BMRCL static metro network',
       },
     });

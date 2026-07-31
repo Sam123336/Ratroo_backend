@@ -8,6 +8,7 @@ The numbered documents are product and system planning artifacts. The existing i
 
 | Doc | Purpose |
 | --- | --- |
+| [00-v1-frozen-scope.md](00-v1-frozen-scope.md) | Frozen V1 product scope, launch regions, provider set, and success criteria |
 | [01-vision.md](01-vision.md) | Product vision, users, principles, and success metrics |
 | [02-roadmap.md](02-roadmap.md) | Version roadmap from MVP through national scale |
 | [03-architecture.md](03-architecture.md) | Platform architecture and service boundaries |

@@ -1,4 +1,4 @@
-import { Controller, Headers, Param, Post, UnauthorizedException } from '@nestjs/common';
+import { Controller, Headers, Param, Post, Query, UnauthorizedException } from '@nestjs/common';
 import { BmrclStaticImportService } from '../../application/BmrclStaticImportService';
 import { DatasetPromotionService } from '../../application/DatasetPromotionService';
 import { WBBusImportService } from '../../application/WBBusImportService';
@@ -12,15 +12,23 @@ export class InternalProviderIngestionController {
   ) {}
 
   @Post('providers/:code/sync')
-  syncProvider(@Param('code') code: string, @Headers('x-internal-api-key') internalApiKey?: string) {
+  syncProvider(
+    @Param('code') code: string,
+    @Headers('x-internal-api-key') internalApiKey?: string,
+    @Query('maxPages') maxPages?: string,
+    @Query('maxItems') maxItems?: string,
+  ) {
     this.assertInternalAccess(internalApiKey);
 
-    if (code.toUpperCase() === 'BMRCL') {
+    if (['BMRCL_METRO', 'BMRCL'].includes(code.toUpperCase())) {
       return this.bmrclImport.importStaticNetwork();
     }
 
     if (code.toUpperCase() === 'WBBUS') {
-      return this.wbbusImport.importAllBuses();
+      return this.wbbusImport.importAllBuses({
+        maxPages: this.positiveNumber(maxPages),
+        maxItems: this.positiveNumber(maxItems),
+      });
     }
 
     return this.promotion.enqueueProviderSync(code);
@@ -57,5 +65,11 @@ export class InternalProviderIngestionController {
     if (!expected || internalApiKey !== expected) {
       throw new UnauthorizedException('Internal ingestion API key is required.');
     }
+  }
+
+  private positiveNumber(value?: string): number | undefined {
+    const parsed = Number(value);
+
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
   }
 }

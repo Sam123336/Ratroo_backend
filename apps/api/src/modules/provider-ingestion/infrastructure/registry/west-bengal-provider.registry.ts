@@ -29,9 +29,9 @@ export const WEST_BENGAL_PROVIDER_REGISTRY: ProviderRegistryEntry[] = [
     ],
   },
   {
-    code: 'WBTC_ROUTES',
-    adapterKey: 'wbtc-routes-provider',
-    name: 'WBTC city bus routes',
+    code: 'WBTC',
+    adapterKey: 'wbtc-provider',
+    name: 'West Bengal Transport Corporation',
     sourceType: 'GOVERNMENT',
     website: 'https://wbtconline.in/wbtc-city-bus-routes',
     version: 'v1',
@@ -39,7 +39,10 @@ export const WEST_BENGAL_PROVIDER_REGISTRY: ProviderRegistryEntry[] = [
     modes: ['BUS'],
     access: 'HTML table',
     status: 'RESEARCH',
-    sourceUrls: ['https://wbtconline.in/wbtc-city-bus-routes'],
+    sourceUrls: [
+      'https://wbtconline.in/wbtc-city-bus-routes',
+      'https://transport.wb.gov.in/transport-services/bus-services/',
+    ],
     notes: [
       'Best suited for route patterns, not complete scheduled trips.',
       'Current operation should be validated separately.',
@@ -72,7 +75,7 @@ export const WEST_BENGAL_PROVIDER_REGISTRY: ProviderRegistryEntry[] = [
     sourceType: 'GOVERNMENT',
     website: 'https://sbstc.co.in/',
     version: 'v1',
-    priority: 'P1',
+    priority: 'P0',
     modes: ['BUS'],
     access: 'Public site plus reservation search investigation',
     status: 'RESEARCH',
@@ -169,8 +172,8 @@ export const WEST_BENGAL_PROVIDER_REGISTRY: ProviderRegistryEntry[] = [
     canonicalTargets: ['providers', 'agencies', 'nodes', 'routePatterns', 'frequencies', 'observations'],
   },
   {
-    code: 'KOLKATA_AUTO_NOTIFICATIONS',
-    adapterKey: 'kolkata-auto-notifications-provider',
+    code: 'KOLKATA_AUTO',
+    adapterKey: 'kolkata-auto-provider',
     name: 'Kolkata auto-rickshaw route notifications',
     sourceType: 'GOVERNMENT',
     website: 'https://transport.wb.gov.in/',
@@ -212,13 +215,12 @@ export const WEST_BENGAL_PROVIDER_REGISTRY: ProviderRegistryEntry[] = [
 
 export const WEST_BENGAL_PROVIDER_PRIORITY = [
   'WBBUS',
-  'WBTC_ROUTES',
+  'WBTC',
   'NBSTC',
-  'KOLKATA_METRO',
   'SBSTC',
-  'WB_FERRY',
+  'KOLKATA_METRO',
   'EASTERN_RAILWAY_SUBURBAN',
-  'KOLKATA_AUTO_NOTIFICATIONS',
+  'WB_FERRY',
+  'KOLKATA_AUTO',
   'KOLKATA_TRAM',
 ];
-

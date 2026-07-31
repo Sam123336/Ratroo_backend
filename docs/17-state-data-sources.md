@@ -1,6 +1,6 @@
 # State Data Sources
 
-This catalog is a starting backlog for Indian state and union territory coverage. Each entry must be verified before production ingestion.
+This catalog is a future research backlog for Indian state and union territory coverage. Active implementation is frozen to West Bengal and Karnataka, with Bengaluru completed first. Do not create additional state registries or adapters from this catalog until the two launch regions work reliably end to end.
 
 General national references:
 
@@ -459,4 +459,3 @@ General national references:
 | Adapter | `prtc-puducherry` |
 | Priority | P2 |
 | Notes | Integrate with Tamil Nadu corridors. |
-

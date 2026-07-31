@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/sequelize';
-import { Op, QueryTypes, Sequelize } from 'sequelize';
+import { InjectConnection, InjectModel } from '@nestjs/sequelize';
+import { Op, QueryTypes } from 'sequelize';
+import { Sequelize } from 'sequelize-typescript';
 import { Stop } from '../../../domain/entities/Stop';
 import {
   NearbyStopResult,
@@ -31,6 +32,7 @@ export class SequelizeStopRepository implements StopRepository {
   constructor(
     @InjectModel(StopModel)
     private readonly stopModel: typeof StopModel,
+    @InjectConnection()
     private readonly sequelize: Sequelize,
   ) {}
 

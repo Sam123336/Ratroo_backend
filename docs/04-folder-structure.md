@@ -22,12 +22,10 @@ apps/
   api/
     src/
       modules/
-        transit/
+        mobility/
         journey/
         regions/
         community/
-        admin/
-        ai-planner/
       shared/
       database/
   worker/
@@ -40,16 +38,30 @@ apps/
   mobile/
 packages/
   canonical-model/
-  transit-core/
+  mobility-core/
+  journey-engine/
   provider-sdk/
+  geo-engine/
+  routing-engine/
   shared/
 providers/
-  wbbus/
-  gtfs/
-  bmtc/
-  optics-odisha/
-  mp-transport/
-  ksrtc-karnataka/
+  west-bengal/
+    wbbus/
+    wbtc/
+    sbstc/
+    nbstc/
+    metro/
+    rail/
+    ferry/
+    tram/
+    auto/
+  karnataka/
+    bengaluru/
+      bmtc/
+      metro/
+      osm/
+      auto/
+      shuttle/
 infrastructure/
   docker/
   postgres/

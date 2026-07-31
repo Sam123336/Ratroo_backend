@@ -1,4 +1,4 @@
-export type RegionType = 'country' | 'state' | 'city' | 'district' | 'global';
+export type RegionType = 'country' | 'state' | 'city' | 'district';
 export type RegionStatus = 'planned' | 'research' | 'beta' | 'live';
 
 export interface RegionScope {
@@ -29,4 +29,3 @@ export interface LaunchRegion {
   supportedApis: string[];
   notes?: string;
 }
-

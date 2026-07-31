@@ -10,6 +10,7 @@ import { WBBusImportService } from './application/WBBusImportService';
 import { BusNetworkController } from './presentation/controllers/bus-network.controller';
 import { CanonicalConflictsController } from './presentation/controllers/canonical-conflicts.controller';
 import { DatasetVersionsController } from './presentation/controllers/dataset-versions.controller';
+import { DeveloperDashboardController } from './presentation/controllers/developer-dashboard.controller';
 import { InternalProviderIngestionController } from './presentation/controllers/internal-provider-ingestion.controller';
 import { MetroNetworkController } from './presentation/controllers/metro-network.controller';
 import { ProviderRegistryController } from './presentation/controllers/provider-registry.controller';
@@ -25,6 +26,7 @@ import { RawSourceRecordRepository } from './infrastructure/sequelize/repositori
     BusNetworkController,
     ProviderRunsController,
     DatasetVersionsController,
+    DeveloperDashboardController,
     SourceObservationsController,
     CanonicalConflictsController,
     MetroNetworkController,

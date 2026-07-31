@@ -19,11 +19,11 @@ export const WEST_BENGAL_WORKER_PROVIDER_REGISTRY: WorkerProviderRegistryEntry[]
     notes: ['Save raw HTML before parsing.', 'Treat as community/private source.'],
   },
   {
-    code: 'WBTC_ROUTES',
-    adapterKey: 'wbtc-routes-provider',
+    code: 'WBTC',
+    adapterKey: 'wbtc-provider',
     priority: 'P0',
     modes: ['BUS'],
-    sourceUrls: ['https://wbtconline.in/wbtc-city-bus-routes'],
+    sourceUrls: ['https://wbtconline.in/wbtc-city-bus-routes', 'https://transport.wb.gov.in/transport-services/bus-services/'],
     access: 'HTML table',
     notes: ['Route-pattern source, not complete trip schedule source.'],
   },
@@ -48,7 +48,7 @@ export const WEST_BENGAL_WORKER_PROVIDER_REGISTRY: WorkerProviderRegistryEntry[]
   {
     code: 'SBSTC',
     adapterKey: 'sbstc-provider',
-    priority: 'P1',
+    priority: 'P0',
     modes: ['BUS'],
     sourceUrls: ['https://sbstc.co.in/', 'https://sbstconline.co.in/reservation-home'],
     access: 'Public pages plus permission-aware schedule investigation',
@@ -73,8 +73,8 @@ export const WEST_BENGAL_WORKER_PROVIDER_REGISTRY: WorkerProviderRegistryEntry[]
     notes: ['Use old PDFs for topology discovery only.'],
   },
   {
-    code: 'KOLKATA_AUTO_NOTIFICATIONS',
-    adapterKey: 'kolkata-auto-notifications-provider',
+    code: 'KOLKATA_AUTO',
+    adapterKey: 'kolkata-auto-provider',
     priority: 'P2',
     modes: ['SHARED_AUTO'],
     sourceUrls: ['https://transport.wb.gov.in/wp-content/uploads/2017/04/2017-03-31-notification-on-auto-routes-n-maximum-permits-in-Kolkata-1276.pdf'],
@@ -91,4 +91,3 @@ export const WEST_BENGAL_WORKER_PROVIDER_REGISTRY: WorkerProviderRegistryEntry[]
     notes: ['Treat as historical/reference until active status is verified.'],
   },
 ];
-

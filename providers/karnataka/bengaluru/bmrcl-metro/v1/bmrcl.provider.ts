@@ -13,7 +13,7 @@ import { BmrclDiscoveryItem, BmrclParsedNetwork, BmrclRawPage } from './bmrcl.ty
 import { BmrclStaticNetworkValidator } from './bmrcl.validator';
 
 export class BmrclProvider implements MobilityProvider<BmrclDiscoveryItem, BmrclParsedNetwork, BmrclCanonicalOutput> {
-  readonly providerCode = 'BMRCL';
+  readonly providerCode = 'BMRCL_METRO';
   readonly version = 'v1';
 
   constructor(

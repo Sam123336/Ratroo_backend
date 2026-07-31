@@ -89,7 +89,7 @@ export class DatasetPromotionService {
 
         const run = await this.providerRunModel.findByPk(version.providerRunId, { transaction });
 
-        if (run?.providerCode === 'BMRCL') {
+        if (run?.providerCode === 'BMRCL_METRO') {
           await this.promoteBmrclMetroNetwork(version, transaction);
         }
 
@@ -158,9 +158,9 @@ export class DatasetPromotionService {
 
   private async promoteBmrclMetroNetwork(version: DatasetVersionModel, transaction: Transaction) {
     const [stagedNodes, stagedRoutes, stagedRouteStops] = await Promise.all([
-      this.stagedNodeModel.findAll({ where: { datasetVersionId: version.id, providerCode: 'BMRCL' }, transaction }),
-      this.stagedRouteModel.findAll({ where: { datasetVersionId: version.id, providerCode: 'BMRCL' }, transaction }),
-      this.stagedRouteStopModel.findAll({ where: { datasetVersionId: version.id, providerCode: 'BMRCL' }, transaction }),
+      this.stagedNodeModel.findAll({ where: { datasetVersionId: version.id, providerCode: 'BMRCL_METRO' }, transaction }),
+      this.stagedRouteModel.findAll({ where: { datasetVersionId: version.id, providerCode: 'BMRCL_METRO' }, transaction }),
+      this.stagedRouteStopModel.findAll({ where: { datasetVersionId: version.id, providerCode: 'BMRCL_METRO' }, transaction }),
     ]);
     const observationIds = Array.from(
       new Set(
@@ -170,7 +170,7 @@ export class DatasetPromotionService {
       ),
     );
     const observations = observationIds.length
-      ? await this.sourceObservationModel.findAll({ where: { id: observationIds, providerCode: 'BMRCL' }, transaction })
+      ? await this.sourceObservationModel.findAll({ where: { id: observationIds, providerCode: 'BMRCL_METRO' }, transaction })
       : [];
 
     const errors: string[] = [];
@@ -252,7 +252,7 @@ export class DatasetPromotionService {
       const metadata = (payload.metadata || {}) as Record<string, unknown>;
       const externalId = node.providerExternalId;
       let mapping = await this.providerNodeMappingModel.findOne({
-        where: { providerCode: 'BMRCL', providerExternalId: externalId },
+        where: { providerCode: 'BMRCL_METRO', providerExternalId: externalId },
         transaction,
       });
       let station = mapping?.canonicalId ? await this.metroStationModel.findByPk(mapping.canonicalId, { transaction }) : null;
@@ -260,7 +260,7 @@ export class DatasetPromotionService {
       if (!station) {
         station = await this.metroStationModel.create(
           {
-            providerCode: 'BMRCL',
+            providerCode: 'BMRCL_METRO',
             externalId,
             name: payload.name,
             normalizedName: payload.normalizedName,
@@ -293,7 +293,7 @@ export class DatasetPromotionService {
       if (!mapping) {
         mapping = await this.providerNodeMappingModel.create(
           {
-            providerCode: 'BMRCL',
+            providerCode: 'BMRCL_METRO',
             providerExternalId: externalId,
             canonicalId: station.id,
             resolutionStatus: 'AUTO_RESOLVED',
@@ -328,7 +328,7 @@ export class DatasetPromotionService {
       const payload = (route.canonicalPayload || {}) as any;
       const externalId = route.providerExternalId;
       let mapping = await this.providerRouteMappingModel.findOne({
-        where: { providerCode: 'BMRCL', providerExternalId: externalId },
+        where: { providerCode: 'BMRCL_METRO', providerExternalId: externalId },
         transaction,
       });
       let line = mapping?.canonicalId ? await this.metroLineModel.findByPk(mapping.canonicalId, { transaction }) : null;
@@ -336,7 +336,7 @@ export class DatasetPromotionService {
       if (!line) {
         line = await this.metroLineModel.create(
           {
-            providerCode: 'BMRCL',
+            providerCode: 'BMRCL_METRO',
             externalId,
             name: payload.longName,
             color: payload.shortName || payload.longName,
@@ -360,7 +360,7 @@ export class DatasetPromotionService {
       if (!mapping) {
         await this.providerRouteMappingModel.create(
           {
-            providerCode: 'BMRCL',
+            providerCode: 'BMRCL_METRO',
             providerExternalId: externalId,
             canonicalId: line.id,
             resolutionStatus: 'AUTO_RESOLVED',

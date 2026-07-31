@@ -1,8 +1,8 @@
 # Transit Platform — Complete Architecture
 
-A **Domain-Driven, Hexagonal (Ports & Adapters)** mobility platform for Indian cities. Ingests, normalizes, and serves transit data from multiple providers (WBBus, BMTC, WBTC, GTFS, Metro) through a unified REST API — with support for journey planning, places, events, and AI-powered routing.
+A **Domain-Driven, Hexagonal (Ports & Adapters)** mobility platform for Indian cities. Ingests, normalizes, and serves mobility data from multiple providers (WBBus, BMTC, WBTC, Metro, rail, ferry, auto, and walking sources) through a unified REST API.
 
-**Core philosophy:** Think *mobility platform*, not *bus app*. Today bus. Tomorrow metro, train, auto, cab, walking, bike, events, places, AI planner. Every architectural decision prepares for this growth.
+**Core philosophy:** Think *mobility platform*, not *bus app*. V1 is frozen to West Bengal and Bengaluru. Future modes and regions must wait until those journeys work end to end.
 
 ---
 
@@ -79,7 +79,7 @@ transit-platform/
 │
 ├── packages/             # Future shared packages
 │   ├── shared/           # Extracted shared kernel
-│   ├── transit-core/     # Domain logic as library
+│   ├── mobility-core/    # Domain logic as library
 │   ├── canonical-model/  # Canonical types as package
 │   └── sdk/              # Client SDK
 │

@@ -73,7 +73,7 @@ export class BmrclStaticImportService {
 
   async importStaticNetwork() {
     const run = await this.providerRunModel.create({
-      providerCode: 'BMRCL',
+      providerCode: 'BMRCL_METRO',
       providerVersion: 'v1',
       status: 'DISCOVERING',
       runType: 'FULL',
@@ -89,7 +89,7 @@ export class BmrclStaticImportService {
           const page = await this.fetchPage(item.url, item.sourceKind);
           const latest = await this.rawSourceRecordModel.findOne({
             where: {
-              providerCode: 'BMRCL',
+              providerCode: 'BMRCL_METRO',
               sourceUrl: item.url,
             },
             order: [['fetchedAt', 'DESC']],
@@ -97,7 +97,7 @@ export class BmrclStaticImportService {
 
           await this.checkpointModel.create({
             providerRunId: run.id,
-            providerCode: 'BMRCL',
+            providerCode: 'BMRCL_METRO',
             externalId: `bmrcl-${item.sourceKind.toLowerCase()}`,
             sourceUrl: item.url,
             status: latest?.contentHash === page.contentHash ? 'SKIPPED_UNCHANGED' : 'FETCHED',
@@ -109,7 +109,7 @@ export class BmrclStaticImportService {
           }
 
           const rawRecord = await this.rawSourceRecordModel.create({
-            providerCode: 'BMRCL',
+            providerCode: 'BMRCL_METRO',
             providerRunId: run.id,
             sourceUrl: item.url,
             contentHash: page.contentHash,
@@ -145,7 +145,7 @@ export class BmrclStaticImportService {
         });
 
         return {
-          providerCode: 'BMRCL',
+          providerCode: 'BMRCL_METRO',
           runId: run.id,
           status: 'SKIPPED_UNCHANGED',
           contentHash,
@@ -197,7 +197,7 @@ export class BmrclStaticImportService {
       });
 
       return {
-        providerCode: 'BMRCL',
+        providerCode: 'BMRCL_METRO',
         runId: run.id,
         datasetVersionId: staged.datasetVersionId,
         status: 'COMPLETED',
@@ -243,11 +243,11 @@ export class BmrclStaticImportService {
     return this.sequelize.transaction(async transaction => {
       const [dataset] = await this.datasetModel.findOrCreate({
         where: {
-          providerCode: 'BMRCL',
+          providerCode: 'BMRCL_METRO',
           name: 'BMRCL static metro network',
         },
         defaults: {
-          providerCode: 'BMRCL',
+          providerCode: 'BMRCL_METRO',
           name: 'BMRCL static metro network',
           status: 'ACTIVE',
         },

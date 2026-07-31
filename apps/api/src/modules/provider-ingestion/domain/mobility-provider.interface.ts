@@ -2,6 +2,16 @@ import { CanonicalMobilityDataset, TransportMode } from './canonical-mobility';
 
 export type ProviderRunStatus =
   | 'PENDING'
+  | 'DISCOVERING'
+  | 'FETCHING'
+  | 'RAW'
+  | 'PARSING'
+  | 'VALIDATING'
+  | 'MAPPING'
+  | 'STAGING'
+  | 'STAGED'
+  | 'PROMOTING'
+  | 'ACTIVE'
   | 'RUNNING'
   | 'RAW_SAVED'
   | 'VALIDATED'

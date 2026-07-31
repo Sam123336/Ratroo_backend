@@ -1,33 +1,38 @@
 # Provider Priority Matrix
 
-## Tier 1
+Expansion is frozen to West Bengal and Karnataka, with Bengaluru completed first. BMRCL Metro and WBBus are the first proven adapters, not the whole project scope.
 
-| Provider | Geography | Mode | Adapter | Priority | Notes |
+## West Bengal
+
+| Order | Provider | Mode | Adapter | Priority | Notes |
 | --- | --- | --- | --- | --- | --- |
-| WBBus | West Bengal / Kolkata | Bus | `wbbus` | P0 | Current implementation focus |
-| WBTC | West Bengal / Kolkata | Bus | `wbtc` | P0 | Government bus source research needed |
-| Delhi Open Transit Data | Delhi | Bus / Metro | `delhi-otd` | P0 | GTFS-style data available through Delhi OTD |
-| BMTC | Bengaluru | Bus | `bmtc` | P0 | High-demand city; official/live data needs verification |
-| Odisha OPTICS | Odisha | Bus | `optics-odisha` | P0 | State-level priority named in plan |
-| MP Transport | Madhya Pradesh | Bus | `mp-transport` | P1 | State road transport and city sources |
+| 1 | WBBus | Bus | `wbbus-provider` | P0 | Implemented; run at 25, 100, then full import |
+| 2 | WBTC | Bus | `wbtc-provider` | P0 | Kolkata and suburban government buses |
+| 3 | NBSTC | Bus | `nbstc-provider` | P0 | North Bengal routes, schedules, depots |
+| 4 | SBSTC | Bus | `sbstc-provider` | P0 | South Bengal routes, schedules, fares |
+| 5 | Kolkata Metro | Metro | `kolkata-metro-provider` | P0 | Lines, stations, station order, fares, alerts |
+| 6 | Eastern Railway suburban | Suburban rail | `eastern-railway-suburban-provider` | P1 | Current services only; old PDFs are historical observations |
+| 7 | West Bengal ferry | Ferry | `wb-ferry-provider` | P1 | Ferry terminals, crossings, notices, timings, fares |
+| 8 | Kolkata auto | Shared auto | `kolkata-auto-provider` | P2 | Notifications prove route publication, not current operation |
+| 9 | Kolkata tram | Tram | `kolkata-tram-provider` | P2 | Preserve active, suspended, and historical status separately |
 
-## Tier 2
+## Bengaluru
 
-| Provider | Geography | Mode | Adapter | Priority | Notes |
+| Order | Provider | Mode | Adapter | Priority | Notes |
 | --- | --- | --- | --- | --- | --- |
-| KSRTC Karnataka | Karnataka | Intercity bus | `ksrtc-karnataka` | P1 | Coordinate with BMTC/NWKRTC/KKRTC coverage |
-| Kerala RTC | Kerala | Bus | `kerala-rtc` | P1 | Statewide strategy required |
-| MSRTC | Maharashtra | Bus | `msrtc` | P1 | Large statewide network |
-| MTC Chennai | Tamil Nadu / Chennai | Bus | `mtc-chennai` | P1 | Pair with Chennai Metro |
-| TSRTC | Telangana | Bus | `tsrtc` | P1 | Hyderabad plus statewide routes |
-| UPSRTC | Uttar Pradesh | Bus | `upsrtc` | P1 | Large route network |
+| 1 | BMRCL Metro | Metro | `bmrcl-metro-provider` | P0 | Implemented; run and stabilize live import |
+| 2 | BMTC official | Bus | `bmtc-official-provider` | P0 | Regular, feeder, airport, night, premium via `serviceClass` |
+| 3 | KSRTC Karnataka | Intercity bus | `ksrtc-karnataka-provider` | P1 | Bengaluru connections after BMTC/BMRCL are stable |
+| 4 | OSM road network Bengaluru | Walking/cycling/road | `osm-road-network-bengaluru-provider` | P1 | Routing graph, not timetable provider |
+| 5 | Bengaluru auto | Auto | `bengaluru-auto-provider` | P2 | Community/operator verified only |
+| 6 | Bengaluru shuttle | Shuttle | `bengaluru-shuttle-provider` | P2 | Community/operator verified only |
 
-## Tier 3
+## Karnataka After Bengaluru
 
-| Provider | Geography | Mode | Adapter | Priority | Notes |
-| --- | --- | --- | --- | --- | --- |
-| Metro feeds | Multi-state | Metro | `gtfs-metro-*` | P2 | Prefer GTFS where available |
-| Ferry sources | Kerala, Goa, Assam, islands | Ferry | `ferry-*` | P2 | Often fragmented |
-| Private bus portals | Multi-state | Bus | `private-bus-*` | P3 | Legal review before scraping |
-| Community-only districts | Multi-state | Bus | `community-*` | P3 | Requires moderation capacity |
-
+| Provider | Mode | Adapter | Priority | Notes |
+| --- | --- | --- | --- | --- |
+| NWKRTC | Intercity bus | `nwkrtc` | P2 | Do not delay Bengaluru launch |
+| KKRTC | Intercity bus | `kkrtc` | P2 | Do not delay Bengaluru launch |
+| Mysuru urban services | Bus | `mysuru-urban` | P2 | Start after Bengaluru public experience |
+| Hubballi-Dharwad services | Bus | `hubballi-dharwad` | P2 | Start after Bengaluru public experience |
+| Mangaluru private buses | Bus | `mangaluru-private-bus` | P2 | Start after Bengaluru public experience |

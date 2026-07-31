@@ -37,18 +37,17 @@ flowchart LR
 
 | Context | Responsibility |
 | --- | --- |
-| Transit | Agencies, stops, routes, trips, stop times |
+| Mobility | Agencies, stops, stations, routes, trips, stop times, and multimodal nodes |
 | Journey | Route planning, transfer graph, walking legs |
 | Provider | Source ingestion, parsing, normalization |
 | Coverage | State, district, city readiness and gaps |
 | Community | Submissions, verification, reputation |
 | Admin | Operations, moderation, source quality |
-| AI Planner | Conversational planning and explanations |
 
 ## Architectural Rules
 
 - Domain modules must not import NestJS or Sequelize.
-- Providers emit canonical transit records, not database entities.
+- Providers emit canonical mobility records, not database entities.
 - Database entities stay in infrastructure.
 - Use cases orchestrate repositories and domain services.
 - Provider-specific quirks stay inside provider adapters.
@@ -60,7 +59,7 @@ New backend code should be organized by feature first, layer second:
 
 ```text
 modules/
-  transit/
+  mobility/
     domain/
     application/
     infrastructure/
@@ -85,7 +84,7 @@ This keeps a developer inside one feature folder for most changes. Shared utilit
 
 ## Region-Scoped API Pattern
 
-Coverage owns launch geography. Transit owns stops, routes, trips, and stop times. Region-scoped endpoints compose both modules:
+Coverage owns launch geography. Mobility owns stops, stations, routes, trips, and stop times. Region-scoped endpoints compose both modules:
 
 ```text
 GET /v1/coverage/regions
@@ -97,7 +96,7 @@ GET /v1/regions/:slug/routes
 The coverage registry maps each slug to a modular scope:
 
 - Geography: country, state, district, city
-- Provider drivers: `wbbus`, `bmtc`, `kerala-rtc`, `delhi-otd`
+- Provider drivers: `wbbus`, `wbtc`, `bmtc-official`, `bmrcl-metro`
 - Launch status: planned, research, beta, live
 - Supported APIs: stops, routes, journey, coverage
 

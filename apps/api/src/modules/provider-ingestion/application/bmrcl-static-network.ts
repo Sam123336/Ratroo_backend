@@ -363,7 +363,7 @@ export class BmrclStaticNetworkMapper {
   map(network: BmrclParsedNetwork): BmrclCanonicalOutput {
     const agency: CanonicalAgency = {
       externalId: 'bmrcl',
-      providerCode: 'BMRCL',
+      providerCode: 'BMRCL_METRO',
       name: 'Bangalore Metro Rail Corporation Limited',
       shortName: 'BMRCL',
       website: 'https://www.bmrc.co.in/',
@@ -400,7 +400,7 @@ export class BmrclStaticNetworkMapper {
 
         const node = {
           externalId: slug(station.name),
-          providerCode: 'BMRCL',
+          providerCode: 'BMRCL_METRO',
           nodeType: 'METRO_STATION',
           name: station.name,
           normalizedName,
@@ -425,7 +425,7 @@ export class BmrclStaticNetworkMapper {
 
     const routePatterns: CanonicalRoutePattern[] = network.lines.map(line => ({
       externalId: line.externalId,
-      providerCode: 'BMRCL',
+      providerCode: 'BMRCL_METRO',
       agencyExternalId: 'bmrcl',
       mode: 'METRO',
       shortName: line.name.replace(/\s+Line$/i, ''),
@@ -446,7 +446,7 @@ export class BmrclStaticNetworkMapper {
       nodes: Array.from(nodesByNormalizedName.values()),
       routePatterns,
       sourceObservations: network.rawRecordIds.map(rawRecordId => ({
-        providerCode: 'BMRCL',
+        providerCode: 'BMRCL_METRO',
         providerVersion: 'v1',
         sourceUrl: network.sourceUrl,
         fetchedAt: network.fetchedAt,

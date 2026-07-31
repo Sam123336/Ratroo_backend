@@ -160,7 +160,7 @@ Response (200):
 
 ## Coverage and Launch Regions
 
-Launch regions are modular API scopes for state, city, country, and future global rollout.
+Launch regions are modular API scopes. Expansion is frozen to West Bengal and Karnataka, with Bengaluru completed first.
 
 ### List Regions
 
@@ -172,12 +172,9 @@ Example region slugs:
 
 | Slug | Meaning |
 |------|---------|
-| `india` | National API shell |
 | `west-bengal` | West Bengal state launch |
-| `kerala` | Kerala state launch |
-| `karnataka` | Karnataka state launch |
 | `bengaluru` | Bengaluru city launch |
-| `global` | Future non-India expansion shell |
+| `karnataka` | Karnataka statewide backlog after Bengaluru launch |
 
 ### Region Details
 
@@ -188,16 +185,16 @@ GET /v1/coverage/regions/west-bengal/providers
 
 ### Region-Scoped Transit APIs
 
-These endpoints use the same transit use cases as global APIs but apply the launch region's provider and geography scope.
+These endpoints apply each launch region's provider and geography scope.
 
 ```
 GET /v1/regions/west-bengal/stops/nearby?lat=22.5726&lng=88.3639&radius=2000
 GET /v1/regions/west-bengal/routes?page=1&limit=50
-GET /v1/regions/kerala/routes
 GET /v1/regions/bengaluru/stops/nearby?lat=12.9716&lng=77.5946
+GET /v1/regions/bengaluru/metro/lines
 ```
 
-Region configuration lives in the coverage module, so adding a new launch state or global geography does not require changing the transit controllers.
+Do not add Kerala, Odisha, events, AI planning, or additional state launch regions until West Bengal and Bengaluru work end to end.
 
 ## Provider Registry
 
@@ -210,9 +207,9 @@ GET /v1/provider-registry/bengaluru
 GET /v1/provider-registry/bengaluru/BMTC_OFFICIAL
 ```
 
-The West Bengal registry currently includes WBBus, WBTC routes, NBSTC, Kolkata Metro, SBSTC, ferry, Eastern Railway suburban, Kolkata auto notifications, and Kolkata Tram.
+The West Bengal registry currently includes WBBus, WBTC, SBSTC, NBSTC, Kolkata Metro, Eastern Railway suburban, West Bengal ferry, Kolkata auto notifications, and Kolkata Tram.
 
-The Bengaluru registry currently includes BMTC official, Namma BMTC AVLS, BMTC GTFS references, BMRCL, BMTC airport, BMTC metro feeder, BMTC facilities, DULT TransitGIS, KSRTC, KRIDE suburban rail, Indian Railways Bengaluru stations, community mobility, and OSM network.
+The Bengaluru registry currently includes BMTC official, BMRCL Metro, the Bengaluru OSM road network, and future community-backed auto/shuttle sources. Airport, metro feeder, night, express, Vajra, and premium BMTC services are `serviceClass` values under `BMTC_OFFICIAL`, not separate providers.
 
 Every provider must follow:
 

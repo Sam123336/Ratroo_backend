@@ -1,0 +1,9 @@
+{
+  "agencies": 1,
+  "nodes": 4,
+  "routePatterns": 2,
+  "trips": 2,
+  "sourceObservations": 1,
+  "upStops": ["Arambagh", "Ghatal", "Medinipur", "Kharagpur"],
+  "downStops": ["Kharagpur", "Medinipur", "Ghatal", "Arambagh"]
+}
