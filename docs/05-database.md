@@ -31,6 +31,13 @@ Repository interfaces stay in the domain/application boundary so the ORM can cha
 | --- | --- |
 | `provider.import_runs` | Tracks each full or incremental import |
 | `provider.source_records` | Stores source URL, checksum, provider key, and parse status |
+| `providers` | Registered provider identity and source type |
+| `provider_sources` | Registered discovery URLs, source roles, status, and metadata |
+| `provider_runs` | Worker execution status, checkpoint, metrics, and errors |
+| `raw_source_records` | Raw fetched source payloads saved before parsing |
+| `datasets` | Logical provider dataset |
+| `dataset_versions` | Versioned validated canonical observations |
+| `source_observations` | Provenance and confidence for mapped records |
 | `coverage.states` | Normalized Indian state and UT records |
 | `coverage.districts` | District hierarchy |
 | `coverage.cities` | City/town coverage status |

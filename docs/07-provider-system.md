@@ -14,6 +14,39 @@ See also: [providers.md](providers.md).
 | Mobile app API | Public app endpoints | Legal review before use |
 | Community | User submissions | Moderated ingest |
 
+## Raw-Source-First Rule
+
+Provider parsers must never write directly into canonical mobility tables.
+
+Required pipeline:
+
+```text
+Discover
+-> Fetch
+-> Save raw_source_records
+-> Parse
+-> Validate
+-> Map canonical observations
+-> Resolve provider identities
+-> Deduplicate
+-> Persist dataset version
+-> Promote dataset after validation
+```
+
+The provider-ingestion module owns provider registry, provider runs, raw source records, datasets, dataset versions, and source observations.
+
+## West Bengal Provider Priority
+
+1. WBBus
+2. WBTC routes
+3. NBSTC
+4. Kolkata Metro
+5. SBSTC
+6. Ferries
+7. Suburban trains
+8. Auto routes
+9. Tram
+
 ## Generic Interface
 
 ```typescript
@@ -47,4 +80,3 @@ export interface TransitProvider {
 | L3 Import | Importer runs locally |
 | L4 Verified | Data checked by admin/community |
 | L5 Production | Scheduled import, alerts, dashboards |
-

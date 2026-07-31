@@ -17,4 +17,3 @@ export const TRANSIT_SEQUELIZE_MODELS = [
   TripModel,
   StopTimeModel,
 ];
-

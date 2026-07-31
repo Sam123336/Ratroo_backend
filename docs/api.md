@@ -198,3 +198,20 @@ GET /v1/regions/bengaluru/stops/nearby?lat=12.9716&lng=77.5946
 ```
 
 Region configuration lives in the coverage module, so adding a new launch state or global geography does not require changing the transit controllers.
+
+## Provider Registry
+
+Provider registry APIs expose ingestion configuration only. They do not scrape or import data from public controllers.
+
+```
+GET /v1/provider-registry/west-bengal
+GET /v1/provider-registry/west-bengal/WBBUS
+```
+
+The West Bengal registry currently includes WBBus, WBTC routes, NBSTC, Kolkata Metro, SBSTC, ferry, Eastern Railway suburban, Kolkata auto notifications, and Kolkata Tram.
+
+Every provider must follow:
+
+```text
+Discover -> Fetch -> Save raw source -> Parse -> Validate -> Map -> Version -> Promote
+```
