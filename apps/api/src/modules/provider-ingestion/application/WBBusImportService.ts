@@ -3,6 +3,7 @@ import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { DatasetPromotionService } from './DatasetPromotionService';
 import {
+  externalIdFromSourceUrl,
   sha256,
   WBBusCanonicalOutput,
   WBBusDirectoryParser,
@@ -539,8 +540,7 @@ export class WBBusImportService {
   }
 
   private externalIdFromBusUrl(url: string): string {
-    const path = new URL(url).pathname.replace(/^\/bus\//, '').replace(/\/$/, '');
-    return path.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || sha256(url).slice(0, 16);
+    return externalIdFromSourceUrl(url);
   }
 
   private sleep(ms: number): Promise<void> {

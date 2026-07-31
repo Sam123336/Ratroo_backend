@@ -196,7 +196,7 @@ export class WBBusMapper {
       const agencyName = record.agencyName || 'Private Buses of West Bengal';
       const agencyExternalId = slug(agencyName);
       const validStops = record.schedule.filter(stop => stop.stoppageName.trim());
-      const busExternalId = slug(record.registration || record.name || record.sourceUrl);
+      const busExternalId = externalIdFromSourceUrl(record.sourceUrl);
 
       agencyMap.set(agencyExternalId, {
         externalId: agencyExternalId,
@@ -332,6 +332,15 @@ export class WBBusMapper {
 
 export function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+export function externalIdFromSourceUrl(url: string): string {
+  try {
+    const path = new URL(url).pathname.replace(/^\/bus\//, '').replace(/\/$/, '');
+    return slug(decodeURIComponent(path)) || sha256(url).slice(0, 16);
+  } catch {
+    return sha256(url).slice(0, 16);
+  }
 }
 
 export function slug(value: string): string {

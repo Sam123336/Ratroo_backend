@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
-import { Transaction } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import {
   BusRouteModel,
@@ -617,10 +617,10 @@ export class DatasetPromotionService {
       routeIdsByExternalId.set(externalId, busRoute.id);
     }
 
-    await Promise.all([
-      this.busRouteStopModel.destroy({ where: { datasetVersionId: version.id }, transaction }),
-      this.busStopTimeModel.destroy({ where: { datasetVersionId: version.id }, transaction }),
-    ]);
+    const routeIds = Array.from(routeIdsByExternalId.values());
+    if (routeIds.length) {
+      await this.busRouteStopModel.destroy({ where: { routeId: { [Op.in]: routeIds } }, transaction });
+    }
 
     for (const routeStop of stagedRouteStops) {
       const payload = routeStop.canonicalPayload || {};
@@ -709,6 +709,11 @@ export class DatasetPromotionService {
       }
 
       tripIdsByExternalId.set(externalId, busTrip.id);
+    }
+
+    const tripIds = Array.from(tripIdsByExternalId.values());
+    if (tripIds.length) {
+      await this.busStopTimeModel.destroy({ where: { tripId: { [Op.in]: tripIds } }, transaction });
     }
 
     for (const stopTime of stagedStopTimes) {
