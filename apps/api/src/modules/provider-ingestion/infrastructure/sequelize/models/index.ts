@@ -1,7 +1,9 @@
 export { DatasetModel } from './dataset.model';
 export { DatasetVersionModel } from './dataset-version.model';
+export { BusRouteModel, BusRouteStopModel, BusStopModel, BusStopTimeModel, BusTripModel } from './bus-network.model';
 export { CanonicalConflictModel } from './canonical-conflict.model';
 export { ProviderModel } from './provider.model';
+export { MetroLineModel, MetroLineStationModel, MetroStationModel } from './metro-network.model';
 export {
   ProviderAgencyMappingModel,
   ProviderNodeMappingModel,
@@ -25,8 +27,10 @@ export {
 
 import { DatasetModel } from './dataset.model';
 import { DatasetVersionModel } from './dataset-version.model';
+import { BusRouteModel, BusRouteStopModel, BusStopModel, BusStopTimeModel, BusTripModel } from './bus-network.model';
 import { CanonicalConflictModel } from './canonical-conflict.model';
 import { ProviderModel } from './provider.model';
+import { MetroLineModel, MetroLineStationModel, MetroStationModel } from './metro-network.model';
 import {
   ProviderAgencyMappingModel,
   ProviderNodeMappingModel,
@@ -50,6 +54,14 @@ import {
 
 export const PROVIDER_INGESTION_SEQUELIZE_MODELS = [
   ProviderModel,
+  BusRouteModel,
+  BusStopModel,
+  BusRouteStopModel,
+  BusTripModel,
+  BusStopTimeModel,
+  MetroLineModel,
+  MetroStationModel,
+  MetroLineStationModel,
   ProviderSourceModel,
   ProviderRunModel,
   ProviderItemCheckpointModel,

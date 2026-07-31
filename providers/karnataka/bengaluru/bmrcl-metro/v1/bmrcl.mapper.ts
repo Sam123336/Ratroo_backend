@@ -10,7 +10,7 @@ export interface BmrclCanonicalOutput {
   agencies: CanonicalAgency[];
   nodes: CanonicalMobilityNode[];
   routePatterns: CanonicalRoutePattern[];
-  observations: CanonicalSourceObservation[];
+  sourceObservations: CanonicalSourceObservation[];
 }
 
 export class BmrclStaticNetworkMapper {
@@ -66,19 +66,17 @@ export class BmrclStaticNetworkMapper {
       agencies: [agency],
       nodes,
       routePatterns,
-      observations: [
-        {
-          providerCode: 'BMRCL',
-          providerVersion: 'v1',
-          sourceUrl: network.sourceUrl,
-          fetchedAt: network.fetchedAt,
-          contentHash: network.contentHash,
-          rawRecordId: network.rawRecordId,
-          confidence: 0.75,
-          verificationStatus: 'OFFICIAL',
-          warnings: network.warnings,
-        },
-      ],
+      sourceObservations: network.rawRecordIds.map(rawRecordId => ({
+        providerCode: 'BMRCL',
+        providerVersion: 'v1',
+        sourceUrl: network.sourceUrl,
+        fetchedAt: network.fetchedAt,
+        contentHash: network.contentHash,
+        rawRecordId,
+        confidence: 0.75,
+        verificationStatus: 'OFFICIAL',
+        warnings: network.warnings,
+      })),
     };
   }
 

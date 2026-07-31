@@ -29,20 +29,22 @@ export class BmrclProvider implements MobilityProvider<BmrclDiscoveryItem, Bmrcl
   }
 
   async fetch(item: BmrclDiscoveryItem): Promise<RawProviderResponse> {
-    return this.client.fetchHtml(item.sourceUrl, { sourceRole: item.sourceRole });
+    return this.client.fetchHtml(item.url, { sourceKind: item.sourceKind, ...(item.metadata || {}) });
   }
 
   async parse(response: RawProviderResponse): Promise<BmrclParsedNetwork[]> {
     const rawPage: BmrclRawPage = {
-      sourceUrl: response.sourceUrl,
-      sourceRole: (response.metadata?.sourceRole as BmrclRawPage['sourceRole']) || 'NETWORK',
+      url: response.sourceUrl,
+      sourceKind: (response.metadata?.sourceKind as BmrclRawPage['sourceKind']) || 'NETWORK',
       html: String(response.body),
       fetchedAt: response.fetchedAt,
+      contentHash: response.contentHash,
+      rawRecordId: response.sourceUrl,
     };
 
     const parsed = this.parser.parse([rawPage]);
     parsed.contentHash = response.contentHash;
-    parsed.rawRecordId = response.sourceUrl;
+    parsed.rawRecordIds = [response.sourceUrl];
 
     return [parsed];
   }

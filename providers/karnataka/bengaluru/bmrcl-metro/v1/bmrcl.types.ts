@@ -1,14 +1,25 @@
 export interface BmrclDiscoveryItem {
-  externalId: string;
-  sourceUrl: string;
-  sourceRole: 'NETWORK' | 'TIMINGS' | 'TICKETS' | 'FARES';
+  sourceKind: BmrclSourceKind;
+  url: string;
+  effectiveFrom?: string;
+  metadata?: Record<string, unknown>;
 }
 
+export type BmrclSourceKind =
+  | 'NETWORK'
+  | 'LINES'
+  | 'STATIONS'
+  | 'TIMETABLE'
+  | 'FARES'
+  | 'SERVICE_ALERTS';
+
 export interface BmrclRawPage {
-  sourceUrl: string;
-  sourceRole: BmrclDiscoveryItem['sourceRole'];
+  url: string;
+  sourceKind: BmrclDiscoveryItem['sourceKind'];
   html: string;
   fetchedAt: string;
+  contentHash?: string;
+  rawRecordId?: string;
 }
 
 export interface BmrclParsedStation {
@@ -29,7 +40,7 @@ export interface BmrclParsedNetwork {
   sourceUrl: string;
   fetchedAt: string;
   contentHash: string;
-  rawRecordId: string;
+  rawRecordIds: string[];
   lines: BmrclParsedLine[];
   warnings: string[];
 }
