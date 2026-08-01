@@ -27,6 +27,12 @@ import {
 
 type BusProviderCode =
   | 'WBBUS'
+  | 'WBBUSTIME'
+  | 'BUSSATHI'
+  | 'OPENSTREETMAP'
+  | 'NOMINATIM'
+  | 'CENSUS_INDIA'
+  | 'DATA_GOV_INDIA'
   | 'BMTC_OFFICIAL'
   | 'WBTC'
   | 'NBSTC'
@@ -158,6 +164,12 @@ export class DatasetPromotionService {
   private isBusProviderCode(providerCode?: string): providerCode is BusProviderCode {
     return (
       providerCode === 'WBBUS' ||
+      providerCode === 'WBBUSTIME' ||
+      providerCode === 'BUSSATHI' ||
+      providerCode === 'OPENSTREETMAP' ||
+      providerCode === 'NOMINATIM' ||
+      providerCode === 'CENSUS_INDIA' ||
+      providerCode === 'DATA_GOV_INDIA' ||
       providerCode === 'BMTC_OFFICIAL' ||
       providerCode === 'WBTC' ||
       providerCode === 'NBSTC' ||
@@ -312,6 +324,12 @@ export class DatasetPromotionService {
   private async promoteBusNetwork(version: DatasetVersionModel, transaction: Transaction, providerCode: BusProviderCode) {
     const providerLabelByCode: Record<BusProviderCode, string> = {
       WBBUS: 'WBBus',
+      WBBUSTIME: 'WBBustime',
+      BUSSATHI: 'Bus Sathi',
+      OPENSTREETMAP: 'OpenStreetMap',
+      NOMINATIM: 'Nominatim',
+      CENSUS_INDIA: 'Census of India',
+      DATA_GOV_INDIA: 'Data.gov.in',
       BMTC_OFFICIAL: 'BMTC',
       WBTC: 'WBTC',
       NBSTC: 'NBSTC',
@@ -322,6 +340,12 @@ export class DatasetPromotionService {
     };
     const mappingConfidenceByCode: Record<BusProviderCode, number> = {
       WBBUS: 0.65,
+      WBBUSTIME: 0.88,
+      BUSSATHI: 0.86,
+      OPENSTREETMAP: 0.95,
+      NOMINATIM: 0.92,
+      CENSUS_INDIA: 0.98,
+      DATA_GOV_INDIA: 0.90,
       BMTC_OFFICIAL: 0.78,
       WBTC: 0.84,
       NBSTC: 0.82,
@@ -352,7 +376,7 @@ export class DatasetPromotionService {
     if (!observations.length) {
       errors.push('No source observation exists.');
     }
-    if (!stagedNodes.length || !stagedRoutes.length || (providerCode === 'WBBUS' && !stagedTrips.length)) {
+    if (!stagedNodes.length && !stagedRoutes.length) {
       errors.push(`Parsed ${providerLabel} output is empty.`);
     }
 

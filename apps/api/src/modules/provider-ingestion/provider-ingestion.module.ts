@@ -13,6 +13,8 @@ import { ProviderIngestionQueryService } from './application/ProviderIngestionQu
 import { ProviderRegistryService } from './application/ProviderRegistryService';
 import { ProviderSyncSchedulerService } from './application/ProviderSyncSchedulerService';
 import { WBBusImportService } from './application/WBBusImportService';
+import { GenericProviderIngestionService } from './application/GenericProviderIngestionService';
+
 import { BengaluruJourneyController } from './presentation/controllers/bengaluru-journey.controller';
 import { BengaluruMobilityController } from './presentation/controllers/bengaluru-mobility.controller';
 import { BusNetworkController } from './presentation/controllers/bus-network.controller';
@@ -26,6 +28,36 @@ import { ProviderRunsController } from './presentation/controllers/provider-runs
 import { SourceObservationsController } from './presentation/controllers/source-observations.controller';
 import { PROVIDER_INGESTION_SEQUELIZE_MODELS } from './infrastructure/sequelize/models';
 import { RawSourceRecordRepository } from './infrastructure/sequelize/repositories/RawSourceRecordRepository';
+
+// Target Providers
+import { WBBusProvider } from './providers/wbbus.provider';
+import { WBBustimeProvider } from './providers/wbbustime.provider';
+import { BusSathiProvider } from './providers/bussathi.provider';
+import { OpenStreetMapProvider } from './providers/openstreetmap.provider';
+import { NominatimProvider } from './providers/nominatim.provider';
+import { CensusIndiaProvider } from './providers/census-india.provider';
+import { DataGovIndiaProvider } from './providers/data-gov-india.provider';
+
+// Engines & Geocoders
+import { StopEnrichmentEngine } from './enrichment/stop-enrichment.engine';
+import { RouteEnrichmentEngine } from './enrichment/route-enrichment.engine';
+import { ConfidenceScoringEngine } from './enrichment/confidence-scoring.engine';
+import { PluggableGeocoderEngine } from './geocoding/pluggable-geocoder.engine';
+
+// Health & Dashboard
+import { ProviderHealthService } from './health/provider-health.service';
+import { ProviderDashboardController } from './health/provider-dashboard.controller';
+import { CoverageDashboardService } from './health/coverage-dashboard.service';
+
+// Places & Graph
+import { UniversalSearchService } from '../places/universal-search.service';
+import { AliasResolverService } from '../places/alias-resolver.service';
+import { TransportGraphEngine } from '../graph/transport-graph.engine';
+import { NearestStopEngine } from '../places/nearest-stop.engine';
+import { RouteService } from '../places/route.service';
+import { VillageService } from '../places/village.service';
+import { VillageJourneyService } from '../planner/village-journey.service';
+import { PublicTransportGraphController, InternalProviderHealthDashboardController } from '../places/public-transport-graph.controller';
 
 @Module({
   imports: [SequelizeModule.forFeature(PROVIDER_INGESTION_SEQUELIZE_MODELS)],
@@ -41,6 +73,9 @@ import { RawSourceRecordRepository } from './infrastructure/sequelize/repositori
     CanonicalConflictsController,
     MetroNetworkController,
     InternalProviderIngestionController,
+    ProviderDashboardController,
+    PublicTransportGraphController,
+    InternalProviderHealthDashboardController,
   ],
   providers: [
     ProviderRegistryService,
@@ -56,7 +91,32 @@ import { RawSourceRecordRepository } from './infrastructure/sequelize/repositori
     GovernmentBusStaticImportService,
     ProviderSyncSchedulerService,
     DatasetPromotionService,
+    GenericProviderIngestionService,
     RawSourceRecordRepository,
+
+    // Target Providers
+    WBBusProvider,
+    WBBustimeProvider,
+    BusSathiProvider,
+    OpenStreetMapProvider,
+    NominatimProvider,
+    CensusIndiaProvider,
+    DataGovIndiaProvider,
+
+    // Engines & Services
+    StopEnrichmentEngine,
+    RouteEnrichmentEngine,
+    ConfidenceScoringEngine,
+    PluggableGeocoderEngine,
+    ProviderHealthService,
+    UniversalSearchService,
+    AliasResolverService,
+    TransportGraphEngine,
+    NearestStopEngine,
+    RouteService,
+    VillageService,
+    VillageJourneyService,
+    CoverageDashboardService,
   ],
   exports: [
     ProviderRegistryService,
@@ -71,7 +131,32 @@ import { RawSourceRecordRepository } from './infrastructure/sequelize/repositori
     WBBusImportService,
     GovernmentBusStaticImportService,
     DatasetPromotionService,
+    GenericProviderIngestionService,
     RawSourceRecordRepository,
+
+    // Target Providers
+    WBBusProvider,
+    WBBustimeProvider,
+    BusSathiProvider,
+    OpenStreetMapProvider,
+    NominatimProvider,
+    CensusIndiaProvider,
+    DataGovIndiaProvider,
+
+    // Engines & Services
+    StopEnrichmentEngine,
+    RouteEnrichmentEngine,
+    ConfidenceScoringEngine,
+    PluggableGeocoderEngine,
+    ProviderHealthService,
+    UniversalSearchService,
+    AliasResolverService,
+    TransportGraphEngine,
+    NearestStopEngine,
+    RouteService,
+    VillageService,
+    VillageJourneyService,
+    CoverageDashboardService,
   ],
 })
 export class ProviderIngestionModule {}

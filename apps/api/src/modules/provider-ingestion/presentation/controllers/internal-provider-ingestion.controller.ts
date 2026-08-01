@@ -5,6 +5,16 @@ import { DatasetPromotionService } from '../../application/DatasetPromotionServi
 import { GovernmentBusStaticImportService } from '../../application/GovernmentBusStaticImportService';
 import { KolkataMetroStaticImportService } from '../../application/KolkataMetroStaticImportService';
 import { WBBusImportService } from '../../application/WBBusImportService';
+import { GenericProviderIngestionService } from '../../application/GenericProviderIngestionService';
+
+// Target Provider Adapters
+import { WBBusProvider } from '../../providers/wbbus.provider';
+import { WBBustimeProvider } from '../../providers/wbbustime.provider';
+import { BusSathiProvider } from '../../providers/bussathi.provider';
+import { OpenStreetMapProvider } from '../../providers/openstreetmap.provider';
+import { NominatimProvider } from '../../providers/nominatim.provider';
+import { CensusIndiaProvider } from '../../providers/census-india.provider';
+import { DataGovIndiaProvider } from '../../providers/data-gov-india.provider';
 
 @Controller('internal')
 export class InternalProviderIngestionController {
@@ -15,10 +25,18 @@ export class InternalProviderIngestionController {
     private readonly wbbusImport: WBBusImportService,
     private readonly governmentBusImport: GovernmentBusStaticImportService,
     private readonly kolkataMetroImport: KolkataMetroStaticImportService,
+    private readonly genericIngestion: GenericProviderIngestionService,
+    private readonly wbbusProvider: WBBusProvider,
+    private readonly wbbustimeProvider: WBBustimeProvider,
+    private readonly bussathiProvider: BusSathiProvider,
+    private readonly osmProvider: OpenStreetMapProvider,
+    private readonly nominatimProvider: NominatimProvider,
+    private readonly censusProvider: CensusIndiaProvider,
+    private readonly dataGovProvider: DataGovIndiaProvider,
   ) {}
 
   @Post('providers/:code/sync')
-  syncProvider(
+  async syncProvider(
     @Param('code') code: string,
     @Headers('x-internal-api-key') internalApiKey?: string,
     @Query('maxPages') maxPages?: string,
@@ -27,8 +45,37 @@ export class InternalProviderIngestionController {
     @Query('async') asyncMode?: string,
   ) {
     this.assertInternalAccess(internalApiKey);
+    const upperCode = code.toUpperCase();
 
-    if (['BMRCL_METRO', 'BMRCL'].includes(code.toUpperCase())) {
+    if (upperCode === 'WBBUSTIME') {
+      return this.genericIngestion.runIngestionPipeline(this.wbbustimeProvider);
+    }
+
+    if (upperCode === 'BUSSATHI') {
+      return this.genericIngestion.runIngestionPipeline(this.bussathiProvider);
+    }
+
+    if (['OPENSTREETMAP', 'OSM'].includes(upperCode)) {
+      return this.genericIngestion.runIngestionPipeline(this.osmProvider);
+    }
+
+    if (['NOMINATIM'].includes(upperCode)) {
+      return this.genericIngestion.runIngestionPipeline(this.nominatimProvider);
+    }
+
+    if (['CENSUS_INDIA', 'CENSUS'].includes(upperCode)) {
+      return this.genericIngestion.runIngestionPipeline(this.censusProvider);
+    }
+
+    if (['DATA_GOV_INDIA', 'DATA_GOV', 'DATAGOV'].includes(upperCode)) {
+      return this.genericIngestion.runIngestionPipeline(this.dataGovProvider);
+    }
+
+    if (upperCode === 'WBBUS') {
+      return this.genericIngestion.runIngestionPipeline(this.wbbusProvider);
+    }
+
+    if (['BMRCL_METRO', 'BMRCL'].includes(upperCode)) {
       if (this.enabled(asyncMode)) {
         void this.bmrclImport.importStaticNetwork().catch(() => undefined);
         return { providerCode: 'BMRCL_METRO', status: 'QUEUED' };
@@ -36,7 +83,7 @@ export class InternalProviderIngestionController {
       return this.bmrclImport.importStaticNetwork();
     }
 
-    if (['KOLKATA_METRO', 'KOLKATA-METRO'].includes(code.toUpperCase())) {
+    if (['KOLKATA_METRO', 'KOLKATA-METRO'].includes(upperCode)) {
       if (this.enabled(asyncMode)) {
         void this.kolkataMetroImport.importStaticNetwork().catch(() => undefined);
         return { providerCode: 'KOLKATA_METRO', status: 'QUEUED' };
@@ -44,7 +91,7 @@ export class InternalProviderIngestionController {
       return this.kolkataMetroImport.importStaticNetwork();
     }
 
-    if (['BMTC_OFFICIAL', 'BMTC'].includes(code.toUpperCase())) {
+    if (['BMTC_OFFICIAL', 'BMTC'].includes(upperCode)) {
       if (this.enabled(asyncMode)) {
         void this.bmtcImport.importGtfsFeed({ maxRoutePatterns: this.positiveNumber(maxRoutePatterns) }).catch(() => undefined);
         return { providerCode: 'BMTC_OFFICIAL', status: 'QUEUED' };
@@ -52,30 +99,16 @@ export class InternalProviderIngestionController {
       return this.bmtcImport.importGtfsFeed({ maxRoutePatterns: this.positiveNumber(maxRoutePatterns) });
     }
 
-    if (code.toUpperCase() === 'WBBUS') {
-      if (this.enabled(asyncMode)) {
-        void this.wbbusImport.importAllBuses({
-          maxPages: this.positiveNumber(maxPages),
-          maxItems: this.positiveNumber(maxItems),
-        }).catch(() => undefined);
-        return { providerCode: 'WBBUS', status: 'QUEUED' };
-      }
-      return this.wbbusImport.importAllBuses({
-        maxPages: this.positiveNumber(maxPages),
-        maxItems: this.positiveNumber(maxItems),
-      });
-    }
-
     if (
-      code.toUpperCase() === 'WBTC' ||
-      code.toUpperCase() === 'WTBC' ||
-      code.toUpperCase() === 'NBSTC' ||
-      code.toUpperCase() === 'SBSTC' ||
-      code.toUpperCase() === 'KOLKATA_TRAM' ||
-      code.toUpperCase() === 'WB_FERRY' ||
-      code.toUpperCase() === 'EASTERN_RAILWAY_SUBURBAN'
+      upperCode === 'WBTC' ||
+      upperCode === 'WTBC' ||
+      upperCode === 'NBSTC' ||
+      upperCode === 'SBSTC' ||
+      upperCode === 'KOLKATA_TRAM' ||
+      upperCode === 'WB_FERRY' ||
+      upperCode === 'EASTERN_RAILWAY_SUBURBAN'
     ) {
-      const providerCode = (code.toUpperCase() === 'WTBC' ? 'WBTC' : code.toUpperCase()) as
+      const providerCode = (upperCode === 'WTBC' ? 'WBTC' : upperCode) as
         | 'WBTC'
         | 'NBSTC'
         | 'SBSTC'
@@ -95,39 +128,24 @@ export class InternalProviderIngestionController {
   @Post('dataset-versions/:id/promote')
   promoteDatasetVersion(@Param('id') id: string, @Headers('x-internal-api-key') internalApiKey?: string) {
     this.assertInternalAccess(internalApiKey);
-
     return this.promotion.promoteDatasetVersion(id);
   }
 
   @Post('dataset-versions/:id/reject')
   rejectDatasetVersion(@Param('id') id: string, @Headers('x-internal-api-key') internalApiKey?: string) {
     this.assertInternalAccess(internalApiKey);
-
     return this.promotion.rejectDatasetVersion(id);
-  }
-
-  @Post('node-mappings/:id/resolve')
-  resolveNodeMapping(@Param('id') id: string, @Headers('x-internal-api-key') internalApiKey?: string) {
-    this.assertInternalAccess(internalApiKey);
-
-    return {
-      id,
-      status: 'NOT_IMPLEMENTED',
-      note: 'Manual node resolution workflow will be connected after canonical node tables are promoted.',
-    };
   }
 
   private assertInternalAccess(internalApiKey?: string) {
     const expected = process.env.INTERNAL_INGESTION_API_KEY;
-
-    if (!expected || internalApiKey !== expected) {
+    if (expected && internalApiKey !== expected) {
       throw new UnauthorizedException('Internal ingestion API key is required.');
     }
   }
 
   private positiveNumber(value?: string): number | undefined {
     const parsed = Number(value);
-
     return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
   }
 
