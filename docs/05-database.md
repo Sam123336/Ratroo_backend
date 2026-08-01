@@ -1,6 +1,6 @@
 # Database Plan
 
-See also: [database.md](database.md).
+See also: [database.md](database.md) and [05-er-diagram.md](05-er-diagram.md).
 
 ## ORM Direction
 
