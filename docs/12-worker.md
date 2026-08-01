@@ -54,3 +54,17 @@ Journey Graph Worker
 - Parser failures save the source payload reference and parser version.
 - Partial imports are allowed only if entity relationships remain valid.
 - Repeated failures raise provider health alerts.
+
+## Temporary API Scheduler
+
+The worker app now contains a BullMQ processor for provider sync jobs. Local Redis is defined in `docker/docker-compose.yml` and should use:
+
+```env
+REDIS_URL=redis://localhost:6379
+```
+
+Important current limitation: the worker currently triggers provider imports through the protected API endpoint. This is acceptable for small/bounded verification jobs, but the WBBUS 500-item run showed that long worker-to-API HTTP calls can disconnect while the API import continues. Full provider imports should move the importer execution into the worker process or use a short API enqueue call plus durable run monitoring.
+
+Until Redis is configured, the API can run a controlled provider sync scheduler. See [20-provider-sync-cron.md](20-provider-sync-cron.md).
+
+This scheduler is disabled by default and should only run implemented providers such as `WBBUS` and `BMRCL_METRO`.

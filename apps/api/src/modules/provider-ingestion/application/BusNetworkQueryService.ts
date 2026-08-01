@@ -23,9 +23,13 @@ export class BusNetworkQueryService {
   ) {}
 
   async listRoutes(regionSlug: string, filters: { search?: string }) {
-    const activeVersion = await this.getActiveWBBusVersion(regionSlug);
+    const activeVersion = await this.getActiveBusVersion(regionSlug);
+    if (!activeVersion) {
+      return [];
+    }
+    const providerCode = this.providerCodeForRegion(regionSlug);
     const where: Record<string, unknown> = {
-      providerCode: 'WBBUS',
+      providerCode,
       datasetVersionId: activeVersion.id,
     };
 
@@ -43,10 +47,14 @@ export class BusNetworkQueryService {
   }
 
   async getRoute(regionSlug: string, id: string) {
-    const activeVersion = await this.getActiveWBBusVersion(regionSlug);
+    const activeVersion = await this.getActiveBusVersion(regionSlug);
+    if (!activeVersion) {
+      throw new NotFoundException(`Bus network is not available for region "${regionSlug}" yet.`);
+    }
+    const providerCode = this.providerCodeForRegion(regionSlug);
     const route = await this.busRouteModel.findOne({
       where: {
-        providerCode: 'WBBUS',
+        providerCode,
         datasetVersionId: activeVersion.id,
         [Op.or]: [{ id }, { externalId: id }],
       },
@@ -88,9 +96,13 @@ export class BusNetworkQueryService {
   }
 
   async listStops(regionSlug: string, filters: { search?: string }) {
-    const activeVersion = await this.getActiveWBBusVersion(regionSlug);
+    const activeVersion = await this.getActiveBusVersion(regionSlug);
+    if (!activeVersion) {
+      return [];
+    }
+    const providerCode = this.providerCodeForRegion(regionSlug);
     const where: Record<string, unknown> = {
-      providerCode: 'WBBUS',
+      providerCode,
       datasetVersionId: activeVersion.id,
     };
 
@@ -110,20 +122,18 @@ export class BusNetworkQueryService {
     return stops.map(stop => this.stopDto(stop));
   }
 
-  private async getActiveWBBusVersion(regionSlug: string) {
-    if (regionSlug !== 'west-bengal') {
-      throw new NotFoundException(`WBBus network is not available for region "${regionSlug}"`);
-    }
+  private async getActiveBusVersion(regionSlug: string) {
+    const providerCode = this.providerCodeForRegion(regionSlug);
 
     const dataset = await this.datasetModel.findOne({
       where: {
-        providerCode: 'WBBUS',
-        name: 'WBBus private bus network',
+        providerCode,
       },
+      order: [['updatedAt', 'DESC']],
     });
 
     if (!dataset) {
-      throw new NotFoundException('No WBBus dataset has been promoted yet.');
+      return null;
     }
 
     const activeVersion = await this.datasetVersionModel.findOne({
@@ -135,10 +145,22 @@ export class BusNetworkQueryService {
     });
 
     if (!activeVersion) {
-      throw new NotFoundException('No active WBBus dataset version exists.');
+      return null;
     }
 
     return activeVersion;
+  }
+
+  private providerCodeForRegion(regionSlug: string) {
+    if (regionSlug === 'west-bengal') {
+      return 'WBBUS';
+    }
+
+    if (regionSlug === 'bengaluru') {
+      return 'BMTC_OFFICIAL';
+    }
+
+    throw new NotFoundException(`Bus network is not available for region "${regionSlug}"`);
   }
 
   private routeDto(route: BusRouteModel) {

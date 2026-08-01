@@ -1,12 +1,18 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { BmrclStaticImportService } from './application/BmrclStaticImportService';
+import { BengaluruJourneyPlannerService } from './application/BengaluruJourneyPlannerService';
+import { BengaluruMobilityQueryService } from './application/BengaluruMobilityQueryService';
+import { BmtcGtfsImportService } from './application/BmtcGtfsImportService';
 import { BusNetworkQueryService } from './application/BusNetworkQueryService';
 import { DatasetPromotionService } from './application/DatasetPromotionService';
 import { MetroNetworkQueryService } from './application/MetroNetworkQueryService';
 import { ProviderIngestionQueryService } from './application/ProviderIngestionQueryService';
 import { ProviderRegistryService } from './application/ProviderRegistryService';
+import { ProviderSyncSchedulerService } from './application/ProviderSyncSchedulerService';
 import { WBBusImportService } from './application/WBBusImportService';
+import { BengaluruJourneyController } from './presentation/controllers/bengaluru-journey.controller';
+import { BengaluruMobilityController } from './presentation/controllers/bengaluru-mobility.controller';
 import { BusNetworkController } from './presentation/controllers/bus-network.controller';
 import { CanonicalConflictsController } from './presentation/controllers/canonical-conflicts.controller';
 import { DatasetVersionsController } from './presentation/controllers/dataset-versions.controller';
@@ -23,6 +29,8 @@ import { RawSourceRecordRepository } from './infrastructure/sequelize/repositori
   imports: [SequelizeModule.forFeature(PROVIDER_INGESTION_SEQUELIZE_MODELS)],
   controllers: [
     ProviderRegistryController,
+    BengaluruJourneyController,
+    BengaluruMobilityController,
     BusNetworkController,
     ProviderRunsController,
     DatasetVersionsController,
@@ -34,20 +42,27 @@ import { RawSourceRecordRepository } from './infrastructure/sequelize/repositori
   ],
   providers: [
     ProviderRegistryService,
+    BengaluruJourneyPlannerService,
+    BengaluruMobilityQueryService,
     ProviderIngestionQueryService,
     BusNetworkQueryService,
     MetroNetworkQueryService,
     BmrclStaticImportService,
+    BmtcGtfsImportService,
     WBBusImportService,
+    ProviderSyncSchedulerService,
     DatasetPromotionService,
     RawSourceRecordRepository,
   ],
   exports: [
     ProviderRegistryService,
+    BengaluruJourneyPlannerService,
+    BengaluruMobilityQueryService,
     ProviderIngestionQueryService,
     BusNetworkQueryService,
     MetroNetworkQueryService,
     BmrclStaticImportService,
+    BmtcGtfsImportService,
     WBBusImportService,
     DatasetPromotionService,
     RawSourceRecordRepository,

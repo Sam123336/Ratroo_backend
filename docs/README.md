@@ -15,7 +15,7 @@ The numbered documents are product and system planning artifacts. The existing i
 | [04-folder-structure.md](04-folder-structure.md) | Target repository layout |
 | [05-database.md](05-database.md) | Data model, schemas, and growth strategy |
 | [05-er-diagram.md](05-er-diagram.md) | Current Sequelize ER diagram and table relationships |
-| [05-er-board.html](05-.er-boardhtml) | Proper dark ERD board with table cards and relationship wires |
+| [05-er-board.html](05-er-board.html) | Proper dark ERD board with table cards and relationship wires |
 | [05-er-diagram.html](05-er-diagram.html) | Browser-friendly ER diagram view |
 | [05-er-wiring.html](05-er-wiring.html) | Dark interactive table wiring canvas |
 | [06-domain-model.md](06-domain-model.md) | Domain language and bounded contexts |
@@ -32,6 +32,7 @@ The numbered documents are product and system planning artifacts. The existing i
 | [17-state-data-sources.md](17-state-data-sources.md) | State-wise source catalog |
 | [18-business-model.md](18-business-model.md) | Monetization, partnerships, and operating model |
 | [19-future.md](19-future.md) | Long-term capabilities and open questions |
+| [20-provider-sync-cron.md](20-provider-sync-cron.md) | Controlled provider sync scheduler and migration notes |
 | [adr/0009-use-sequelize.md](adr/0009-use-sequelize.md) | Sequelize and feature-driven NestJS module decision |
 
 ## Source Status

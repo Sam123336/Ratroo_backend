@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "start": "node dist/main"
+    "start": "node dist/main",
+    "enqueue": "node dist/enqueue"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

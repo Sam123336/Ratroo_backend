@@ -10,7 +10,9 @@ import {
   WBBusMapper,
   WBBusParser,
   WBBusValidator,
+  wbbusRecordRejectionReason,
 } from './wbbus-static-network';
+import { ensureUuidV7 } from '../../../shared/ids/uuid-v7';
 import {
   DatasetModel,
   DatasetVersionModel,
@@ -105,16 +107,55 @@ export class WBBusImportService {
       const rawInputs: WBBusRawBusInput[] = [];
       let fetchedCount = 0;
       let skippedCount = 0;
+      let failedFetchCount = 0;
+      const fetchFailures: Array<{ url: string; message: string }> = [];
+      const maxFetchFailures = Math.max(5, Math.ceil(discovery.busUrls.length * 0.1));
 
-      for (const busUrl of discovery.busUrls) {
-        const fetched = await this.fetchWithRetries(busUrl, 3);
+      for (const [index, busUrl] of discovery.busUrls.entries()) {
+        let fetched: WBBusFetchedPage;
+        const externalId = this.externalIdFromBusUrl(busUrl);
+        try {
+          fetched = await this.fetchWithRetries(busUrl, 3);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          failedFetchCount++;
+          fetchFailures.push({ url: busUrl, message });
+          await this.checkpointModel.create({
+            providerRunId: run.id,
+            providerCode: 'WBBUS',
+            externalId,
+            sourceUrl: busUrl,
+            status: 'FETCH_FAILED',
+            errorMessage: message,
+          });
+          await run.update({
+            fetchedCount: rawInputs.length,
+            failedCount: failedFetchCount,
+            lastProcessedExternalId: externalId,
+            metrics: {
+              maxPages,
+              maxItems,
+              discoveredBuses: discovery.busUrls.length,
+              skippedCount,
+              fetchFailureCount: failedFetchCount,
+              latestFetchFailure: { url: busUrl, message },
+            },
+          });
+
+          if (failedFetchCount > maxFetchFailures) {
+            throw new Error(`WBBus fetch failure threshold exceeded: ${failedFetchCount}/${discovery.busUrls.length}`);
+          }
+
+          continue;
+        }
+
         const latest = await this.findLatestRaw(busUrl);
         const unchanged = latest?.contentHash === fetched.contentHash;
 
         await this.checkpointModel.create({
           providerRunId: run.id,
           providerCode: 'WBBUS',
-          externalId: this.externalIdFromBusUrl(busUrl),
+          externalId,
           sourceUrl: busUrl,
           status: unchanged ? 'SKIPPED_UNCHANGED' : 'FETCHED',
           contentHash: fetched.contentHash,
@@ -153,12 +194,32 @@ export class WBBusImportService {
           contentHash: fetched.contentHash,
           rawRecordId: rawRecord.id,
         });
+
+        if ((index + 1) % 25 === 0 || index === discovery.busUrls.length - 1) {
+          await run.update({
+            fetchedCount: rawInputs.length,
+            failedCount: failedFetchCount,
+            lastProcessedExternalId: externalId,
+            metrics: {
+              maxPages,
+              maxItems,
+              discoveredBuses: discovery.busUrls.length,
+              skippedCount,
+              fetchFailureCount: failedFetchCount,
+              fetchFailures: fetchFailures.slice(-5),
+            },
+          });
+        }
       }
 
-      if (rawInputs.length && fetchedCount === 0) {
+      if (!rawInputs.length) {
+        throw new Error('WBBus import produced no fetchable bus detail pages.');
+      }
+
+      if (rawInputs.length && fetchedCount === 0 && failedFetchCount === 0) {
         await run.update({
           status: 'SKIPPED_UNCHANGED',
-          fetchedCount,
+          fetchedCount: rawInputs.length,
           parsedCount: 0,
           metrics: {
             maxPages,
@@ -178,11 +239,31 @@ export class WBBusImportService {
         };
       }
 
-      await run.update({ status: 'PARSING', fetchedCount });
+      await run.update({ status: 'PARSING', fetchedCount: rawInputs.length, failedCount: failedFetchCount });
 
-      const parsed = rawInputs.map(input =>
+      const parsedRecords = rawInputs.map(input =>
         this.busParser.parseBusHtml(input.url, input.body, input.rawRecordId, input.contentHash),
       );
+      const rejectedRecords: Array<{ sourceUrl: string; reason: string }> = [];
+      const parsed = [];
+      for (const record of parsedRecords) {
+        const rejectionReason = wbbusRecordRejectionReason(record);
+        if (rejectionReason) {
+          rejectedRecords.push({ sourceUrl: record.sourceUrl, reason: rejectionReason });
+          await this.checkpointModel.create({
+            providerRunId: run.id,
+            providerCode: 'WBBUS',
+            externalId: this.externalIdFromBusUrl(record.sourceUrl),
+            sourceUrl: record.sourceUrl,
+            status: 'REJECTED_INVALID_RECORD',
+            contentHash: record.contentHash,
+            errorMessage: rejectionReason,
+          });
+          continue;
+        }
+
+        parsed.push(record);
+      }
       const validation = this.validator.validate(parsed);
 
       if (!validation.isValid) {
@@ -202,7 +283,7 @@ export class WBBusImportService {
 
       const canonical = this.mapper.map(parsed);
       const datasetHash = sha256(rawInputs.map(input => input.contentHash).sort().join('|'));
-      await run.update({ status: 'STAGING', parsedCount: parsed.length });
+      await run.update({ status: 'STAGING', parsedCount: parsed.length, failedCount: failedFetchCount + rejectedRecords.length });
 
       const staged = await this.stageCanonical(run, canonical, datasetHash, validation);
       const promoted = await this.promotion.promoteDatasetVersion(staged.datasetVersionId);
@@ -214,6 +295,10 @@ export class WBBusImportService {
           maxItems,
           discoveredBuses: discovery.busUrls.length,
           skippedCount,
+          fetchFailureCount: failedFetchCount,
+          fetchFailures: fetchFailures.slice(-20),
+          rejectedRecordCount: rejectedRecords.length,
+          rejectedRecords: rejectedRecords.slice(-20),
           validation,
           datasetVersionId: staged.datasetVersionId,
           promoted,
@@ -364,9 +449,10 @@ export class WBBusImportService {
         { transaction },
       );
 
-      const observations = await Promise.all(
-        canonical.sourceObservations.map(observation =>
-          this.sourceObservationModel.create(
+      const observations = [];
+      for (const observation of canonical.sourceObservations) {
+        observations.push(
+          await this.sourceObservationModel.create(
             {
               providerCode: observation.providerCode,
               providerVersion: observation.providerVersion,
@@ -379,8 +465,8 @@ export class WBBusImportService {
             },
             { transaction },
           ),
-        ),
-      );
+        );
+      }
       const observationIdByRawRecordId = new Map(observations.map(observation => [observation.rawSourceRecordId, observation.id]));
       const primaryObservationId = observations[0]?.id;
 
@@ -388,28 +474,27 @@ export class WBBusImportService {
         throw new BadRequestException('No source observation exists.');
       }
 
-      for (const agency of canonical.agencies) {
-        const stagedAgency = await this.stagedAgencyModel.create(
-          {
-            datasetVersionId: datasetVersion.id,
-            providerCode: agency.providerCode,
-            providerExternalId: agency.externalId,
-            sourceObservationId: primaryObservationId,
-            validationStatus: 'VALIDATED',
-            operationalStatus: 'ACTIVE',
-            canonicalPayload: agency,
-          },
-          { transaction },
-        );
+      const stagedAgencies = canonical.agencies.map(agency => ({
+        id: ensureUuidV7(),
+        datasetVersionId: datasetVersion.id,
+        providerCode: agency.providerCode,
+        providerExternalId: agency.externalId,
+        sourceObservationId: primaryObservationId,
+        validationStatus: 'VALIDATED',
+        operationalStatus: 'ACTIVE',
+        canonicalPayload: agency,
+      }));
+      await this.bulkCreateInBatches(this.stagedAgencyModel, stagedAgencies, transaction);
 
+      for (const agency of canonical.agencies) {
         await this.providerAgencyMappingModel.findOrCreate({
           where: {
             providerCode: agency.providerCode,
-            providerExternalId: agency.externalId || stagedAgency.id,
+            providerExternalId: agency.externalId || 'wbbus:agency',
           },
           defaults: {
             providerCode: agency.providerCode,
-            providerExternalId: agency.externalId || stagedAgency.id,
+            providerExternalId: agency.externalId || 'wbbus:agency',
             resolutionStatus: 'AUTO_RESOLVED',
             confidence: 0.7,
             evidence: {
@@ -421,20 +506,20 @@ export class WBBusImportService {
         });
       }
 
-      for (const node of canonical.nodes) {
-        await this.stagedNodeModel.create(
-          {
-            datasetVersionId: datasetVersion.id,
-            providerCode: node.providerCode,
-            providerExternalId: node.externalId,
-            sourceObservationId: primaryObservationId,
-            validationStatus: 'VALIDATED',
-            operationalStatus: 'UNKNOWN',
-            canonicalPayload: node,
-          },
-          { transaction },
-        );
-      }
+      await this.bulkCreateInBatches(
+        this.stagedNodeModel,
+        canonical.nodes.map(node => ({
+          id: ensureUuidV7(),
+          datasetVersionId: datasetVersion.id,
+          providerCode: node.providerCode,
+          providerExternalId: node.externalId,
+          sourceObservationId: primaryObservationId,
+          validationStatus: 'VALIDATED',
+          operationalStatus: 'UNKNOWN',
+          canonicalPayload: node,
+        })),
+        transaction,
+      );
 
       const sourceObservationIdByRouteExternalId = new Map<string, string>();
       for (const observation of canonical.sourceObservations) {
@@ -444,75 +529,77 @@ export class WBBusImportService {
         sourceObservationIdByRouteExternalId.set(`${routeKey}:down`, observationId);
       }
 
+      const stagedRoutes = [];
+      const stagedRouteStops = [];
       for (const route of canonical.routePatterns) {
         const sourceObservationId = sourceObservationIdByRouteExternalId.get(route.externalId) || primaryObservationId;
-        const stagedRoute = await this.stagedRouteModel.create(
-          {
+        const stagedRouteId = ensureUuidV7();
+        stagedRoutes.push({
+          id: stagedRouteId,
+          datasetVersionId: datasetVersion.id,
+          providerCode: route.providerCode,
+          providerExternalId: route.externalId,
+          sourceObservationId,
+          validationStatus: 'VALIDATED',
+          operationalStatus: route.operationalStatus,
+          canonicalPayload: route,
+        });
+
+        for (const stop of route.stops) {
+          stagedRouteStops.push({
+            id: ensureUuidV7(),
             datasetVersionId: datasetVersion.id,
             providerCode: route.providerCode,
-            providerExternalId: route.externalId,
+            providerExternalId: `${route.externalId}:${stop.sequence}:${stop.nodeExternalId}`,
             sourceObservationId,
             validationStatus: 'VALIDATED',
             operationalStatus: route.operationalStatus,
-            canonicalPayload: route,
-          },
-          { transaction },
-        );
-
-        for (const stop of route.stops) {
-          await this.stagedRouteStopModel.create(
-            {
-              datasetVersionId: datasetVersion.id,
-              providerCode: route.providerCode,
-              providerExternalId: `${route.externalId}:${stop.sequence}:${stop.nodeExternalId}`,
-              sourceObservationId,
-              validationStatus: 'VALIDATED',
-              operationalStatus: route.operationalStatus,
-              canonicalPayload: {
-                routeExternalId: route.externalId,
-                stagedRouteId: stagedRoute.id,
-                ...stop,
-              },
+            canonicalPayload: {
+              routeExternalId: route.externalId,
+              stagedRouteId,
+              ...stop,
             },
-            { transaction },
-          );
+          });
         }
       }
+      await this.bulkCreateInBatches(this.stagedRouteModel, stagedRoutes, transaction);
+      await this.bulkCreateInBatches(this.stagedRouteStopModel, stagedRouteStops, transaction);
 
+      const stagedTrips = [];
+      const stagedStopTimes = [];
       for (const trip of canonical.trips) {
         const sourceObservationId = sourceObservationIdByRouteExternalId.get(trip.routeExternalId || '') || primaryObservationId;
-        const stagedTrip = await this.stagedTripModel.create(
-          {
+        const stagedTripId = ensureUuidV7();
+        stagedTrips.push({
+          id: stagedTripId,
+          datasetVersionId: datasetVersion.id,
+          providerCode: trip.providerCode,
+          providerExternalId: trip.externalId,
+          sourceObservationId,
+          validationStatus: 'VALIDATED',
+          operationalStatus: trip.operationalStatus,
+          canonicalPayload: trip,
+        });
+
+        for (const stopTime of trip.stopTimes) {
+          stagedStopTimes.push({
+            id: ensureUuidV7(),
             datasetVersionId: datasetVersion.id,
             providerCode: trip.providerCode,
-            providerExternalId: trip.externalId,
+            providerExternalId: `${trip.externalId}:${stopTime.sequence}:${stopTime.stopExternalId}`,
             sourceObservationId,
             validationStatus: 'VALIDATED',
             operationalStatus: trip.operationalStatus,
-            canonicalPayload: trip,
-          },
-          { transaction },
-        );
-
-        for (const stopTime of trip.stopTimes) {
-          await this.stagedStopTimeModel.create(
-            {
-              datasetVersionId: datasetVersion.id,
-              providerCode: trip.providerCode,
-              providerExternalId: `${trip.externalId}:${stopTime.sequence}:${stopTime.stopExternalId}`,
-              sourceObservationId,
-              validationStatus: 'VALIDATED',
-              operationalStatus: trip.operationalStatus,
-              canonicalPayload: {
-                tripExternalId: trip.externalId,
-                stagedTripId: stagedTrip.id,
-                ...stopTime,
-              },
+            canonicalPayload: {
+              tripExternalId: trip.externalId,
+              stagedTripId,
+              ...stopTime,
             },
-            { transaction },
-          );
+          });
         }
       }
+      await this.bulkCreateInBatches(this.stagedTripModel, stagedTrips, transaction);
+      await this.bulkCreateInBatches(this.stagedStopTimeModel, stagedStopTimes, transaction);
 
       return {
         datasetVersionId: datasetVersion.id,
@@ -527,6 +614,14 @@ export class WBBusImportService {
         },
       };
     });
+  }
+
+  private async bulkCreateInBatches(model: any, records: Record<string, unknown>[], transaction: any) {
+    const batchSize = Number(process.env.WBBUS_STAGE_BATCH_SIZE || 1000);
+
+    for (let index = 0; index < records.length; index += batchSize) {
+      await model.bulkCreate(records.slice(index, index + batchSize), { transaction });
+    }
   }
 
   private findLatestRaw(sourceUrl: string) {

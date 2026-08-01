@@ -130,7 +130,7 @@ export class BmrclStaticImportService {
       );
 
       const changedPages = fetchedPages.filter(page => page.rawRecord);
-      const contentHash = sha256(fetchedPages.map(page => page.contentHash).sort().join('|'));
+      const rawContentHash = sha256(fetchedPages.map(page => page.contentHash).sort().join('|'));
 
       if (!changedPages.length) {
         await run.update({
@@ -139,7 +139,7 @@ export class BmrclStaticImportService {
           parsedCount: 0,
           metrics: {
             discoveryItems: discoveryItems.length,
-            contentHash,
+            contentHash: rawContentHash,
             skippedReason: 'All BMRCL source hashes match the latest raw source records.',
           },
         });
@@ -148,7 +148,7 @@ export class BmrclStaticImportService {
           providerCode: 'BMRCL_METRO',
           runId: run.id,
           status: 'SKIPPED_UNCHANGED',
-          contentHash,
+          contentHash: rawContentHash,
         };
       }
 
@@ -181,6 +181,32 @@ export class BmrclStaticImportService {
       }
 
       const canonical = this.mapper.map(parsedNetwork);
+      const contentHash = this.canonicalContentHash(canonical);
+      const activeVersion = await this.findActiveVersionByContentHash(contentHash);
+
+      if (activeVersion) {
+        await run.update({
+          status: 'SKIPPED_UNCHANGED',
+          fetchedCount: changedPages.length,
+          parsedCount: parsedNetwork.lines.length,
+          metrics: {
+            validation,
+            rawContentHash,
+            contentHash,
+            datasetVersionId: activeVersion.id,
+            skippedReason: 'Parsed BMRCL canonical network matches the active dataset version.',
+          },
+        });
+
+        return {
+          providerCode: 'BMRCL_METRO',
+          runId: run.id,
+          datasetVersionId: activeVersion.id,
+          status: 'SKIPPED_UNCHANGED',
+          validation,
+        };
+      }
+
       await run.update({ parsedCount: parsedNetwork.lines.length, status: 'STAGING' });
 
       const staged = await this.stageCanonical(run, canonical, contentHash, validation);
@@ -234,6 +260,59 @@ export class BmrclStaticImportService {
     };
   }
 
+  private async findActiveVersionByContentHash(contentHash: string) {
+    const dataset = await this.datasetModel.findOne({
+      where: {
+        providerCode: 'BMRCL_METRO',
+        name: 'BMRCL static metro network',
+      },
+      order: [['updatedAt', 'DESC']],
+    });
+
+    if (!dataset) {
+      return null;
+    }
+
+    return this.datasetVersionModel.findOne({
+      where: {
+        datasetId: dataset.id,
+        status: 'ACTIVE',
+        contentHash,
+      },
+      order: [['updatedAt', 'DESC']],
+    });
+  }
+
+  private canonicalContentHash(canonical: BmrclCanonicalOutput) {
+    return sha256(
+      JSON.stringify({
+        agencies: canonical.agencies.map(agency => ({
+          externalId: agency.externalId,
+          name: agency.name,
+          providerCode: agency.providerCode,
+        })),
+        nodes: canonical.nodes.map(node => ({
+          externalId: node.externalId,
+          name: node.name,
+          normalizedName: node.normalizedName,
+          providerCode: node.providerCode,
+          metadata: (node as unknown as { metadata?: Record<string, unknown> }).metadata,
+        })),
+        routePatterns: canonical.routePatterns.map(route => ({
+          externalId: route.externalId,
+          longName: route.longName,
+          shortName: route.shortName,
+          providerCode: route.providerCode,
+          operationalStatus: route.operationalStatus,
+          stops: route.stops.map(stop => ({
+            nodeExternalId: stop.nodeExternalId,
+            sequence: stop.sequence,
+          })),
+        })),
+      }),
+    );
+  }
+
   private async stageCanonical(
     run: ProviderRunModel,
     canonical: BmrclCanonicalOutput,
@@ -268,9 +347,10 @@ export class BmrclStaticImportService {
         { transaction },
       );
 
-      const sourceObservations = await Promise.all(
-        canonical.sourceObservations.map(observation =>
-          this.sourceObservationModel.create(
+      const sourceObservations = [];
+      for (const observation of canonical.sourceObservations) {
+        sourceObservations.push(
+          await this.sourceObservationModel.create(
             {
               providerCode: observation.providerCode,
               providerVersion: observation.providerVersion,
@@ -283,8 +363,8 @@ export class BmrclStaticImportService {
             },
             { transaction },
           ),
-        ),
-      );
+        );
+      }
       const primaryObservationId = sourceObservations[0]?.id;
 
       if (!primaryObservationId) {

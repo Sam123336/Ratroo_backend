@@ -22,6 +22,7 @@ function databaseConfig(config: ConfigService): SequelizeModuleOptions {
     models,
     autoLoadModels: true,
     synchronize,
+    logging: config.get<string>('DB_LOGGING', 'false') === 'true' ? console.log : false,
   };
   const sslEnabled = config.get<string>('DB_SSL', databaseUrl ? 'true' : 'false') === 'true';
   const dialectOptions = sslEnabled

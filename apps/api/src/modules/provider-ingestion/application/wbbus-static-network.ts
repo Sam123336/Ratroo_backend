@@ -156,9 +156,10 @@ export class WBBusValidator {
         errors.push(`${record.sourceUrl} has no raw source record.`);
       }
 
-      const validStops = record.schedule.filter(stop => stop.stoppageName.trim());
-      if (validStops.length < 2) {
-        errors.push(`${record.sourceUrl} has fewer than two valid stops.`);
+      const rejectionReason = wbbusRecordRejectionReason(record);
+      const validStops = validWBBusStops(record);
+      if (rejectionReason) {
+        errors.push(`${record.sourceUrl} ${rejectionReason}.`);
       }
 
       if (!record.registration) {
@@ -361,6 +362,22 @@ export function normalizeStopName(value: string): string {
 
 export function normalizeRegistration(value: string | null): string | undefined {
   return value?.trim().toUpperCase().replace(/\s+/g, '') || undefined;
+}
+
+export function validWBBusStops(record: WBBusRawBus): WBBusStoppage[] {
+  return record.schedule.filter(stop => stop.stoppageName.trim());
+}
+
+export function wbbusRecordRejectionReason(record: WBBusRawBus): string | undefined {
+  if (!record.rawRecordId) {
+    return 'has no raw source record';
+  }
+
+  if (validWBBusStops(record).length < 2) {
+    return 'has fewer than two valid stops';
+  }
+
+  return undefined;
 }
 
 export function usableTime(value?: string): string | undefined {

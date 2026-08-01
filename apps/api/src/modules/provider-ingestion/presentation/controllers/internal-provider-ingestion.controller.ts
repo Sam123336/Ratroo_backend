@@ -1,5 +1,6 @@
 import { Controller, Headers, Param, Post, Query, UnauthorizedException } from '@nestjs/common';
 import { BmrclStaticImportService } from '../../application/BmrclStaticImportService';
+import { BmtcGtfsImportService } from '../../application/BmtcGtfsImportService';
 import { DatasetPromotionService } from '../../application/DatasetPromotionService';
 import { WBBusImportService } from '../../application/WBBusImportService';
 
@@ -8,6 +9,7 @@ export class InternalProviderIngestionController {
   constructor(
     private readonly promotion: DatasetPromotionService,
     private readonly bmrclImport: BmrclStaticImportService,
+    private readonly bmtcImport: BmtcGtfsImportService,
     private readonly wbbusImport: WBBusImportService,
   ) {}
 
@@ -17,14 +19,35 @@ export class InternalProviderIngestionController {
     @Headers('x-internal-api-key') internalApiKey?: string,
     @Query('maxPages') maxPages?: string,
     @Query('maxItems') maxItems?: string,
+    @Query('maxRoutePatterns') maxRoutePatterns?: string,
+    @Query('async') asyncMode?: string,
   ) {
     this.assertInternalAccess(internalApiKey);
 
     if (['BMRCL_METRO', 'BMRCL'].includes(code.toUpperCase())) {
+      if (this.enabled(asyncMode)) {
+        void this.bmrclImport.importStaticNetwork().catch(() => undefined);
+        return { providerCode: 'BMRCL_METRO', status: 'QUEUED' };
+      }
       return this.bmrclImport.importStaticNetwork();
     }
 
+    if (['BMTC_OFFICIAL', 'BMTC'].includes(code.toUpperCase())) {
+      if (this.enabled(asyncMode)) {
+        void this.bmtcImport.importGtfsFeed({ maxRoutePatterns: this.positiveNumber(maxRoutePatterns) }).catch(() => undefined);
+        return { providerCode: 'BMTC_OFFICIAL', status: 'QUEUED' };
+      }
+      return this.bmtcImport.importGtfsFeed({ maxRoutePatterns: this.positiveNumber(maxRoutePatterns) });
+    }
+
     if (code.toUpperCase() === 'WBBUS') {
+      if (this.enabled(asyncMode)) {
+        void this.wbbusImport.importAllBuses({
+          maxPages: this.positiveNumber(maxPages),
+          maxItems: this.positiveNumber(maxItems),
+        }).catch(() => undefined);
+        return { providerCode: 'WBBUS', status: 'QUEUED' };
+      }
       return this.wbbusImport.importAllBuses({
         maxPages: this.positiveNumber(maxPages),
         maxItems: this.positiveNumber(maxItems),
@@ -71,5 +94,9 @@ export class InternalProviderIngestionController {
     const parsed = Number(value);
 
     return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+  }
+
+  private enabled(value?: string) {
+    return ['true', '1', 'yes', 'on'].includes(String(value || '').toLowerCase());
   }
 }
