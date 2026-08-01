@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yatroo Database Wiring Map</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #090b10;
+        --panel: #111722;
+        --panel-2: #151d2a;
+        --ink: #eef4ff;
+        --muted: #8fa1b8;
+        --line: #273244;
+        --accent: #14b8a6;
+        --accent-2: #38bdf8;
+        --warn: #f59e0b;
+        --pink: #f472b6;
+        --green: #22c55e;
+        --purple: #a78bfa;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        height: 100vh;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) 320px;
+        grid-template-rows: 64px minmax(0, 1fr);
+        height: 100vh;
+      }
+
+      header {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 0 18px;
+        border-bottom: 1px solid var(--line);
+        background: #0d111a;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0;
+      }
+
+      header p {
+        margin: 2px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .left,
+      .right {
+        background: var(--panel);
+        border-right: 1px solid var(--line);
+        overflow: auto;
+      }
+
+      .right {
+        border-right: 0;
+        border-left: 1px solid var(--line);
+      }
+
+      .sidebar-section {
+        padding: 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .sidebar-section h2 {
+        margin: 0 0 10px;
+        font-size: 13px;
+        color: var(--muted);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .search {
+        width: 100%;
+        height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #0b1018;
+        color: var(--ink);
+        padding: 0 11px;
+        outline: none;
+      }
+
+      .search:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.14);
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      button,
+      .chip {
+        border: 1px solid var(--line);
+        background: #0b1018;
+        color: var(--ink);
+        border-radius: 8px;
+        min-height: 34px;
+        padding: 7px 10px;
+        cursor: pointer;
+        font: inherit;
+        font-size: 13px;
+      }
+
+      button:hover,
+      .chip:hover,
+      .chip.active {
+        border-color: var(--accent);
+        color: #a7fff4;
+        background: rgba(20, 184, 166, 0.12);
+      }
+
+      .table-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .table-row {
+        border: 1px solid var(--line);
+        background: #0c121c;
+        border-radius: 8px;
+        padding: 10px;
+        cursor: pointer;
+      }
+
+      .table-row:hover {
+        border-color: var(--accent-2);
+        background: #0f1724;
+      }
+
+      .table-row strong {
+        display: block;
+        font-size: 13px;
+        word-break: break-word;
+      }
+
+      .table-row span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .canvas-shell {
+        position: relative;
+        min-width: 0;
+        background:
+          linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+          radial-gradient(circle at 50% 20%, rgba(20, 184, 166, 0.14), transparent 32%),
+          #070a0f;
+        background-size: 28px 28px, 28px 28px, auto, auto;
+      }
+
+      #network {
+        width: 100%;
+        height: 100%;
+      }
+
+      .toolbar {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        right: 14px;
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        pointer-events: none;
+      }
+
+      .toolbar-inner {
+        display: flex;
+        gap: 8px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: rgba(13, 17, 26, 0.88);
+        backdrop-filter: blur(10px);
+        pointer-events: auto;
+      }
+
+      .mini {
+        min-height: 32px;
+        padding: 6px 9px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 6px 10px;
+        background: rgba(13, 17, 26, 0.88);
+        color: var(--muted);
+        font-size: 12px;
+        pointer-events: auto;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .details {
+        padding: 16px;
+      }
+
+      .details h2 {
+        margin: 0 0 6px;
+        font-size: 18px;
+      }
+
+      .details .kind {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 14px;
+      }
+
+      .field-list {
+        display: grid;
+        gap: 7px;
+        margin-top: 12px;
+      }
+
+      .field {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 9px;
+        background: #0b1018;
+        font-size: 12px;
+      }
+
+      .field span {
+        color: var(--muted);
+      }
+
+      .connections {
+        display: grid;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .connection {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 9px;
+        background: #0b1018;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .connection strong {
+        color: var(--ink);
+      }
+
+      a {
+        color: #67e8f9;
+        text-decoration: none;
+      }
+
+      @media (max-width: 1000px) {
+        .app {
+          grid-template-columns: 1fr;
+          grid-template-rows: 64px 180px minmax(480px, 1fr) 320px;
+        }
+
+        .left,
+        .right {
+          border: 0;
+          border-bottom: 1px solid var(--line);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <div>
+          <h1>Yatroo Database Wiring Map</h1>
+          <p>Dark node canvas for checking table wiring, ingestion flow, and promoted query relationships.</p>
+        </div>
+        <a href="05-er-diagram.md">Markdown ERD</a>
+      </header>
+
+      <aside class="left">
+        <div class="sidebar-section">
+          <h2>Find Table</h2>
+          <input id="search" class="search" placeholder="Search nodes..." />
+        </div>
+        <div class="sidebar-section">
+          <h2>Groups</h2>
+          <div id="groupFilters" class="chips"></div>
+        </div>
+        <div class="sidebar-section">
+          <h2>Tables</h2>
+          <div id="tableList" class="table-list"></div>
+        </div>
+      </aside>
+
+      <section class="canvas-shell" aria-label="Interactive database wiring canvas">
+        <div class="toolbar">
+          <div class="toolbar-inner">
+            <button id="fit" class="mini">Fit</button>
+            <button id="stabilize" class="mini">Re-layout</button>
+            <button id="showAll" class="mini">Show All</button>
+          </div>
+          <div class="pill"><span class="dot"></span><span id="status">Drag nodes, scroll to zoom, click to inspect.</span></div>
+        </div>
+        <div id="network"></div>
+      </section>
+
+      <aside class="right">
+        <div class="details">
+          <h2 id="detailTitle">Select a table</h2>
+          <div id="detailKind" class="kind">Click any node or table name to inspect fields and links.</div>
+          <h3>Fields</h3>
+          <div id="fields" class="field-list"></div>
+          <h3>Connections</h3>
+          <div id="connections" class="connections"></div>
+        </div>
+      </aside>
+    </div>
+
+    <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+    <script>
+      const groups = {
+        registry: { label: "Registry", color: "#14b8a6" },
+        ingestion: { label: "Ingestion", color: "#38bdf8" },
+        staging: { label: "Staging", color: "#a78bfa" },
+        mapping: { label: "Mapping", color: "#f472b6" },
+        bus: { label: "Bus Query", color: "#22c55e" },
+        metro: { label: "Metro Query", color: "#f59e0b" },
+        coverage: { label: "Coverage", color: "#60a5fa" },
+        legacy: { label: "Legacy", color: "#94a3b8" },
+        ops: { label: "Ops", color: "#fb7185" },
+      };
+
+      const tables = [
+        table("providers", "registry", ["id PK", "code UK", "name", "sourceType", "website", "version", "transportModes"]),
+        table("provider_sources", "registry", ["id PK", "providerCode", "sourceUrl", "sourceRole", "status", "metadata"]),
+        table("provider_runs", "ingestion", ["id PK", "providerCode", "providerVersion", "status", "runType", "checkpoint", "metrics"]),
+        table("provider_item_checkpoints", "ingestion", ["id PK", "providerRunId FK", "providerCode", "externalId", "sourceUrl", "status", "contentHash"]),
+        table("raw_source_records", "ingestion", ["id PK", "providerRunId FK", "providerCode", "sourceUrl", "contentHash", "rawPayload", "fetchedAt"]),
+        table("source_observations", "ingestion", ["id PK", "rawSourceRecordId FK", "providerCode", "providerVersion", "contentHash", "confidence", "warnings"]),
+        table("datasets", "ingestion", ["id PK", "providerCode", "name", "status"]),
+        table("dataset_versions", "ingestion", ["id PK", "datasetId FK", "providerRunId FK", "contentHash", "validationSummary", "status"]),
+        table("staged_agencies", "staging", ["id PK", "datasetVersionId FK", "sourceObservationId FK", "providerExternalId", "canonicalPayload"]),
+        table("staged_nodes", "staging", ["id PK", "datasetVersionId FK", "sourceObservationId FK", "providerExternalId", "canonicalPayload"]),
+        table("staged_routes", "staging", ["id PK", "datasetVersionId FK", "sourceObservationId FK", "providerExternalId", "canonicalPayload"]),
+        table("staged_route_stops", "staging", ["id PK", "datasetVersionId FK", "sourceObservationId FK", "providerExternalId", "canonicalPayload"]),
+        table("staged_trips", "staging", ["id PK", "datasetVersionId FK", "sourceObservationId FK", "providerExternalId", "canonicalPayload"]),
+        table("staged_stop_times", "staging", ["id PK", "datasetVersionId FK", "sourceObservationId FK", "providerExternalId", "canonicalPayload"]),
+        table("staged_fares", "staging", ["id PK", "datasetVersionId FK", "sourceObservationId FK", "providerExternalId", "canonicalPayload"]),
+        table("provider_agency_mappings", "mapping", ["id PK", "providerCode", "providerExternalId", "agencyId", "resolutionStatus", "confidence", "evidence"]),
+        table("provider_node_mappings", "mapping", ["id PK", "providerCode", "providerExternalId", "nodeId", "resolutionStatus", "confidence", "evidence"]),
+        table("provider_route_mappings", "mapping", ["id PK", "providerCode", "providerExternalId", "routeId", "resolutionStatus", "confidence", "evidence"]),
+        table("provider_trip_mappings", "mapping", ["id PK", "providerCode", "providerExternalId", "tripId", "resolutionStatus", "confidence", "evidence"]),
+        table("bus_routes", "bus", ["id PK", "providerCode", "externalId", "longName", "directionId", "datasetVersionId FK", "metadata"]),
+        table("bus_stops", "bus", ["id PK", "providerCode", "externalId", "name", "normalizedName", "datasetVersionId FK", "metadata"]),
+        table("bus_route_stops", "bus", ["id PK", "routeId FK", "stopId FK", "sequence", "datasetVersionId FK"]),
+        table("bus_trips", "bus", ["id PK", "providerCode", "externalId", "routeId FK", "direction", "vehicleRegistration", "datasetVersionId FK"]),
+        table("bus_stop_times", "bus", ["id PK", "tripId FK", "stopId FK", "sequence", "arrivalTime", "departureTime", "datasetVersionId FK"]),
+        table("metro_lines", "metro", ["id PK", "providerCode", "externalId", "name", "color", "operationalStatus", "datasetVersionId FK"]),
+        table("metro_stations", "metro", ["id PK", "providerCode", "externalId", "name", "normalizedName", "isInterchange", "datasetVersionId FK"]),
+        table("metro_line_stations", "metro", ["id PK", "lineId FK", "stationId FK", "sequence", "datasetVersionId FK"]),
+        table("coverage_areas", "coverage", ["id PK", "countryCode", "stateCode", "areaType", "name", "slug", "metadata"]),
+        table("provider_coverage_areas", "coverage", ["id PK", "providerId FK", "coverageAreaId FK", "relationshipType"]),
+        table("route_coverage_areas", "coverage", ["id PK", "routeId FK", "coverageAreaId FK", "relationshipType"]),
+        table("dataset_coverage_areas", "coverage", ["id PK", "datasetId FK", "coverageAreaId FK", "relationshipType"]),
+        table("canonical_conflicts", "ops", ["id PK", "datasetVersionId FK", "providerCode", "entityType", "providerExternalId", "conflictType", "status", "details"]),
+        table("agencies", "legacy", ["id PK", "name", "code UK", "state", "city", "provider"]),
+        table("stops", "legacy", ["id PK", "name", "normalizedName", "latitude", "longitude", "location PostGIS", "provider"]),
+        table("routes", "legacy", ["id PK", "agencyId FK", "shortName", "longName", "originStopId", "destinationStopId", "provider"]),
+        table("trips", "legacy", ["id PK", "routeId FK", "direction", "serviceId", "vehicleName", "provider"]),
+        table("stop_times", "legacy", ["id PK", "tripId FK", "stopId FK", "stopSequence", "arrivalTime", "departureTime"]),
+      ];
+
+      const edges = [
+        edge("providers", "provider_sources", "code"),
+        edge("providers", "provider_runs", "code"),
+        edge("provider_runs", "provider_item_checkpoints", "providerRunId"),
+        edge("provider_runs", "raw_source_records", "providerRunId"),
+        edge("raw_source_records", "source_observations", "rawSourceRecordId"),
+        edge("provider_runs", "dataset_versions", "providerRunId"),
+        edge("datasets", "dataset_versions", "datasetId"),
+        ...["staged_agencies", "staged_nodes", "staged_routes", "staged_route_stops", "staged_trips", "staged_stop_times", "staged_fares"].flatMap(name => [
+          edge("dataset_versions", name, "datasetVersionId"),
+          edge("source_observations", name, "sourceObservationId"),
+        ]),
+        edge("dataset_versions", "bus_routes", "datasetVersionId"),
+        edge("dataset_versions", "bus_stops", "datasetVersionId"),
+        edge("dataset_versions", "bus_route_stops", "datasetVersionId"),
+        edge("dataset_versions", "bus_trips", "datasetVersionId"),
+        edge("dataset_versions", "bus_stop_times", "datasetVersionId"),
+        edge("bus_routes", "bus_route_stops", "routeId"),
+        edge("bus_stops", "bus_route_stops", "stopId"),
+        edge("bus_routes", "bus_trips", "routeId"),
+        edge("bus_trips", "bus_stop_times", "tripId"),
+        edge("bus_stops", "bus_stop_times", "stopId"),
+        edge("dataset_versions", "metro_lines", "datasetVersionId"),
+        edge("dataset_versions", "metro_stations", "datasetVersionId"),
+        edge("dataset_versions", "metro_line_stations", "datasetVersionId"),
+        edge("metro_lines", "metro_line_stations", "lineId"),
+        edge("metro_stations", "metro_line_stations", "stationId"),
+        edge("provider_node_mappings", "bus_stops", "nodeId"),
+        edge("provider_node_mappings", "metro_stations", "nodeId"),
+        edge("provider_route_mappings", "bus_routes", "routeId"),
+        edge("provider_route_mappings", "metro_lines", "routeId"),
+        edge("provider_trip_mappings", "bus_trips", "tripId"),
+        edge("coverage_areas", "provider_coverage_areas", "coverageAreaId"),
+        edge("coverage_areas", "route_coverage_areas", "coverageAreaId"),
+        edge("coverage_areas", "dataset_coverage_areas", "coverageAreaId"),
+        edge("providers", "provider_coverage_areas", "providerId"),
+        edge("bus_routes", "route_coverage_areas", "routeId"),
+        edge("datasets", "dataset_coverage_areas", "datasetId"),
+        edge("dataset_versions", "canonical_conflicts", "datasetVersionId"),
+        edge("agencies", "routes", "agencyId"),
+        edge("routes", "trips", "routeId"),
+        edge("trips", "stop_times", "tripId"),
+        edge("stops", "stop_times", "stopId"),
+        edge("stops", "routes", "originStopId"),
+        edge("stops", "routes", "destinationStopId"),
+      ];
+
+      function table(id, group, fields) {
+        return { id, label: id, group, fields };
+      }
+
+      function edge(from, to, label) {
+        return { from, to, label, arrows: "to" };
+      }
+
+      const nodes = new vis.DataSet(tables.map(t => ({
+        id: t.id,
+        label: t.id,
+        group: t.group,
+        title: `${t.id}\n${groups[t.group].label}`,
+        shape: "box",
+        margin: 12,
+        widthConstraint: { minimum: 140, maximum: 190 },
+        font: { color: "#eef4ff", size: 14, face: "Inter, sans-serif" },
+        color: {
+          background: "#111722",
+          border: groups[t.group].color,
+          highlight: { background: "#172033", border: "#ffffff" },
+        },
+      })));
+
+      const edgeData = new vis.DataSet(edges.map((e, index) => ({
+        id: index,
+        ...e,
+        color: { color: "#516174", highlight: "#67e8f9" },
+        font: { color: "#9fb1c7", size: 11, strokeWidth: 4, strokeColor: "#070a0f" },
+        smooth: { type: "cubicBezier", roundness: 0.35 },
+      })));
+
+      const network = new vis.Network(document.getElementById("network"), { nodes, edges: edgeData }, {
+        physics: {
+          enabled: true,
+          solver: "forceAtlas2Based",
+          forceAtlas2Based: {
+            gravitationalConstant: -65,
+            centralGravity: 0.012,
+            springLength: 145,
+            springConstant: 0.08,
+          },
+          stabilization: { iterations: 260 },
+        },
+        interaction: {
+          hover: true,
+          navigationButtons: false,
+          keyboard: true,
+          multiselect: true,
+        },
+        edges: {
+          arrows: { to: { enabled: true, scaleFactor: 0.65 } },
+          width: 1.35,
+        },
+      });
+
+      let selectedGroup = "all";
+      const search = document.getElementById("search");
+      const tableList = document.getElementById("tableList");
+      const groupFilters = document.getElementById("groupFilters");
+      const status = document.getElementById("status");
+
+      function renderGroups() {
+        const all = document.createElement("button");
+        all.className = "chip active";
+        all.textContent = "All";
+        all.onclick = () => selectGroup("all");
+        groupFilters.appendChild(all);
+
+        Object.entries(groups).forEach(([key, group]) => {
+          const button = document.createElement("button");
+          button.className = "chip";
+          button.textContent = group.label;
+          button.onclick = () => selectGroup(key);
+          groupFilters.appendChild(button);
+        });
+      }
+
+      function selectGroup(group) {
+        selectedGroup = group;
+        [...groupFilters.children].forEach(button => {
+          button.classList.toggle("active", button.textContent === (group === "all" ? "All" : groups[group].label));
+        });
+        renderTableList();
+        applyFilter();
+      }
+
+      function renderTableList() {
+        const q = search.value.toLowerCase().trim();
+        tableList.innerHTML = "";
+        tables
+          .filter(t => selectedGroup === "all" || t.group === selectedGroup)
+          .filter(t => !q || t.id.includes(q) || t.fields.some(f => f.toLowerCase().includes(q)))
+          .forEach(t => {
+            const row = document.createElement("div");
+            row.className = "table-row";
+            row.innerHTML = `<strong>${t.id}</strong><span>${groups[t.group].label} · ${t.fields.length} fields</span>`;
+            row.onclick = () => focusNode(t.id);
+            tableList.appendChild(row);
+          });
+      }
+
+      function applyFilter() {
+        const q = search.value.toLowerCase().trim();
+        const visible = new Set(
+          tables
+            .filter(t => selectedGroup === "all" || t.group === selectedGroup)
+            .filter(t => !q || t.id.includes(q) || t.fields.some(f => f.toLowerCase().includes(q)))
+            .map(t => t.id)
+        );
+
+        nodes.update(tables.map(t => ({
+          id: t.id,
+          hidden: !visible.has(t.id),
+        })));
+
+        edgeData.update(edges.map((e, index) => ({
+          id: index,
+          hidden: !visible.has(e.from) || !visible.has(e.to),
+        })));
+
+        status.textContent = `${visible.size} tables visible`;
+      }
+
+      function focusNode(id) {
+        nodes.update(tables.map(t => ({ id: t.id, borderWidth: t.id === id ? 3 : 1 })));
+        network.selectNodes([id]);
+        network.focus(id, { scale: 1.15, animation: { duration: 450, easingFunction: "easeInOutQuad" } });
+        renderDetails(id);
+      }
+
+      function renderDetails(id) {
+        const tableData = tables.find(t => t.id === id);
+        if (!tableData) return;
+        document.getElementById("detailTitle").textContent = tableData.id;
+        document.getElementById("detailKind").textContent = groups[tableData.group].label;
+        document.getElementById("fields").innerHTML = tableData.fields
+          .map(field => {
+            const parts = field.split(" ");
+            const name = parts.shift();
+            return `<div class="field"><strong>${name}</strong><span>${parts.join(" ")}</span></div>`;
+          })
+          .join("");
+
+        const connected = edges.filter(e => e.from === id || e.to === id);
+        document.getElementById("connections").innerHTML = connected.length
+          ? connected.map(e => {
+              const direction = e.from === id ? "to" : "from";
+              const other = e.from === id ? e.to : e.from;
+              return `<div class="connection"><strong>${direction} ${other}</strong><br />${e.label}</div>`;
+            }).join("")
+          : `<div class="connection">No direct connections in this map.</div>`;
+      }
+
+      search.addEventListener("input", () => {
+        renderTableList();
+        applyFilter();
+      });
+
+      network.on("click", params => {
+        if (params.nodes.length) {
+          focusNode(params.nodes[0]);
+        }
+      });
+
+      document.getElementById("fit").onclick = () => network.fit({ animation: true });
+      document.getElementById("stabilize").onclick = () => {
+        network.setOptions({ physics: { enabled: true } });
+        network.stabilize(220);
+      };
+      document.getElementById("showAll").onclick = () => {
+        search.value = "";
+        selectGroup("all");
+        network.fit({ animation: true });
+      };
+
+      renderGroups();
+      renderTableList();
+      renderDetails("provider_runs");
+      network.once("stabilizationIterationsDone", () => {
+        network.setOptions({ physics: false });
+        network.fit({ animation: true });
+        status.textContent = "Layout ready. Click a table to inspect wiring.";
+      });
+    </script>
+  </body>
+</html>
