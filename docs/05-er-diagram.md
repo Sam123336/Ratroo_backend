@@ -2,6 +2,8 @@
 
 This ERD reflects the current Sequelize-backed API database in `apps/api/src/modules/**/infrastructure/sequelize/models`.
 
+For a browser-friendly version, open [05-er-diagram.html](05-er-diagram.html).
+
 The platform database has two active layers:
 
 - **Provider ingestion layer**: raw sources, provider runs, dataset versions, staged canonical records, source observations, and identity mappings.

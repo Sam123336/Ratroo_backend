@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yatroo Database ER Diagram</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --ink: #17202a;
+        --muted: #667085;
+        --line: #d9dee7;
+        --accent: #0f766e;
+        --accent-soft: #e8f5f3;
+        --shadow: 0 16px 42px rgba(16, 24, 40, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+      }
+
+      header {
+        padding: 28px 32px 22px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        font-size: 28px;
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      header p {
+        margin: 0;
+        color: var(--muted);
+        max-width: 900px;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr);
+        gap: 24px;
+        padding: 24px 32px 40px;
+      }
+
+      nav {
+        align-self: start;
+        position: sticky;
+        top: 110px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+        box-shadow: var(--shadow);
+      }
+
+      nav a {
+        display: block;
+        color: var(--ink);
+        text-decoration: none;
+        padding: 9px 10px;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+
+      nav a:hover {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      section {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin-bottom: 22px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .section-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 20px;
+        letter-spacing: 0;
+      }
+
+      .section-header p {
+        margin: 6px 0 0;
+        color: var(--muted);
+      }
+
+      .diagram-wrap {
+        overflow: auto;
+        padding: 18px;
+        min-height: 360px;
+      }
+
+      .mermaid {
+        min-width: 980px;
+      }
+
+      .legend {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(150px, 1fr));
+        gap: 12px;
+        padding: 18px 20px;
+      }
+
+      .legend div,
+      .note {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcfd;
+      }
+
+      .legend strong,
+      .note strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .notes {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        padding: 18px 20px;
+      }
+
+      code {
+        background: #eef2f6;
+        border-radius: 4px;
+        padding: 2px 5px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.92em;
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfd;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .toolbar a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      @media (max-width: 900px) {
+        header {
+          position: static;
+        }
+
+        main {
+          display: block;
+          padding: 18px;
+        }
+
+        nav {
+          position: static;
+          margin-bottom: 18px;
+        }
+
+        .legend,
+        .notes {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Yatroo Database ER Diagram</h1>
+      <p>Interactive HTML view of the current provider ingestion, promoted bus/metro query tables, coverage tables, and legacy transit schema.</p>
+    </header>
+
+    <main>
+      <nav aria-label="Page sections">
+        <a href="#overview">Overview</a>
+        <a href="#ingestion">Ingestion Flow</a>
+        <a href="#core">Core ERD</a>
+        <a href="#query">Promoted Query Tables</a>
+        <a href="#legacy">Legacy Transit Tables</a>
+        <a href="#notes">Notes</a>
+      </nav>
+
+      <div>
+        <section id="overview">
+          <div class="section-header">
+            <h2>Overview</h2>
+            <p>The schema is split into ingestion, staging, identity resolution, and promoted read models.</p>
+          </div>
+          <div class="legend">
+            <div><strong>Raw</strong><code>raw_source_records</code> stores fetched HTML/API payloads before parsing.</div>
+            <div><strong>Staged</strong><code>staged_*</code> tables hold validated canonical records before promotion.</div>
+            <div><strong>Mappings</strong><code>provider_*_mappings</code> preserve stable external-to-canonical identity.</div>
+            <div><strong>Promoted</strong><code>bus_*</code> and <code>metro_*</code> tables serve public APIs.</div>
+          </div>
+        </section>
+
+        <section id="ingestion">
+          <div class="section-header">
+            <h2>Ingestion Flow</h2>
+            <p>Every real provider should move in one direction: raw source to staged canonical records to promoted query tables.</p>
+          </div>
+          <div class="diagram-wrap">
+            <pre class="mermaid">
+flowchart LR
+  Provider["Provider source<br/>WBBUS / BMRCL / BMTC"] --> Run["provider_runs<br/>status, metrics, checkpoints"]
+  Run --> Checkpoint["provider_item_checkpoints<br/>per item progress"]
+  Run --> Raw["raw_source_records<br/>source URL, hash, payload"]
+  Raw --> Observation["source_observations<br/>provenance and confidence"]
+  Run --> DatasetVersion["dataset_versions<br/>STAGED / ACTIVE / REJECTED"]
+  DatasetVersion --> Staged["staged_* canonical tables"]
+  Observation --> Staged
+  Staged --> Validation["promotion validation"]
+  Validation --> Mapping["provider_*_mappings"]
+  Mapping --> Query["bus_* / metro_* query tables"]
+  DatasetVersion --> Query
+  Query --> API["REST API<br/>routes, stops, stations, lines"]
+            </pre>
+          </div>
+        </section>
+
+        <section id="core">
+          <div class="section-header">
+            <h2>Core ERD</h2>
+            <p>A compact view of the provider ingestion lifecycle and promotion targets.</p>
+          </div>
+          <div class="toolbar">
+            <span>Tip: drag horizontally or use browser zoom for the large diagram.</span>
+            <a href="05-er-diagram.md">Open full Markdown ERD</a>
+          </div>
+          <div class="diagram-wrap">
+            <pre class="mermaid">
+erDiagram
+  providers {
+    uuid id PK
+    string code UK
+    string name
+    string sourceType
+    string version
+  }
+
+  provider_sources {
+    uuid id PK
+    string providerCode
+    text sourceUrl
+    string sourceRole
+    string status
+  }
+
+  provider_runs {
+    uuid id PK
+    string providerCode
+    string providerVersion
+    string status
+    string runType
+    int discoveredCount
+    int fetchedCount
+    int parsedCount
+    int failedCount
+    jsonb metrics
+  }
+
+  provider_item_checkpoints {
+    uuid id PK
+    uuid providerRunId FK
+    string providerCode
+    text externalId
+    string status
+    string contentHash
+  }
+
+  raw_source_records {
+    uuid id PK
+    uuid providerRunId FK
+    string providerCode
+    text sourceUrl
+    string contentHash
+    jsonb rawPayload
+    string status
+  }
+
+  source_observations {
+    uuid id PK
+    uuid rawSourceRecordId FK
+    string providerCode
+    string contentHash
+    decimal confidence
+    string verificationStatus
+  }
+
+  datasets {
+    uuid id PK
+    string providerCode
+    string name
+    string status
+  }
+
+  dataset_versions {
+    uuid id PK
+    uuid datasetId FK
+    uuid providerRunId FK
+    string contentHash
+    string status
+    jsonb validationSummary
+  }
+
+  staged_nodes {
+    uuid id PK
+    uuid datasetVersionId FK
+    uuid sourceObservationId FK
+    string providerCode
+    text providerExternalId
+    jsonb canonicalPayload
+  }
+
+  staged_routes {
+    uuid id PK
+    uuid datasetVersionId FK
+    uuid sourceObservationId FK
+    string providerCode
+    text providerExternalId
+    jsonb canonicalPayload
+  }
+
+  staged_route_stops {
+    uuid id PK
+    uuid datasetVersionId FK
+    uuid sourceObservationId FK
+    string providerCode
+    text providerExternalId
+    jsonb canonicalPayload
+  }
+
+  staged_trips {
+    uuid id PK
+    uuid datasetVersionId FK
+    uuid sourceObservationId FK
+    string providerCode
+    text providerExternalId
+    jsonb canonicalPayload
+  }
+
+  staged_stop_times {
+    uuid id PK
+    uuid datasetVersionId FK
+    uuid sourceObservationId FK
+    string providerCode
+    text providerExternalId
+    jsonb canonicalPayload
+  }
+
+  provider_node_mappings {
+    uuid id PK
+    string providerCode
+    text providerExternalId
+    uuid nodeId
+    string resolutionStatus
+    decimal confidence
+  }
+
+  provider_route_mappings {
+    uuid id PK
+    string providerCode
+    text providerExternalId
+    uuid routeId
+    string resolutionStatus
+    decimal confidence
+  }
+
+  provider_trip_mappings {
+    uuid id PK
+    string providerCode
+    text providerExternalId
+    uuid tripId
+    string resolutionStatus
+    decimal confidence
+  }
+
+  bus_routes {
+    uuid id PK
+    text externalId
+    text longName
+    uuid datasetVersionId FK
+  }
+
+  bus_stops {
+    uuid id PK
+    text externalId
+    text name
+    uuid datasetVersionId FK
+  }
+
+  bus_trips {
+    uuid id PK
+    text externalId
+    uuid routeId FK
+    uuid datasetVersionId FK
+  }
+
+  metro_lines {
+    uuid id PK
+    text externalId
+    text name
+    uuid datasetVersionId FK
+  }
+
+  metro_stations {
+    uuid id PK
+    text externalId
+    text name
+    uuid datasetVersionId FK
+  }
+
+  providers ||--o{ provider_sources : providerCode
+  providers ||--o{ provider_runs : providerCode
+  provider_runs ||--o{ provider_item_checkpoints : providerRunId
+  provider_runs ||--o{ raw_source_records : providerRunId
+  raw_source_records ||--o{ source_observations : rawSourceRecordId
+  provider_runs ||--o{ dataset_versions : providerRunId
+  datasets ||--o{ dataset_versions : datasetId
+  dataset_versions ||--o{ staged_nodes : datasetVersionId
+  dataset_versions ||--o{ staged_routes : datasetVersionId
+  dataset_versions ||--o{ staged_route_stops : datasetVersionId
+  dataset_versions ||--o{ staged_trips : datasetVersionId
+  dataset_versions ||--o{ staged_stop_times : datasetVersionId
+  source_observations ||--o{ staged_nodes : sourceObservationId
+  source_observations ||--o{ staged_routes : sourceObservationId
+  source_observations ||--o{ staged_route_stops : sourceObservationId
+  source_observations ||--o{ staged_trips : sourceObservationId
+  source_observations ||--o{ staged_stop_times : sourceObservationId
+  dataset_versions ||--o{ bus_routes : datasetVersionId
+  dataset_versions ||--o{ bus_stops : datasetVersionId
+  dataset_versions ||--o{ bus_trips : datasetVersionId
+  dataset_versions ||--o{ metro_lines : datasetVersionId
+  dataset_versions ||--o{ metro_stations : datasetVersionId
+  provider_node_mappings }o--|| bus_stops : nodeId
+  provider_node_mappings }o--|| metro_stations : nodeId
+  provider_route_mappings }o--|| bus_routes : routeId
+  provider_route_mappings }o--|| metro_lines : routeId
+  provider_trip_mappings }o--|| bus_trips : tripId
+            </pre>
+          </div>
+        </section>
+
+        <section id="query">
+          <div class="section-header">
+            <h2>Promoted Query Tables</h2>
+            <p>These tables are the public API read layer for WBBus and BMRCL.</p>
+          </div>
+          <div class="diagram-wrap">
+            <pre class="mermaid">
+erDiagram
+  dataset_versions {
+    uuid id PK
+    string status
+  }
+
+  bus_routes {
+    uuid id PK
+    text externalId
+    text longName
+    uuid datasetVersionId FK
+  }
+
+  bus_stops {
+    uuid id PK
+    text externalId
+    text name
+    uuid datasetVersionId FK
+  }
+
+  bus_route_stops {
+    uuid id PK
+    uuid routeId FK
+    uuid stopId FK
+    int sequence
+    uuid datasetVersionId FK
+  }
+
+  bus_trips {
+    uuid id PK
+    text externalId
+    uuid routeId FK
+    string direction
+    uuid datasetVersionId FK
+  }
+
+  bus_stop_times {
+    uuid id PK
+    uuid tripId FK
+    uuid stopId FK
+    int sequence
+    string arrivalTime
+    string departureTime
+    uuid datasetVersionId FK
+  }
+
+  metro_lines {
+    uuid id PK
+    text externalId
+    text name
+    uuid datasetVersionId FK
+  }
+
+  metro_stations {
+    uuid id PK
+    text externalId
+    text name
+    boolean isInterchange
+    uuid datasetVersionId FK
+  }
+
+  metro_line_stations {
+    uuid id PK
+    uuid lineId FK
+    uuid stationId FK
+    int sequence
+    uuid datasetVersionId FK
+  }
+
+  dataset_versions ||--o{ bus_routes : active_version
+  dataset_versions ||--o{ bus_stops : active_version
+  dataset_versions ||--o{ bus_route_stops : active_version
+  dataset_versions ||--o{ bus_trips : active_version
+  dataset_versions ||--o{ bus_stop_times : active_version
+  bus_routes ||--o{ bus_route_stops : routeId
+  bus_stops ||--o{ bus_route_stops : stopId
+  bus_routes ||--o{ bus_trips : routeId
+  bus_trips ||--o{ bus_stop_times : tripId
+  bus_stops ||--o{ bus_stop_times : stopId
+  dataset_versions ||--o{ metro_lines : active_version
+  dataset_versions ||--o{ metro_stations : active_version
+  dataset_versions ||--o{ metro_line_stations : active_version
+  metro_lines ||--o{ metro_line_stations : lineId
+  metro_stations ||--o{ metro_line_stations : stationId
+            </pre>
+          </div>
+        </section>
+
+        <section id="legacy">
+          <div class="section-header">
+            <h2>Legacy Transit Tables</h2>
+            <p>These still exist in `TransitModule`; they should eventually be reconciled with the canonical mobility read layer.</p>
+          </div>
+          <div class="diagram-wrap">
+            <pre class="mermaid">
+erDiagram
+  agencies {
+    uuid id PK
+    string code UK
+    string name
+    string provider
+  }
+
+  stops {
+    uuid id PK
+    string name
+    string normalizedName
+    geometry location
+    string provider
+  }
+
+  routes {
+    uuid id PK
+    uuid agencyId FK
+    string longName
+    uuid originStopId
+    uuid destinationStopId
+    string provider
+  }
+
+  trips {
+    uuid id PK
+    uuid routeId FK
+    string direction
+    string provider
+  }
+
+  stop_times {
+    uuid id PK
+    uuid tripId FK
+    uuid stopId FK
+    int stopSequence
+    string arrivalTime
+    string departureTime
+  }
+
+  agencies ||--o{ routes : agencyId
+  routes ||--o{ trips : routeId
+  trips ||--o{ stop_times : tripId
+  stops ||--o{ stop_times : stopId
+  stops ||--o{ routes : originStopId
+  stops ||--o{ routes : destinationStopId
+            </pre>
+          </div>
+        </section>
+
+        <section id="notes">
+          <div class="section-header">
+            <h2>Notes</h2>
+            <p>Current implementation details that matter while debugging imports and schema creation.</p>
+          </div>
+          <div class="notes">
+            <div class="note"><strong>UUID v7</strong>Every Sequelize model assigns IDs with <code>ensureUuidV7</code>.</div>
+            <div class="note"><strong>Active Dataset</strong>Public routes and stops should be read from the <code>dataset_versions.status = ACTIVE</code> version.</div>
+            <div class="note"><strong>Provenance</strong><code>source_observations</code> connect raw fetched records to staged canonical records.</div>
+            <div class="note"><strong>PostGIS</strong>The legacy <code>stops.location</code> column requires the PostGIS extension.</div>
+            <div class="note"><strong>Remote DB Safety</strong><code>DB_SYNCHRONIZE=true</code> should only be used intentionally. Production should use migrations.</div>
+            <div class="note"><strong>Full Version</strong>The complete field-level ERD is maintained in <code>docs/05-er-diagram.md</code>.</div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+
+      mermaid.initialize({
+        startOnLoad: true,
+        securityLevel: "loose",
+        theme: "base",
+        themeVariables: {
+          primaryColor: "#e8f5f3",
+          primaryTextColor: "#17202a",
+          primaryBorderColor: "#0f766e",
+          lineColor: "#667085",
+          secondaryColor: "#f6f7f9",
+          tertiaryColor: "#ffffff",
+          fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+        },
+        er: {
+          useMaxWidth: false,
+        },
+        flowchart: {
+          useMaxWidth: false,
+          htmlLabels: true,
+        },
+      });
+    </script>
+  </body>
+</html>
