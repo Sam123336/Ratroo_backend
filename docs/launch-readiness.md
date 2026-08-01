@@ -1,6 +1,6 @@
 # Launch Readiness
 
-Last updated: 2026-08-01 17:35 IST
+Last updated: 2026-08-01 21:00 IST
 
 ## Current status
 
@@ -9,14 +9,14 @@ Last updated: 2026-08-01 17:35 IST
 | Provider | Status | Active dataset | Evidence | Blocker |
 | --- | --- | --- | --- | --- |
 | WBBUS | Implemented and active scaled import | `019fbd30-4ea8-7c01-8b7d-a1bcf9b7b92a` | 500-item run completed; 368 routes, 105 stops, 368 trips, 5,014 stop times; 137 invalid records quarantined | Full 1,280-item sync and stop identity quality remain |
-| WBTC | Registry only | None | No adapter/service found | Adapter not implemented |
-| NBSTC | Registry only | None | No adapter/service found | Adapter not implemented |
-| SBSTC | Registry only | None | No adapter/service found | Adapter not implemented; protected booking flows must not be bypassed |
-| KOLKATA_METRO | Registry only | None | No adapter/service found | Adapter not implemented |
-| EASTERN_RAILWAY_SUBURBAN | Registry only | None | No adapter/service found | Adapter not implemented; current source verification needed |
-| WB_FERRY | Registry only | None | No adapter/service found | Adapter not implemented |
+| WBTC | Active route-table import | `019fbde8-dc12-7fb7-899c-ff55170ffb5b` | 127 routes, 796 stops, 127 trips, 1,900 stop times | Needs timings, coordinates, and quality pass |
+| NBSTC | Active route-table import | `019fbded-a10c-71eb-9ee7-2ad897491b6a` | 100 routes, 37 stops, 100 trips, 297 stop times | Needs richer intermediate stops and coordinates |
+| SBSTC | Active route snapshot import | `019fbded-b991-721e-ae24-f0ef21b5d614` | 52 routes, 30 stops, 52 trips, 104 stop times | Live official page can time out; keep fallback warning visible |
+| KOLKATA_METRO | Active static metro import | `019fbded-c530-73e7-a721-b6a641cb5c14` | 5 lines, 55 stations, 58 line-station links | Needs coordinates, timings, fares, and alerts |
+| EASTERN_RAILWAY_SUBURBAN | Active seed import | `019fbded-df76-708d-bd1c-034470280a31` | 8 routes, 25 stations, 8 trips, 39 stop times | Needs timetable-grade source and coordinates |
+| WB_FERRY | Active seed import | `019fbdf2-1d4e-7bd9-926d-96f6dddc6b96` | 9 routes, 18 terminals, 9 trips, 22 stop times | Needs timings, fares, and terminal coordinates |
 | KOLKATA_AUTO | Registry only | None | No adapter/service found | Official notifications only; active operation must be verified |
-| KOLKATA_TRAM | Registry only | None | No adapter/service found | Active/suspended/historical status model needed |
+| KOLKATA_TRAM | Active seed import | `019fbded-d1ed-7c75-9f50-4eba99705c5d` | 6 routes, 20 stops, 6 trips, 27 stop times | Needs active/historical status and operating schedule verification |
 
 Coverage level: 5 for the WBBUS 500-item dataset. West Bengal remains below launch threshold until full WBBUS coverage, stop identity quality, and transfer journeys are verified.
 
@@ -31,7 +31,7 @@ Journey capabilities:
 Critical blockers:
 
 - WBBUS must be expanded from the verified 500-item import to the full directory.
-- WBTC, NBSTC, SBSTC, Kolkata Metro, rail, ferry, auto, and tram adapters are missing.
+- Auto notifications are still missing; WBTC, NBSTC, SBSTC, Kolkata Metro, rail, ferry, and tram now have seed or route-table importers.
 - West Bengal readiness/search/nearby/journey endpoints are incomplete.
 
 ### Bengaluru/Karnataka
@@ -91,6 +91,13 @@ POST /internal/providers/WBBUS/sync?maxItems=100&maxPages=20
 GET /v1/regions/bengaluru/network-summary
 GET /v1/regions/west-bengal/bus/routes
 GET /v1/regions/west-bengal/bus/stops
+POST /internal/providers/WBTC/sync
+POST /internal/providers/NBSTC/sync
+POST /internal/providers/SBSTC/sync
+POST /internal/providers/KOLKATA_METRO/sync
+POST /internal/providers/WB_FERRY/sync
+POST /internal/providers/KOLKATA_TRAM/sync
+POST /internal/providers/EASTERN_RAILWAY_SUBURBAN/sync
 cd ../worker
 npm install
 npm run build
@@ -118,6 +125,8 @@ Result:
 - Worker queue job `1` completed BMRCL with `SKIPPED_UNCHANGED`.
 - Worker queue job `2` completed WBBUS 100-item import and promoted active dataset `019fbd11-f130-7331-ada5-a3cc2c2be0dd`.
 - WBBUS 500-item run `019fbd26-ba3f-7155-8c4a-9e097fc8deed` completed: 500 fetched, 363 valid parsed, 137 invalid records quarantined.
+- WBTC, NBSTC, SBSTC, Kolkata Metro, Ferry, Tram, and Eastern Railway suburban syncs completed and reran idempotently.
+- Public West Bengal route API returned `FERRY`, `TRAM`, and `SUBURBAN_RAIL` records with `providerCode` and `mode` fields.
 - Active WBBUS dataset repaired to larger verified version `019fbd30-4ea8-7c01-8b7d-a1bcf9b7b92a` after an older smaller retry superseded it.
 - Active WBBUS DB counts after repair: 368 routes, 105 stops, 368 trips, 5,014 stop times.
 - Public West Bengal bus endpoints returned 200 paginated routes, 105 stops, and 56 Bankura route search results.

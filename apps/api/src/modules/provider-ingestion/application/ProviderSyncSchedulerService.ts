@@ -1,6 +1,8 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { BmrclStaticImportService } from './BmrclStaticImportService';
 import { BmtcGtfsImportService } from './BmtcGtfsImportService';
+import { GovernmentBusStaticImportService } from './GovernmentBusStaticImportService';
+import { KolkataMetroStaticImportService } from './KolkataMetroStaticImportService';
 import { WBBusImportService } from './WBBusImportService';
 
 @Injectable()
@@ -13,6 +15,8 @@ export class ProviderSyncSchedulerService implements OnModuleInit, OnModuleDestr
     private readonly bmrclImport: BmrclStaticImportService,
     private readonly bmtcImport: BmtcGtfsImportService,
     private readonly wbbusImport: WBBusImportService,
+    private readonly governmentBusImport: GovernmentBusStaticImportService,
+    private readonly kolkataMetroImport: KolkataMetroStaticImportService,
   ) {}
 
   onModuleInit() {
@@ -78,8 +82,28 @@ export class ProviderSyncSchedulerService implements OnModuleInit, OnModuleDestr
         return;
       }
 
+      if (code === 'KOLKATA_METRO') {
+        await this.kolkataMetroImport.importStaticNetwork();
+        this.logger.log(`Finished ${code} provider sync.`);
+        return;
+      }
+
       if (code === 'BMTC' || code === 'BMTC_OFFICIAL') {
         await this.bmtcImport.importGtfsFeed();
+        this.logger.log(`Finished ${code} provider sync.`);
+        return;
+      }
+
+      if (
+        code === 'WBTC' ||
+        code === 'WTBC' ||
+        code === 'NBSTC' ||
+        code === 'SBSTC' ||
+        code === 'KOLKATA_TRAM' ||
+        code === 'WB_FERRY' ||
+        code === 'EASTERN_RAILWAY_SUBURBAN'
+      ) {
+        await this.governmentBusImport.importRoutes(code === 'WTBC' ? 'WBTC' : code);
         this.logger.log(`Finished ${code} provider sync.`);
         return;
       }

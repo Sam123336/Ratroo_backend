@@ -23,14 +23,15 @@ export class BusNetworkQueryService {
   ) {}
 
   async listRoutes(regionSlug: string, filters: { search?: string }) {
-    const activeVersion = await this.getActiveBusVersion(regionSlug);
-    if (!activeVersion) {
+    const activeVersions = await this.getActiveBusVersions(regionSlug);
+    if (!activeVersions.length) {
       return [];
     }
-    const providerCode = this.providerCodeForRegion(regionSlug);
+    const providerCodes = activeVersions.map(version => version.providerCode);
+    const datasetVersionIds = activeVersions.map(version => version.id);
     const where: Record<string, unknown> = {
-      providerCode,
-      datasetVersionId: activeVersion.id,
+      providerCode: { [Op.in]: providerCodes },
+      datasetVersionId: { [Op.in]: datasetVersionIds },
     };
 
     if (filters.search) {
@@ -47,15 +48,16 @@ export class BusNetworkQueryService {
   }
 
   async getRoute(regionSlug: string, id: string) {
-    const activeVersion = await this.getActiveBusVersion(regionSlug);
-    if (!activeVersion) {
+    const activeVersions = await this.getActiveBusVersions(regionSlug);
+    if (!activeVersions.length) {
       throw new NotFoundException(`Bus network is not available for region "${regionSlug}" yet.`);
     }
-    const providerCode = this.providerCodeForRegion(regionSlug);
+    const providerCodes = activeVersions.map(version => version.providerCode);
+    const datasetVersionIds = activeVersions.map(version => version.id);
     const route = await this.busRouteModel.findOne({
       where: {
-        providerCode,
-        datasetVersionId: activeVersion.id,
+        providerCode: { [Op.in]: providerCodes },
+        datasetVersionId: { [Op.in]: datasetVersionIds },
         [Op.or]: [{ id }, { externalId: id }],
       },
     });
@@ -67,7 +69,7 @@ export class BusNetworkQueryService {
     const routeStops = await this.busRouteStopModel.findAll({
       where: {
         routeId: route.id,
-        datasetVersionId: activeVersion.id,
+        datasetVersionId: route.datasetVersionId,
       },
       order: [['sequence', 'ASC']],
     });
@@ -80,7 +82,7 @@ export class BusNetworkQueryService {
     const trips = await this.busTripModel.findAll({
       where: {
         routeId: route.id,
-        datasetVersionId: activeVersion.id,
+        datasetVersionId: route.datasetVersionId,
       },
       order: [['externalId', 'ASC']],
     });
@@ -96,14 +98,15 @@ export class BusNetworkQueryService {
   }
 
   async listStops(regionSlug: string, filters: { search?: string }) {
-    const activeVersion = await this.getActiveBusVersion(regionSlug);
-    if (!activeVersion) {
+    const activeVersions = await this.getActiveBusVersions(regionSlug);
+    if (!activeVersions.length) {
       return [];
     }
-    const providerCode = this.providerCodeForRegion(regionSlug);
+    const providerCodes = activeVersions.map(version => version.providerCode);
+    const datasetVersionIds = activeVersions.map(version => version.id);
     const where: Record<string, unknown> = {
-      providerCode,
-      datasetVersionId: activeVersion.id,
+      providerCode: { [Op.in]: providerCodes },
+      datasetVersionId: { [Op.in]: datasetVersionIds },
     };
 
     if (filters.search) {
@@ -122,42 +125,44 @@ export class BusNetworkQueryService {
     return stops.map(stop => this.stopDto(stop));
   }
 
-  private async getActiveBusVersion(regionSlug: string) {
-    const providerCode = this.providerCodeForRegion(regionSlug);
+  private async getActiveBusVersions(regionSlug: string) {
+    const providerCodes = this.providerCodesForRegion(regionSlug);
 
-    const dataset = await this.datasetModel.findOne({
+    const datasets = await this.datasetModel.findAll({
       where: {
-        providerCode,
+        providerCode: { [Op.in]: providerCodes },
       },
       order: [['updatedAt', 'DESC']],
     });
 
-    if (!dataset) {
-      return null;
+    const activeVersions = [];
+    for (const providerCode of providerCodes) {
+      const dataset = datasets.find(candidate => candidate.providerCode === providerCode);
+      if (!dataset) {
+        continue;
+      }
+      const activeVersion = await this.datasetVersionModel.findOne({
+        where: {
+          datasetId: dataset.id,
+          status: 'ACTIVE',
+        },
+        order: [['updatedAt', 'DESC']],
+      });
+      if (activeVersion) {
+        activeVersions.push({ id: activeVersion.id, providerCode });
+      }
     }
 
-    const activeVersion = await this.datasetVersionModel.findOne({
-      where: {
-        datasetId: dataset.id,
-        status: 'ACTIVE',
-      },
-      order: [['updatedAt', 'DESC']],
-    });
-
-    if (!activeVersion) {
-      return null;
-    }
-
-    return activeVersion;
+    return activeVersions;
   }
 
-  private providerCodeForRegion(regionSlug: string) {
+  private providerCodesForRegion(regionSlug: string) {
     if (regionSlug === 'west-bengal') {
-      return 'WBBUS';
+      return ['WBBUS', 'WBTC', 'NBSTC', 'SBSTC', 'KOLKATA_TRAM', 'WB_FERRY', 'EASTERN_RAILWAY_SUBURBAN'];
     }
 
     if (regionSlug === 'bengaluru') {
-      return 'BMTC_OFFICIAL';
+      return ['BMTC_OFFICIAL'];
     }
 
     throw new NotFoundException(`Bus network is not available for region "${regionSlug}"`);
@@ -166,8 +171,10 @@ export class BusNetworkQueryService {
   private routeDto(route: BusRouteModel) {
     return {
       id: route.id,
+      providerCode: route.providerCode,
       externalId: route.externalId,
       longName: route.longName,
+      mode: route.metadata?.mode || route.metadata?.routeType || 'BUS',
       directionId: route.directionId,
       operationalStatus: route.operationalStatus,
       metadata: route.metadata,
@@ -178,6 +185,7 @@ export class BusNetworkQueryService {
   private stopDto(stop: BusStopModel) {
     return {
       id: stop.id,
+      providerCode: stop.providerCode,
       externalId: stop.externalId,
       name: stop.name,
       normalizedName: stop.normalizedName,

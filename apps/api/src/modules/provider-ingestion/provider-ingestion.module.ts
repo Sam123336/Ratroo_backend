@@ -6,6 +6,8 @@ import { BengaluruMobilityQueryService } from './application/BengaluruMobilityQu
 import { BmtcGtfsImportService } from './application/BmtcGtfsImportService';
 import { BusNetworkQueryService } from './application/BusNetworkQueryService';
 import { DatasetPromotionService } from './application/DatasetPromotionService';
+import { GovernmentBusStaticImportService } from './application/GovernmentBusStaticImportService';
+import { KolkataMetroStaticImportService } from './application/KolkataMetroStaticImportService';
 import { MetroNetworkQueryService } from './application/MetroNetworkQueryService';
 import { ProviderIngestionQueryService } from './application/ProviderIngestionQueryService';
 import { ProviderRegistryService } from './application/ProviderRegistryService';
@@ -48,8 +50,10 @@ import { RawSourceRecordRepository } from './infrastructure/sequelize/repositori
     BusNetworkQueryService,
     MetroNetworkQueryService,
     BmrclStaticImportService,
+    KolkataMetroStaticImportService,
     BmtcGtfsImportService,
     WBBusImportService,
+    GovernmentBusStaticImportService,
     ProviderSyncSchedulerService,
     DatasetPromotionService,
     RawSourceRecordRepository,
@@ -62,8 +66,10 @@ import { RawSourceRecordRepository } from './infrastructure/sequelize/repositori
     BusNetworkQueryService,
     MetroNetworkQueryService,
     BmrclStaticImportService,
+    KolkataMetroStaticImportService,
     BmtcGtfsImportService,
     WBBusImportService,
+    GovernmentBusStaticImportService,
     DatasetPromotionService,
     RawSourceRecordRepository,
   ],

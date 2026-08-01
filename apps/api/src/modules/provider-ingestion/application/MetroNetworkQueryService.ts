@@ -19,9 +19,10 @@ export class MetroNetworkQueryService {
   ) {}
 
   async listLines(regionSlug: string) {
-    const activeVersion = await this.getActiveBmrclVersion(regionSlug);
+    const provider = this.metroProviderForRegion(regionSlug);
+    const activeVersion = await this.getActiveMetroVersion(provider.providerCode, provider.datasetName);
     const lines = await this.metroLineModel.findAll({
-      where: { providerCode: 'BMRCL_METRO', datasetVersionId: activeVersion.id },
+      where: { providerCode: provider.providerCode, datasetVersionId: activeVersion.id },
       order: [['name', 'ASC']],
     });
 
@@ -29,10 +30,11 @@ export class MetroNetworkQueryService {
   }
 
   async getLine(regionSlug: string, id: string) {
-    const activeVersion = await this.getActiveBmrclVersion(regionSlug);
+    const provider = this.metroProviderForRegion(regionSlug);
+    const activeVersion = await this.getActiveMetroVersion(provider.providerCode, provider.datasetName);
     const line = await this.metroLineModel.findOne({
       where: {
-        providerCode: 'BMRCL_METRO',
+        providerCode: provider.providerCode,
         datasetVersionId: activeVersion.id,
         [Op.or]: [{ id }, { externalId: id }],
       },
@@ -46,9 +48,10 @@ export class MetroNetworkQueryService {
   }
 
   async listStations(regionSlug: string, filters: { lineId?: string; search?: string }) {
-    const activeVersion = await this.getActiveBmrclVersion(regionSlug);
+    const provider = this.metroProviderForRegion(regionSlug);
+    const activeVersion = await this.getActiveMetroVersion(provider.providerCode, provider.datasetName);
     const stationWhere: Record<string, unknown> = {
-      providerCode: 'BMRCL_METRO',
+      providerCode: provider.providerCode,
       datasetVersionId: activeVersion.id,
     };
 
@@ -62,7 +65,7 @@ export class MetroNetworkQueryService {
     if (filters.lineId) {
       const line = await this.metroLineModel.findOne({
         where: {
-          providerCode: 'BMRCL_METRO',
+          providerCode: provider.providerCode,
           datasetVersionId: activeVersion.id,
           [Op.or]: [{ id: filters.lineId }, { externalId: filters.lineId }],
         },
@@ -100,10 +103,11 @@ export class MetroNetworkQueryService {
   }
 
   async getStation(regionSlug: string, id: string) {
-    const activeVersion = await this.getActiveBmrclVersion(regionSlug);
+    const provider = this.metroProviderForRegion(regionSlug);
+    const activeVersion = await this.getActiveMetroVersion(provider.providerCode, provider.datasetName);
     const station = await this.metroStationModel.findOne({
       where: {
-        providerCode: 'BMRCL_METRO',
+        providerCode: provider.providerCode,
         datasetVersionId: activeVersion.id,
         [Op.or]: [{ id }, { externalId: id }],
       },
@@ -116,20 +120,36 @@ export class MetroNetworkQueryService {
     return this.stationDto(station, activeVersion.id);
   }
 
-  private async getActiveBmrclVersion(regionSlug: string) {
-    if (regionSlug !== 'bengaluru') {
-      throw new NotFoundException(`Metro network is not available for region "${regionSlug}"`);
+  private metroProviderForRegion(regionSlug: string) {
+    if (regionSlug === 'bengaluru') {
+      return {
+        providerCode: 'BMRCL_METRO',
+        datasetName: 'BMRCL static metro network',
+        label: 'BMRCL metro',
+      };
     }
 
+    if (regionSlug === 'west-bengal' || regionSlug === 'kolkata') {
+      return {
+        providerCode: 'KOLKATA_METRO',
+        datasetName: 'Kolkata Metro static network',
+        label: 'Kolkata Metro',
+      };
+    }
+
+      throw new NotFoundException(`Metro network is not available for region "${regionSlug}"`);
+  }
+
+  private async getActiveMetroVersion(providerCode: string, datasetName: string) {
     const dataset = await this.datasetModel.findOne({
       where: {
-        providerCode: 'BMRCL_METRO',
-        name: 'BMRCL static metro network',
+        providerCode,
+        name: datasetName,
       },
     });
 
     if (!dataset) {
-      throw new NotFoundException('No BMRCL metro dataset has been promoted yet.');
+      throw new NotFoundException(`No ${providerCode} metro dataset has been promoted yet.`);
     }
 
     const activeVersion = await this.datasetVersionModel.findOne({
@@ -141,7 +161,7 @@ export class MetroNetworkQueryService {
     });
 
     if (!activeVersion) {
-      throw new NotFoundException('No active BMRCL metro dataset version exists.');
+      throw new NotFoundException(`No active ${providerCode} metro dataset version exists.`);
     }
 
     return activeVersion;

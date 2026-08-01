@@ -25,6 +25,17 @@ import {
   StagedTripModel,
 } from '../infrastructure/sequelize/models';
 
+type BusProviderCode =
+  | 'WBBUS'
+  | 'BMTC_OFFICIAL'
+  | 'WBTC'
+  | 'NBSTC'
+  | 'SBSTC'
+  | 'KOLKATA_TRAM'
+  | 'WB_FERRY'
+  | 'EASTERN_RAILWAY_SUBURBAN';
+type MetroProviderCode = 'BMRCL_METRO' | 'KOLKATA_METRO';
+
 @Injectable()
 export class DatasetPromotionService {
   constructor(
@@ -90,11 +101,11 @@ export class DatasetPromotionService {
 
         const run = await this.providerRunModel.findByPk(version.providerRunId, { transaction });
 
-        if (run?.providerCode === 'BMRCL_METRO') {
-          await this.promoteBmrclMetroNetwork(version, transaction);
+        if (this.isMetroProviderCode(run?.providerCode)) {
+          await this.promoteMetroNetwork(version, transaction, run.providerCode);
         }
 
-        if (run?.providerCode === 'WBBUS' || run?.providerCode === 'BMTC_OFFICIAL') {
+        if (this.isBusProviderCode(run?.providerCode)) {
           await this.promoteBusNetwork(version, transaction, run.providerCode);
         }
 
@@ -140,6 +151,23 @@ export class DatasetPromotionService {
     };
   }
 
+  private isMetroProviderCode(providerCode?: string): providerCode is MetroProviderCode {
+    return providerCode === 'BMRCL_METRO' || providerCode === 'KOLKATA_METRO';
+  }
+
+  private isBusProviderCode(providerCode?: string): providerCode is BusProviderCode {
+    return (
+      providerCode === 'WBBUS' ||
+      providerCode === 'BMTC_OFFICIAL' ||
+      providerCode === 'WBTC' ||
+      providerCode === 'NBSTC' ||
+      providerCode === 'SBSTC' ||
+      providerCode === 'KOLKATA_TRAM' ||
+      providerCode === 'WB_FERRY' ||
+      providerCode === 'EASTERN_RAILWAY_SUBURBAN'
+    );
+  }
+
   async enqueueProviderSync(providerCode: string) {
     const run = await this.providerRunModel.create({
       providerCode,
@@ -157,11 +185,13 @@ export class DatasetPromotionService {
     };
   }
 
-  private async promoteBmrclMetroNetwork(version: DatasetVersionModel, transaction: Transaction) {
-    const stagedNodes = await this.stagedNodeModel.findAll({ where: { datasetVersionId: version.id, providerCode: 'BMRCL_METRO' }, transaction });
-    const stagedRoutes = await this.stagedRouteModel.findAll({ where: { datasetVersionId: version.id, providerCode: 'BMRCL_METRO' }, transaction });
+  private async promoteMetroNetwork(version: DatasetVersionModel, transaction: Transaction, providerCode: MetroProviderCode) {
+    const providerLabel = providerCode === 'BMRCL_METRO' ? 'BMRCL' : 'Kolkata Metro';
+    const mappingConfidence = providerCode === 'BMRCL_METRO' ? 0.9 : 0.72;
+    const stagedNodes = await this.stagedNodeModel.findAll({ where: { datasetVersionId: version.id, providerCode }, transaction });
+    const stagedRoutes = await this.stagedRouteModel.findAll({ where: { datasetVersionId: version.id, providerCode }, transaction });
     const stagedRouteStops = await this.stagedRouteStopModel.findAll({
-      where: { datasetVersionId: version.id, providerCode: 'BMRCL_METRO' },
+      where: { datasetVersionId: version.id, providerCode },
       transaction,
     });
     const observationIds = Array.from(
@@ -172,7 +202,7 @@ export class DatasetPromotionService {
       ),
     );
     const observations = observationIds.length
-      ? await this.sourceObservationModel.findAll({ where: { id: observationIds, providerCode: 'BMRCL_METRO' }, transaction })
+      ? await this.sourceObservationModel.findAll({ where: { id: observationIds, providerCode }, transaction })
       : [];
 
     const errors: string[] = [];
@@ -243,13 +273,13 @@ export class DatasetPromotionService {
         { transaction },
       );
       throw new BadRequestException({
-        message: 'BMRCL dataset promotion failed validation.',
+        message: `${providerLabel} dataset promotion failed validation.`,
         errors,
       });
     }
 
-    const stationIdsByExternalId = await this.materializeMetroStations(stagedNodes, version.id, transaction);
-    const lineIdsByExternalId = await this.materializeMetroLines(stagedRoutes, version.id, transaction);
+    const stationIdsByExternalId = await this.materializeMetroStations(stagedNodes, version.id, providerCode, mappingConfidence, transaction);
+    const lineIdsByExternalId = await this.materializeMetroLines(stagedRoutes, version.id, providerCode, mappingConfidence, transaction);
 
     await this.metroLineStationModel.destroy({
       where: {
@@ -279,9 +309,29 @@ export class DatasetPromotionService {
     await this.bulkCreateInBatches(this.metroLineStationModel, lineStationsToCreate, transaction);
   }
 
-  private async promoteBusNetwork(version: DatasetVersionModel, transaction: Transaction, providerCode: 'WBBUS' | 'BMTC_OFFICIAL') {
-    const providerLabel = providerCode === 'WBBUS' ? 'WBBus' : 'BMTC';
-    const mappingConfidence = providerCode === 'WBBUS' ? 0.65 : 0.78;
+  private async promoteBusNetwork(version: DatasetVersionModel, transaction: Transaction, providerCode: BusProviderCode) {
+    const providerLabelByCode: Record<BusProviderCode, string> = {
+      WBBUS: 'WBBus',
+      BMTC_OFFICIAL: 'BMTC',
+      WBTC: 'WBTC',
+      NBSTC: 'NBSTC',
+      SBSTC: 'SBSTC',
+      KOLKATA_TRAM: 'Kolkata Tram',
+      WB_FERRY: 'West Bengal Ferry',
+      EASTERN_RAILWAY_SUBURBAN: 'Eastern Railway Suburban',
+    };
+    const mappingConfidenceByCode: Record<BusProviderCode, number> = {
+      WBBUS: 0.65,
+      BMTC_OFFICIAL: 0.78,
+      WBTC: 0.84,
+      NBSTC: 0.82,
+      SBSTC: 0.82,
+      KOLKATA_TRAM: 0.68,
+      WB_FERRY: 0.78,
+      EASTERN_RAILWAY_SUBURBAN: 0.7,
+    };
+    const providerLabel = providerLabelByCode[providerCode];
+    const mappingConfidence = mappingConfidenceByCode[providerCode];
     const stagedNodes = await this.stagedNodeModel.findAll({ where: { datasetVersionId: version.id, providerCode }, transaction });
     const stagedRoutes = await this.stagedRouteModel.findAll({ where: { datasetVersionId: version.id, providerCode }, transaction });
     const stagedRouteStops = await this.stagedRouteStopModel.findAll({ where: { datasetVersionId: version.id, providerCode }, transaction });
@@ -463,8 +513,13 @@ export class DatasetPromotionService {
     }
   }
 
-  private async materializeMetroStations(stagedNodes: StagedNodeModel[], datasetVersionId: string, transaction: Transaction) {
-    const providerCode = 'BMRCL_METRO';
+  private async materializeMetroStations(
+    stagedNodes: StagedNodeModel[],
+    datasetVersionId: string,
+    providerCode: MetroProviderCode,
+    mappingConfidence: number,
+    transaction: Transaction,
+  ) {
     const externalIds = stagedNodes.map(node => node.providerExternalId).filter(Boolean);
     const existingMappings = await this.providerNodeMappingModel.findAll({
       where: { providerCode, providerExternalId: { [Op.in]: externalIds } },
@@ -529,7 +584,7 @@ export class DatasetPromotionService {
             {
               canonicalId: stationId,
               resolutionStatus: 'AUTO_RESOLVED',
-              confidence: 0.9,
+              confidence: mappingConfidence,
               evidence: {
                 ...(mapping.evidence || {}),
                 datasetVersionId,
@@ -545,9 +600,9 @@ export class DatasetPromotionService {
           providerExternalId: externalId,
           canonicalId: stationId,
           resolutionStatus: 'AUTO_RESOLVED',
-          confidence: 0.9,
+          confidence: mappingConfidence,
           evidence: {
-            fallbackIdentity: 'BMRCL + normalized station name + METRO_STATION',
+            fallbackIdentity: `${providerCode} + normalized station name + METRO_STATION`,
             datasetVersionId,
           },
         });
@@ -563,8 +618,13 @@ export class DatasetPromotionService {
     return stationIdsByExternalId;
   }
 
-  private async materializeMetroLines(stagedRoutes: StagedRouteModel[], datasetVersionId: string, transaction: Transaction) {
-    const providerCode = 'BMRCL_METRO';
+  private async materializeMetroLines(
+    stagedRoutes: StagedRouteModel[],
+    datasetVersionId: string,
+    providerCode: MetroProviderCode,
+    mappingConfidence: number,
+    transaction: Transaction,
+  ) {
     const externalIds = stagedRoutes.map(route => route.providerExternalId).filter(Boolean);
     const existingMappings = await this.providerRouteMappingModel.findAll({
       where: { providerCode, providerExternalId: { [Op.in]: externalIds } },
@@ -617,7 +677,7 @@ export class DatasetPromotionService {
 
       if (mapping) {
         updates.push(() =>
-          mapping.update({ canonicalId: lineId, resolutionStatus: 'AUTO_RESOLVED', confidence: 0.92 }, { transaction }),
+          mapping.update({ canonicalId: lineId, resolutionStatus: 'AUTO_RESOLVED', confidence: mappingConfidence }, { transaction }),
         );
       } else {
         mappingsToCreate.push({
@@ -626,7 +686,7 @@ export class DatasetPromotionService {
           providerExternalId: externalId,
           canonicalId: lineId,
           resolutionStatus: 'AUTO_RESOLVED',
-          confidence: 0.92,
+          confidence: mappingConfidence,
           evidence: { datasetVersionId },
         });
       }
@@ -644,7 +704,7 @@ export class DatasetPromotionService {
   private async materializeBusStops(
     stagedNodes: StagedNodeModel[],
     datasetVersionId: string,
-    providerCode: 'WBBUS' | 'BMTC_OFFICIAL',
+    providerCode: BusProviderCode,
     mappingConfidence: number,
     transaction: Transaction,
   ) {
@@ -672,6 +732,8 @@ export class DatasetPromotionService {
       const metadata = {
         ...(existingStop?.metadata || {}),
         sourceObservationId: node.sourceObservationId,
+        mode: payload.mode,
+        nodeType: payload.nodeType,
         aliases: payload.aliases,
         confidence: payload.confidence,
         latitude: payload.latitude,
@@ -737,7 +799,7 @@ export class DatasetPromotionService {
   private async materializeBusRoutes(
     stagedRoutes: StagedRouteModel[],
     datasetVersionId: string,
-    providerCode: 'WBBUS' | 'BMTC_OFFICIAL',
+    providerCode: BusProviderCode,
     mappingConfidence: number,
     transaction: Transaction,
   ) {
@@ -765,6 +827,7 @@ export class DatasetPromotionService {
       const metadata = {
         ...(existingRoute?.metadata || {}),
         shortName: payload.shortName,
+        mode: payload.mode,
         serviceClass: payload.serviceClass,
         sourceObservationId: route.sourceObservationId,
       };
@@ -827,7 +890,7 @@ export class DatasetPromotionService {
     stagedTrips: StagedTripModel[],
     routeIdsByExternalId: Map<string, string>,
     datasetVersionId: string,
-    providerCode: 'WBBUS' | 'BMTC_OFFICIAL',
+    providerCode: BusProviderCode,
     providerLabel: string,
     mappingConfidence: number,
     transaction: Transaction,
@@ -864,6 +927,7 @@ export class DatasetPromotionService {
       const metadata = {
         ...(existingTrip?.metadata || {}),
         sourceObservationId: trip.sourceObservationId,
+        mode: payload.mode,
         serviceClass: payload.serviceClass,
       };
 

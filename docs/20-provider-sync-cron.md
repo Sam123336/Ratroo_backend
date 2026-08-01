@@ -54,7 +54,7 @@ Enable it only when you want the API process to keep syncing providers:
 PROVIDER_SYNC_CRON_ENABLED=true
 PROVIDER_SYNC_RUN_ON_START=true
 PROVIDER_SYNC_INTERVAL_MINUTES=360
-PROVIDER_SYNC_PROVIDERS=WBBUS
+PROVIDER_SYNC_PROVIDERS=WBBUS,WBTC,NBSTC,SBSTC,KOLKATA_METRO,WB_FERRY,KOLKATA_TRAM,EASTERN_RAILWAY_SUBURBAN
 WBBUS_SYNC_MAX_ITEMS=1280
 WBBUS_SYNC_MAX_PAGES=200
 ```
@@ -70,13 +70,21 @@ The scheduler currently supports only real implemented importers:
 
 ```text
 WBBUS
+WBTC
+WTBC
 BMRCL
 BMRCL_METRO
 BMTC
 BMTC_OFFICIAL
+NBSTC
+SBSTC
+KOLKATA_METRO
+WB_FERRY
+KOLKATA_TRAM
+EASTERN_RAILWAY_SUBURBAN
 ```
 
-Do not add `WBTC`, `NBSTC`, `SBSTC`, or other provider codes here until their real provider adapters are implemented. The scheduler will skip unsupported provider codes.
+Do not add other provider codes here until their real provider adapters are implemented. The scheduler will skip unsupported provider codes.
 
 ## Recommended Local Full Sync
 
@@ -88,6 +96,73 @@ curl -X POST "http://localhost:3000/internal/providers/WBBUS/sync?maxItems=1280&
 ```
 
 After the first full run, enable the scheduler at a slower interval such as every 6 or 12 hours. WBBus is an external site, so avoid very aggressive polling.
+
+## West Bengal Government Bus, Metro, Ferry, Tram, And Rail Sync
+
+WBTC, NBSTC, SBSTC, Kolkata Metro, West Bengal Ferry, Kolkata Tram, and Eastern Railway suburban now use the same ingestion lifecycle as WBBUS:
+
+```text
+discover
+fetch
+save raw source record
+parse
+validate
+map canonical records
+stage
+promote
+serve through public API
+```
+
+Manual sync:
+
+```bash
+curl -X POST "http://localhost:3000/internal/providers/NBSTC/sync" \
+  -H "x-internal-api-key: $INTERNAL_INGESTION_API_KEY"
+
+curl -X POST "http://localhost:3000/internal/providers/WBTC/sync" \
+  -H "x-internal-api-key: $INTERNAL_INGESTION_API_KEY"
+
+curl -X POST "http://localhost:3000/internal/providers/SBSTC/sync" \
+  -H "x-internal-api-key: $INTERNAL_INGESTION_API_KEY"
+
+curl -X POST "http://localhost:3000/internal/providers/KOLKATA_METRO/sync" \
+  -H "x-internal-api-key: $INTERNAL_INGESTION_API_KEY"
+
+curl -X POST "http://localhost:3000/internal/providers/WB_FERRY/sync" \
+  -H "x-internal-api-key: $INTERNAL_INGESTION_API_KEY"
+
+curl -X POST "http://localhost:3000/internal/providers/KOLKATA_TRAM/sync" \
+  -H "x-internal-api-key: $INTERNAL_INGESTION_API_KEY"
+
+curl -X POST "http://localhost:3000/internal/providers/EASTERN_RAILWAY_SUBURBAN/sync" \
+  -H "x-internal-api-key: $INTERNAL_INGESTION_API_KEY"
+```
+
+Recommended West Bengal cron:
+
+```env
+PROVIDER_SYNC_CRON_ENABLED=true
+PROVIDER_SYNC_RUN_ON_START=true
+PROVIDER_SYNC_INTERVAL_MINUTES=720
+PROVIDER_SYNC_PROVIDERS=WBBUS,WBTC,NBSTC,SBSTC,KOLKATA_METRO,WB_FERRY,KOLKATA_TRAM,EASTERN_RAILWAY_SUBURBAN
+WBBUS_SYNC_MAX_ITEMS=1280
+WBBUS_SYNC_MAX_PAGES=200
+```
+
+After import, check:
+
+```bash
+curl "http://localhost:3000/v1/regions/west-bengal/bus/routes?search=Kolkata"
+curl "http://localhost:3000/v1/regions/west-bengal/bus/stops?search=Siliguri"
+curl "http://localhost:3000/v1/regions/west-bengal/bus/routes?search=Dakshineswar"
+curl "http://localhost:3000/v1/regions/west-bengal/bus/routes?search=Sealdah"
+curl "http://localhost:3000/v1/regions/west-bengal/metro/lines"
+curl "http://localhost:3000/v1/regions/west-bengal/metro/stations?search=Esplanade"
+```
+
+SBSTC note: the live official route page can time out from local runtime environments. The adapter has a timeout and falls back to a maintained snapshot from the official route-table page, with a validation warning, so client UI development is not blocked.
+
+Ferry, Tram, and Eastern Railway suburban note: each adapter fetches an official public source page and uses a maintained seed snapshot when that source is not a stable machine-readable route API. The promoted data is enough for client-side route browsing, but launch-grade journey planning still needs coordinates, schedules, and source enrichment.
 
 ## Bengaluru BMTC GTFS Sync
 

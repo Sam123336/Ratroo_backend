@@ -2,6 +2,8 @@ import { Controller, Headers, Param, Post, Query, UnauthorizedException } from '
 import { BmrclStaticImportService } from '../../application/BmrclStaticImportService';
 import { BmtcGtfsImportService } from '../../application/BmtcGtfsImportService';
 import { DatasetPromotionService } from '../../application/DatasetPromotionService';
+import { GovernmentBusStaticImportService } from '../../application/GovernmentBusStaticImportService';
+import { KolkataMetroStaticImportService } from '../../application/KolkataMetroStaticImportService';
 import { WBBusImportService } from '../../application/WBBusImportService';
 
 @Controller('internal')
@@ -11,6 +13,8 @@ export class InternalProviderIngestionController {
     private readonly bmrclImport: BmrclStaticImportService,
     private readonly bmtcImport: BmtcGtfsImportService,
     private readonly wbbusImport: WBBusImportService,
+    private readonly governmentBusImport: GovernmentBusStaticImportService,
+    private readonly kolkataMetroImport: KolkataMetroStaticImportService,
   ) {}
 
   @Post('providers/:code/sync')
@@ -30,6 +34,14 @@ export class InternalProviderIngestionController {
         return { providerCode: 'BMRCL_METRO', status: 'QUEUED' };
       }
       return this.bmrclImport.importStaticNetwork();
+    }
+
+    if (['KOLKATA_METRO', 'KOLKATA-METRO'].includes(code.toUpperCase())) {
+      if (this.enabled(asyncMode)) {
+        void this.kolkataMetroImport.importStaticNetwork().catch(() => undefined);
+        return { providerCode: 'KOLKATA_METRO', status: 'QUEUED' };
+      }
+      return this.kolkataMetroImport.importStaticNetwork();
     }
 
     if (['BMTC_OFFICIAL', 'BMTC'].includes(code.toUpperCase())) {
@@ -52,6 +64,29 @@ export class InternalProviderIngestionController {
         maxPages: this.positiveNumber(maxPages),
         maxItems: this.positiveNumber(maxItems),
       });
+    }
+
+    if (
+      code.toUpperCase() === 'WBTC' ||
+      code.toUpperCase() === 'WTBC' ||
+      code.toUpperCase() === 'NBSTC' ||
+      code.toUpperCase() === 'SBSTC' ||
+      code.toUpperCase() === 'KOLKATA_TRAM' ||
+      code.toUpperCase() === 'WB_FERRY' ||
+      code.toUpperCase() === 'EASTERN_RAILWAY_SUBURBAN'
+    ) {
+      const providerCode = (code.toUpperCase() === 'WTBC' ? 'WBTC' : code.toUpperCase()) as
+        | 'WBTC'
+        | 'NBSTC'
+        | 'SBSTC'
+        | 'KOLKATA_TRAM'
+        | 'WB_FERRY'
+        | 'EASTERN_RAILWAY_SUBURBAN';
+      if (this.enabled(asyncMode)) {
+        void this.governmentBusImport.importRoutes(providerCode).catch(() => undefined);
+        return { providerCode, status: 'QUEUED' };
+      }
+      return this.governmentBusImport.importRoutes(providerCode);
     }
 
     return this.promotion.enqueueProviderSync(code);

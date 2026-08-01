@@ -1,6 +1,6 @@
 # Known Gaps
 
-Last updated: 2026-08-01 17:35 IST
+Last updated: 2026-08-01 21:00 IST
 
 ## Critical
 
@@ -18,14 +18,14 @@ Last updated: 2026-08-01 17:35 IST
 
 | Provider | Status |
 | --- | --- |
-| WBTC | Adapter missing |
-| NBSTC | Adapter missing |
-| SBSTC | Adapter missing; booking protections must not be bypassed |
-| KOLKATA_METRO | Adapter missing |
-| EASTERN_RAILWAY_SUBURBAN | Adapter missing; current timetable source must be verified |
-| WB_FERRY | Adapter missing |
+| WBTC | Adapter active; needs timings, coordinates, and quality review |
+| NBSTC | Adapter active; needs coordinates and richer intermediate stops |
+| SBSTC | Adapter active with maintained fallback snapshot; live official source stability must be improved |
+| KOLKATA_METRO | Adapter active; needs coordinates, timings, fares, and alerts |
+| EASTERN_RAILWAY_SUBURBAN | Seed adapter active; current timetable-grade source must be verified |
+| WB_FERRY | Seed adapter active; needs timings, fares, and terminal coordinates |
 | KOLKATA_AUTO | Notification ingestion missing |
-| KOLKATA_TRAM | Status-aware ingestion missing |
+| KOLKATA_TRAM | Seed adapter active; status-aware operating service model still missing |
 | KSRTC_KARNATAKA | Adapter missing |
 
 ## Data Quality Gaps
