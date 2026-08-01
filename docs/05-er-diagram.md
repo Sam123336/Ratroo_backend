@@ -2,7 +2,7 @@
 
 This ERD reflects the current Sequelize-backed API database in `apps/api/src/modules/**/infrastructure/sequelize/models`.
 
-For browser-friendly views, open [05-er-diagram.html](05-er-diagram.html) or the dark interactive wiring map at [05-er-wiring.html](05-er-wiring.html).
+For browser-friendly views, open [05-er-board.html](05-er-board.html), [05-er-diagram.html](05-er-diagram.html), or the dark interactive wiring map at [05-er-wiring.html](05-er-wiring.html).
 
 The platform database has two active layers:
 

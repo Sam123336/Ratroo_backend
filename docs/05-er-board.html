@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yatroo Proper ER Diagram</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #080d13;
+        --grid: rgba(255, 255, 255, 0.035);
+        --table: #111820;
+        --table-2: #0d131a;
+        --header: #222a33;
+        --row: #151d25;
+        --row-alt: #0d141b;
+        --border: #3b4652;
+        --ink: #dbe7f3;
+        --muted: #8c9aaa;
+        --wire: #687483;
+        --wire-hot: #f8fafc;
+        --pk: #eab308;
+        --fk: #38bdf8;
+        --accent: #14b8a6;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .topbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 54px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 0 18px;
+        z-index: 20;
+        background: rgba(8, 13, 19, 0.9);
+        border-bottom: 1px solid #26313c;
+        backdrop-filter: blur(10px);
+      }
+
+      .topbar h1 {
+        margin: 0;
+        font-size: 16px;
+        letter-spacing: 0;
+      }
+
+      .topbar span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .topbar a {
+        color: #67e8f9;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .viewport {
+        position: fixed;
+        inset: 54px 0 0;
+        overflow: hidden;
+        cursor: grab;
+        background:
+          linear-gradient(var(--grid) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+          #080d13;
+        background-size: 28px 28px;
+      }
+
+      .viewport.dragging {
+        cursor: grabbing;
+      }
+
+      .board {
+        position: absolute;
+        width: 3300px;
+        height: 2050px;
+        transform-origin: 0 0;
+      }
+
+      svg.wires {
+        position: absolute;
+        inset: 0;
+        width: 3300px;
+        height: 2050px;
+        overflow: visible;
+        pointer-events: none;
+      }
+
+      .wire {
+        fill: none;
+        stroke: var(--wire);
+        stroke-width: 1.15;
+        stroke-dasharray: 3 3;
+        opacity: 0.75;
+      }
+
+      .wire.hot {
+        stroke: var(--wire-hot);
+        stroke-width: 2;
+        stroke-dasharray: none;
+        opacity: 1;
+      }
+
+      .wire-label {
+        fill: #b8c3cf;
+        font-size: 10px;
+        paint-order: stroke;
+        stroke: #080d13;
+        stroke-width: 4px;
+        stroke-linejoin: round;
+      }
+
+      .table {
+        position: absolute;
+        width: 190px;
+        border: 1px solid var(--border);
+        background: var(--table);
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+        font-size: 11px;
+        user-select: none;
+      }
+
+      .table.selected {
+        outline: 2px solid var(--accent);
+        box-shadow: 0 0 0 5px rgba(20, 184, 166, 0.14), 0 20px 55px rgba(0, 0, 0, 0.5);
+      }
+
+      .table-title {
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--header);
+        border-bottom: 1px solid var(--border);
+        color: #eef5fb;
+        font-weight: 750;
+        font-size: 11px;
+      }
+
+      .field {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr) 26px;
+        min-height: 22px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .field:nth-child(odd) {
+        background: var(--row);
+      }
+
+      .field:nth-child(even) {
+        background: var(--row-alt);
+      }
+
+      .field:last-child {
+        border-bottom: 0;
+      }
+
+      .type,
+      .name,
+      .key {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        padding: 0 6px;
+      }
+
+      .type {
+        color: #a9b4c0;
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 10px;
+      }
+
+      .name {
+        color: #f2f7fb;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .key {
+        justify-content: center;
+        color: #061018;
+        font-weight: 800;
+        font-size: 9px;
+      }
+
+      .key.pk {
+        background: var(--pk);
+      }
+
+      .key.fk {
+        background: var(--fk);
+      }
+
+      .key.uk {
+        background: #a78bfa;
+      }
+
+      .group-label {
+        position: absolute;
+        color: #91a3b5;
+        font-size: 13px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        border-top: 1px solid #26313c;
+        padding-top: 10px;
+      }
+
+      .controls {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        z-index: 25;
+        display: grid;
+        grid-template-columns: 54px 54px 54px;
+        gap: 10px;
+      }
+
+      .controls button,
+      .floating button {
+        height: 48px;
+        border: 1px solid #394656;
+        border-radius: 10px;
+        background: #18212b;
+        color: #dbe7f3;
+        font-size: 20px;
+        cursor: pointer;
+      }
+
+      .controls button:hover,
+      .floating button:hover {
+        border-color: var(--accent);
+        color: #bffff7;
+      }
+
+      .floating {
+        position: fixed;
+        right: 22px;
+        top: 78px;
+        z-index: 25;
+        display: flex;
+        gap: 10px;
+      }
+
+      .floating button {
+        width: 58px;
+      }
+
+      .legend {
+        position: fixed;
+        left: 18px;
+        bottom: 18px;
+        z-index: 25;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        max-width: 760px;
+        padding: 10px;
+        border: 1px solid #26313c;
+        background: rgba(8, 13, 19, 0.86);
+        backdrop-filter: blur(10px);
+      }
+
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+      }
+
+      .hint {
+        position: fixed;
+        left: 18px;
+        top: 72px;
+        z-index: 25;
+        max-width: 360px;
+        padding: 10px 12px;
+        border: 1px solid #26313c;
+        background: rgba(8, 13, 19, 0.86);
+        color: var(--muted);
+        font-size: 12px;
+        backdrop-filter: blur(10px);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>Yatroo Proper ER Diagram</h1>
+        <span>Table cards, PK/FK markers, and curved relationships for the current Sequelize schema.</span>
+      </div>
+      <a href="05-er-diagram.md">Open Markdown ERD</a>
+    </header>
+
+    <div class="hint">Drag the canvas to pan. Use mouse wheel or the buttons to zoom. Click a table to highlight its direct wiring.</div>
+
+    <div class="floating">
+      <button id="fit" title="Fit diagram">↔</button>
+      <button id="reset" title="Reset view">▣</button>
+    </div>
+
+    <div class="viewport" id="viewport">
+      <div class="board" id="board">
+        <svg class="wires" id="wires"></svg>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><i class="swatch" style="background:#14b8a6"></i>Registry</span>
+      <span><i class="swatch" style="background:#38bdf8"></i>Ingestion</span>
+      <span><i class="swatch" style="background:#a78bfa"></i>Staging</span>
+      <span><i class="swatch" style="background:#f472b6"></i>Mapping</span>
+      <span><i class="swatch" style="background:#22c55e"></i>Bus query</span>
+      <span><i class="swatch" style="background:#f59e0b"></i>Metro query</span>
+      <span><i class="swatch" style="background:#60a5fa"></i>Coverage</span>
+      <span><i class="swatch" style="background:#94a3b8"></i>Legacy</span>
+    </div>
+
+    <div class="controls">
+      <button id="left" title="Pan left">‹</button>
+      <button id="up" title="Pan up">⌃</button>
+      <button id="right" title="Pan right">›</button>
+      <button id="zoomOut" title="Zoom out">−</button>
+      <button id="down" title="Pan down">⌄</button>
+      <button id="zoomIn" title="Zoom in">+</button>
+    </div>
+
+    <script>
+      const groupColors = {
+        registry: "#14b8a6",
+        ingestion: "#38bdf8",
+        staging: "#a78bfa",
+        mapping: "#f472b6",
+        bus: "#22c55e",
+        metro: "#f59e0b",
+        coverage: "#60a5fa",
+        legacy: "#94a3b8",
+        ops: "#fb7185",
+      };
+
+      const tables = [
+        node("providers", 600, 70, "registry", [
+          ["uuid", "id", "PK"],
+          ["string", "code", "UK"],
+          ["string", "name", ""],
+          ["string", "sourceType", ""],
+          ["text", "website", ""],
+          ["string", "version", ""],
+          ["string[]", "transportModes", ""],
+        ]),
+        node("provider_sources", 420, 350, "registry", [
+          ["uuid", "id", "PK"],
+          ["string", "providerCode", "FK"],
+          ["text", "sourceUrl", ""],
+          ["string", "sourceRole", ""],
+          ["string", "status", ""],
+          ["jsonb", "metadata", ""],
+        ]),
+        node("provider_runs", 680, 280, "ingestion", [
+          ["uuid", "id", "PK"],
+          ["string", "providerCode", "FK"],
+          ["string", "providerVersion", ""],
+          ["string", "status", ""],
+          ["string", "runType", ""],
+          ["text", "checkpoint", ""],
+          ["text", "lastDiscoveryCursor", ""],
+          ["int", "discoveredCount", ""],
+          ["int", "fetchedCount", ""],
+          ["int", "parsedCount", ""],
+          ["int", "failedCount", ""],
+          ["jsonb", "metrics", ""],
+        ]),
+        node("provider_item_checkpoints", 415, 610, "ingestion", [
+          ["uuid", "id", "PK"],
+          ["uuid", "providerRunId", "FK"],
+          ["string", "providerCode", "FK"],
+          ["text", "externalId", ""],
+          ["text", "sourceUrl", ""],
+          ["string", "status", ""],
+          ["string", "contentHash", ""],
+          ["text", "errorMessage", ""],
+        ]),
+        node("raw_source_records", 685, 660, "ingestion", [
+          ["uuid", "id", "PK"],
+          ["string", "providerCode", "FK"],
+          ["uuid", "providerRunId", "FK"],
+          ["text", "sourceUrl", ""],
+          ["string", "contentHash", ""],
+          ["string", "contentType", ""],
+          ["int", "statusCode", ""],
+          ["jsonb", "rawPayload", ""],
+          ["jsonb", "metadata", ""],
+          ["string", "status", ""],
+          ["datetime", "fetchedAt", ""],
+        ]),
+        node("source_observations", 700, 1030, "ingestion", [
+          ["uuid", "id", "PK"],
+          ["string", "providerCode", "FK"],
+          ["string", "providerVersion", ""],
+          ["uuid", "rawSourceRecordId", "FK"],
+          ["text", "sourceUrl", ""],
+          ["string", "contentHash", ""],
+          ["decimal", "confidence", ""],
+          ["string", "verificationStatus", ""],
+          ["string[]", "warnings", ""],
+        ]),
+        node("datasets", 1520, 760, "ingestion", [
+          ["uuid", "id", "PK"],
+          ["string", "providerCode", "FK"],
+          ["string", "name", ""],
+          ["string", "status", ""],
+        ]),
+        node("dataset_versions", 1410, 1010, "ingestion", [
+          ["uuid", "id", "PK"],
+          ["uuid", "datasetId", "FK"],
+          ["uuid", "providerRunId", "FK"],
+          ["string", "contentHash", ""],
+          ["jsonb", "validationSummary", ""],
+          ["string", "status", ""],
+        ]),
+        node("staged_agencies", 135, 1390, "staging", stagedFields()),
+        node("staged_nodes", 375, 1440, "staging", stagedFields()),
+        node("staged_routes", 615, 1430, "staging", stagedFields()),
+        node("staged_route_stops", 855, 1430, "staging", stagedFields()),
+        node("staged_trips", 1095, 1430, "staging", stagedFields()),
+        node("staged_stop_times", 1335, 1430, "staging", stagedFields()),
+        node("staged_fares", 1575, 1430, "staging", stagedFields()),
+        node("provider_agency_mappings", 1855, 925, "mapping", mappingFields("agencyId")),
+        node("provider_node_mappings", 2090, 1030, "mapping", mappingFields("nodeId")),
+        node("provider_route_mappings", 2325, 1030, "mapping", mappingFields("routeId")),
+        node("provider_trip_mappings", 2560, 1030, "mapping", mappingFields("tripId")),
+        node("bus_routes", 2580, 1410, "bus", [
+          ["uuid", "id", "PK"],
+          ["string", "providerCode", "FK"],
+          ["text", "externalId", ""],
+          ["text", "longName", ""],
+          ["string", "directionId", ""],
+          ["string", "operationalStatus", ""],
+          ["uuid", "datasetVersionId", "FK"],
+          ["jsonb", "metadata", ""],
+        ]),
+        node("bus_stops", 2310, 1450, "bus", [
+          ["uuid", "id", "PK"],
+          ["string", "providerCode", "FK"],
+          ["text", "externalId", ""],
+          ["text", "name", ""],
+          ["text", "normalizedName", ""],
+          ["uuid", "datasetVersionId", "FK"],
+          ["jsonb", "metadata", ""],
+        ]),
+        node("bus_route_stops", 2835, 1710, "bus", [
+          ["uuid", "id", "PK"],
+          ["uuid", "routeId", "FK"],
+          ["uuid", "stopId", "FK"],
+          ["int", "sequence", ""],
+          ["uuid", "datasetVersionId", "FK"],
+        ]),
+        node("bus_trips", 2990, 1395, "bus", [
+          ["uuid", "id", "PK"],
+          ["string", "providerCode", "FK"],
+          ["text", "externalId", ""],
+          ["uuid", "routeId", "FK"],
+          ["string", "direction", ""],
+          ["text", "vehicleRegistration", ""],
+          ["text", "vehicleName", ""],
+          ["uuid", "datasetVersionId", "FK"],
+        ]),
+        node("bus_stop_times", 3070, 1690, "bus", [
+          ["uuid", "id", "PK"],
+          ["uuid", "tripId", "FK"],
+          ["uuid", "stopId", "FK"],
+          ["int", "sequence", ""],
+          ["string", "arrivalTime", ""],
+          ["string", "departureTime", ""],
+          ["uuid", "datasetVersionId", "FK"],
+        ]),
+        node("metro_lines", 2095, 1420, "metro", [
+          ["uuid", "id", "PK"],
+          ["string", "providerCode", "FK"],
+          ["text", "externalId", ""],
+          ["text", "name", ""],
+          ["string", "color", ""],
+          ["string", "operationalStatus", ""],
+          ["uuid", "datasetVersionId", "FK"],
+        ]),
+        node("metro_stations", 1900, 1430, "metro", [
+          ["uuid", "id", "PK"],
+          ["string", "providerCode", "FK"],
+          ["text", "externalId", ""],
+          ["text", "name", ""],
+          ["text", "normalizedName", ""],
+          ["boolean", "isInterchange", ""],
+          ["uuid", "datasetVersionId", "FK"],
+          ["jsonb", "metadata", ""],
+        ]),
+        node("metro_line_stations", 1980, 1720, "metro", [
+          ["uuid", "id", "PK"],
+          ["uuid", "lineId", "FK"],
+          ["uuid", "stationId", "FK"],
+          ["int", "sequence", ""],
+          ["uuid", "datasetVersionId", "FK"],
+        ]),
+        node("coverage_areas", 2840, 720, "coverage", [
+          ["uuid", "id", "PK"],
+          ["string", "countryCode", ""],
+          ["string", "stateCode", ""],
+          ["text", "stateName", ""],
+          ["text", "districtName", ""],
+          ["text", "cityName", ""],
+          ["string", "areaType", ""],
+          ["text", "name", ""],
+          ["text", "slug", ""],
+          ["jsonb", "metadata", ""],
+        ]),
+        node("provider_coverage_areas", 2620, 930, "coverage", coverageFields("providerId")),
+        node("route_coverage_areas", 2840, 1030, "coverage", coverageFields("routeId")),
+        node("dataset_coverage_areas", 3060, 930, "coverage", coverageFields("datasetId")),
+        node("canonical_conflicts", 1620, 1185, "ops", [
+          ["uuid", "id", "PK"],
+          ["uuid", "datasetVersionId", "FK"],
+          ["string", "providerCode", "FK"],
+          ["string", "entityType", ""],
+          ["text", "providerExternalId", ""],
+          ["string", "conflictType", ""],
+          ["string", "status", ""],
+          ["jsonb", "details", ""],
+        ]),
+        node("agencies", 1120, 90, "legacy", [
+          ["uuid", "id", "PK"],
+          ["string", "name", ""],
+          ["string", "code", "UK"],
+          ["string", "state", ""],
+          ["string", "city", ""],
+          ["string", "country", ""],
+          ["string", "provider", ""],
+        ]),
+        node("stops", 1500, 250, "legacy", [
+          ["uuid", "id", "PK"],
+          ["string", "name", ""],
+          ["string", "normalizedName", ""],
+          ["decimal", "latitude", ""],
+          ["decimal", "longitude", ""],
+          ["geometry", "location", ""],
+          ["string", "provider", ""],
+          ["string", "externalId", ""],
+        ]),
+        node("routes", 1880, 250, "legacy", [
+          ["uuid", "id", "PK"],
+          ["uuid", "agencyId", "FK"],
+          ["string", "shortName", ""],
+          ["string", "longName", ""],
+          ["uuid", "originStopId", "FK"],
+          ["uuid", "destinationStopId", "FK"],
+          ["string", "provider", ""],
+        ]),
+        node("trips", 2260, 260, "legacy", [
+          ["uuid", "id", "PK"],
+          ["uuid", "routeId", "FK"],
+          ["string", "direction", ""],
+          ["string", "serviceId", ""],
+          ["string", "vehicleName", ""],
+          ["string", "provider", ""],
+        ]),
+        node("stop_times", 2640, 260, "legacy", [
+          ["uuid", "id", "PK"],
+          ["uuid", "tripId", "FK"],
+          ["uuid", "stopId", "FK"],
+          ["int", "stopSequence", ""],
+          ["string", "arrivalTime", ""],
+          ["string", "departureTime", ""],
+        ]),
+      ];
+
+      const relations = [
+        rel("providers", "provider_sources", "code -> providerCode"),
+        rel("providers", "provider_runs", "code -> providerCode"),
+        rel("provider_runs", "provider_item_checkpoints", "id -> providerRunId"),
+        rel("provider_runs", "raw_source_records", "id -> providerRunId"),
+        rel("provider_runs", "dataset_versions", "id -> providerRunId"),
+        rel("raw_source_records", "source_observations", "id -> rawSourceRecordId"),
+        rel("datasets", "dataset_versions", "id -> datasetId"),
+        rel("dataset_versions", "staged_agencies", "id -> datasetVersionId"),
+        rel("dataset_versions", "staged_nodes", "id -> datasetVersionId"),
+        rel("dataset_versions", "staged_routes", "id -> datasetVersionId"),
+        rel("dataset_versions", "staged_route_stops", "id -> datasetVersionId"),
+        rel("dataset_versions", "staged_trips", "id -> datasetVersionId"),
+        rel("dataset_versions", "staged_stop_times", "id -> datasetVersionId"),
+        rel("dataset_versions", "staged_fares", "id -> datasetVersionId"),
+        rel("source_observations", "staged_agencies", "id -> sourceObservationId"),
+        rel("source_observations", "staged_nodes", "id -> sourceObservationId"),
+        rel("source_observations", "staged_routes", "id -> sourceObservationId"),
+        rel("source_observations", "staged_route_stops", "id -> sourceObservationId"),
+        rel("source_observations", "staged_trips", "id -> sourceObservationId"),
+        rel("source_observations", "staged_stop_times", "id -> sourceObservationId"),
+        rel("source_observations", "staged_fares", "id -> sourceObservationId"),
+        rel("dataset_versions", "bus_routes", "id -> datasetVersionId"),
+        rel("dataset_versions", "bus_stops", "id -> datasetVersionId"),
+        rel("dataset_versions", "bus_route_stops", "id -> datasetVersionId"),
+        rel("dataset_versions", "bus_trips", "id -> datasetVersionId"),
+        rel("dataset_versions", "bus_stop_times", "id -> datasetVersionId"),
+        rel("bus_routes", "bus_route_stops", "id -> routeId"),
+        rel("bus_stops", "bus_route_stops", "id -> stopId"),
+        rel("bus_routes", "bus_trips", "id -> routeId"),
+        rel("bus_trips", "bus_stop_times", "id -> tripId"),
+        rel("bus_stops", "bus_stop_times", "id -> stopId"),
+        rel("dataset_versions", "metro_lines", "id -> datasetVersionId"),
+        rel("dataset_versions", "metro_stations", "id -> datasetVersionId"),
+        rel("dataset_versions", "metro_line_stations", "id -> datasetVersionId"),
+        rel("metro_lines", "metro_line_stations", "id -> lineId"),
+        rel("metro_stations", "metro_line_stations", "id -> stationId"),
+        rel("provider_node_mappings", "bus_stops", "nodeId -> id"),
+        rel("provider_node_mappings", "metro_stations", "nodeId -> id"),
+        rel("provider_route_mappings", "bus_routes", "routeId -> id"),
+        rel("provider_route_mappings", "metro_lines", "routeId -> id"),
+        rel("provider_trip_mappings", "bus_trips", "tripId -> id"),
+        rel("coverage_areas", "provider_coverage_areas", "id -> coverageAreaId"),
+        rel("coverage_areas", "route_coverage_areas", "id -> coverageAreaId"),
+        rel("coverage_areas", "dataset_coverage_areas", "id -> coverageAreaId"),
+        rel("providers", "provider_coverage_areas", "id -> providerId"),
+        rel("bus_routes", "route_coverage_areas", "id -> routeId"),
+        rel("datasets", "dataset_coverage_areas", "id -> datasetId"),
+        rel("dataset_versions", "canonical_conflicts", "id -> datasetVersionId"),
+        rel("agencies", "routes", "id -> agencyId"),
+        rel("routes", "trips", "id -> routeId"),
+        rel("trips", "stop_times", "id -> tripId"),
+        rel("stops", "stop_times", "id -> stopId"),
+        rel("stops", "routes", "id -> originStopId"),
+        rel("stops", "routes", "id -> destinationStopId"),
+      ];
+
+      function node(id, x, y, group, fields) {
+        return { id, x, y, group, fields };
+      }
+
+      function rel(from, to, label) {
+        return { from, to, label };
+      }
+
+      function stagedFields() {
+        return [
+          ["uuid", "id", "PK"],
+          ["uuid", "datasetVersionId", "FK"],
+          ["string", "providerCode", "FK"],
+          ["text", "providerExternalId", ""],
+          ["uuid", "sourceObservationId", "FK"],
+          ["string", "validationStatus", ""],
+          ["string", "operationalStatus", ""],
+          ["date", "effectiveFrom", ""],
+          ["date", "effectiveUntil", ""],
+          ["jsonb", "canonicalPayload", ""],
+        ];
+      }
+
+      function mappingFields(target) {
+        return [
+          ["uuid", "id", "PK"],
+          ["string", "providerCode", "FK"],
+          ["text", "providerExternalId", ""],
+          ["uuid", target, "FK"],
+          ["string", "resolutionStatus", ""],
+          ["decimal", "confidence", ""],
+          ["jsonb", "evidence", ""],
+        ];
+      }
+
+      function coverageFields(owner) {
+        return [
+          ["uuid", "id", "PK"],
+          ["uuid", owner, "FK"],
+          ["uuid", "coverageAreaId", "FK"],
+          ["string", "relationshipType", ""],
+          ["jsonb", "metadata", ""],
+        ];
+      }
+
+      const board = document.getElementById("board");
+      const wires = document.getElementById("wires");
+      const viewport = document.getElementById("viewport");
+      const byId = new Map(tables.map(t => [t.id, t]));
+      let scale = 0.68;
+      let tx = -250;
+      let ty = -20;
+      let selected = null;
+
+      function renderTables() {
+        for (const table of tables) {
+          const el = document.createElement("article");
+          el.className = "table";
+          el.id = `table-${table.id}`;
+          el.style.left = `${table.x}px`;
+          el.style.top = `${table.y}px`;
+          el.style.borderTop = `3px solid ${groupColors[table.group]}`;
+          el.innerHTML = `
+            <div class="table-title">${table.id}</div>
+            ${table.fields.map(([type, name, key]) => `
+              <div class="field" data-field="${name}">
+                <div class="type">${type}</div>
+                <div class="name" title="${name}">${name}</div>
+                <div class="key ${key.toLowerCase()}">${key}</div>
+              </div>
+            `).join("")}
+          `;
+          el.addEventListener("click", event => {
+            event.stopPropagation();
+            selectTable(table.id);
+          });
+          board.appendChild(el);
+          table.width = 190;
+          table.height = 24 + table.fields.length * 22;
+        }
+
+        label("Provider registry", 520, 25);
+        label("Raw import lifecycle", 360, 235);
+        label("Staged canonical records", 120, 1335);
+        label("Dataset promotion and mappings", 1360, 710);
+        label("Promoted read models", 1880, 1365);
+        label("Coverage model", 2620, 670);
+        label("Legacy transit module", 1080, 35);
+      }
+
+      function label(text, x, y) {
+        const el = document.createElement("div");
+        el.className = "group-label";
+        el.style.left = `${x}px`;
+        el.style.top = `${y}px`;
+        el.textContent = text;
+        board.appendChild(el);
+      }
+
+      function renderWires() {
+        wires.innerHTML = `
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#7b8794"></path>
+            </marker>
+            <marker id="arrow-hot" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#f8fafc"></path>
+            </marker>
+          </defs>
+        `;
+
+        relations.forEach((relation, index) => {
+          const from = byId.get(relation.from);
+          const to = byId.get(relation.to);
+          const p = pathBetween(from, to);
+          const path = svg("path", {
+            id: `wire-${index}`,
+            class: "wire",
+            d: p.d,
+            "marker-end": "url(#arrow)",
+            "data-from": relation.from,
+            "data-to": relation.to,
+          });
+          wires.appendChild(path);
+
+          const text = svg("text", {
+            class: "wire-label",
+            x: p.mx,
+            y: p.my,
+            "text-anchor": "middle",
+            "data-from": relation.from,
+            "data-to": relation.to,
+          });
+          text.textContent = relation.label;
+          wires.appendChild(text);
+        });
+      }
+
+      function pathBetween(from, to) {
+        const fromCenter = { x: from.x + from.width / 2, y: from.y + from.height / 2 };
+        const toCenter = { x: to.x + to.width / 2, y: to.y + to.height / 2 };
+        const horizontal = Math.abs(toCenter.x - fromCenter.x) >= Math.abs(toCenter.y - fromCenter.y);
+        let x1;
+        let y1;
+        let x2;
+        let y2;
+
+        if (horizontal) {
+          x1 = fromCenter.x < toCenter.x ? from.x + from.width : from.x;
+          y1 = fromCenter.y;
+          x2 = fromCenter.x < toCenter.x ? to.x : to.x + to.width;
+          y2 = toCenter.y;
+        } else {
+          x1 = fromCenter.x;
+          y1 = fromCenter.y < toCenter.y ? from.y + from.height : from.y;
+          x2 = toCenter.x;
+          y2 = fromCenter.y < toCenter.y ? to.y : to.y + to.height;
+        }
+
+        const dx = Math.max(90, Math.abs(x2 - x1) * 0.45);
+        const dy = Math.max(80, Math.abs(y2 - y1) * 0.35);
+        const c1x = horizontal ? x1 + (x1 < x2 ? dx : -dx) : x1;
+        const c1y = horizontal ? y1 : y1 + (y1 < y2 ? dy : -dy);
+        const c2x = horizontal ? x2 - (x1 < x2 ? dx : -dx) : x2;
+        const c2y = horizontal ? y2 : y2 - (y1 < y2 ? dy : -dy);
+
+        return {
+          d: `M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}`,
+          mx: (x1 + x2) / 2,
+          my: (y1 + y2) / 2 - 6,
+        };
+      }
+
+      function svg(tag, attrs) {
+        const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+        Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
+        return el;
+      }
+
+      function selectTable(id) {
+        selected = id;
+        document.querySelectorAll(".table").forEach(el => el.classList.remove("selected"));
+        document.getElementById(`table-${id}`).classList.add("selected");
+
+        document.querySelectorAll(".wire").forEach(path => {
+          const hot = path.dataset.from === id || path.dataset.to === id;
+          path.classList.toggle("hot", hot);
+          path.setAttribute("marker-end", hot ? "url(#arrow-hot)" : "url(#arrow)");
+        });
+        document.querySelectorAll(".wire-label").forEach(text => {
+          const hot = text.dataset.from === id || text.dataset.to === id;
+          text.style.fill = hot ? "#ffffff" : "#b8c3cf";
+        });
+      }
+
+      function applyTransform() {
+        board.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+      }
+
+      function zoom(delta, cx = viewport.clientWidth / 2, cy = viewport.clientHeight / 2) {
+        const old = scale;
+        scale = Math.min(1.6, Math.max(0.28, scale + delta));
+        const ratio = scale / old;
+        tx = cx - (cx - tx) * ratio;
+        ty = cy - (cy - ty) * ratio;
+        applyTransform();
+      }
+
+      let dragging = false;
+      let last = { x: 0, y: 0 };
+      viewport.addEventListener("pointerdown", event => {
+        dragging = true;
+        last = { x: event.clientX, y: event.clientY };
+        viewport.classList.add("dragging");
+      });
+      window.addEventListener("pointerup", () => {
+        dragging = false;
+        viewport.classList.remove("dragging");
+      });
+      window.addEventListener("pointermove", event => {
+        if (!dragging) return;
+        tx += event.clientX - last.x;
+        ty += event.clientY - last.y;
+        last = { x: event.clientX, y: event.clientY };
+        applyTransform();
+      });
+      viewport.addEventListener("wheel", event => {
+        event.preventDefault();
+        zoom(event.deltaY > 0 ? -0.06 : 0.06, event.clientX, event.clientY - 54);
+      }, { passive: false });
+
+      document.getElementById("zoomIn").onclick = () => zoom(0.08);
+      document.getElementById("zoomOut").onclick = () => zoom(-0.08);
+      document.getElementById("left").onclick = () => { tx += 140; applyTransform(); };
+      document.getElementById("right").onclick = () => { tx -= 140; applyTransform(); };
+      document.getElementById("up").onclick = () => { ty += 140; applyTransform(); };
+      document.getElementById("down").onclick = () => { ty -= 140; applyTransform(); };
+      document.getElementById("reset").onclick = () => { scale = 0.68; tx = -250; ty = -20; applyTransform(); };
+      document.getElementById("fit").onclick = () => {
+        scale = Math.min(viewport.clientWidth / 3400, viewport.clientHeight / 2150);
+        tx = 40;
+        ty = 30;
+        applyTransform();
+      };
+      board.addEventListener("click", () => {
+        selected = null;
+        document.querySelectorAll(".table").forEach(el => el.classList.remove("selected"));
+        document.querySelectorAll(".wire").forEach(path => {
+          path.classList.remove("hot");
+          path.setAttribute("marker-end", "url(#arrow)");
+        });
+      });
+
+      renderTables();
+      renderWires();
+      applyTransform();
+      selectTable("dataset_versions");
+    </script>
+  </body>
+</html>

@@ -15,6 +15,7 @@ The numbered documents are product and system planning artifacts. The existing i
 | [04-folder-structure.md](04-folder-structure.md) | Target repository layout |
 | [05-database.md](05-database.md) | Data model, schemas, and growth strategy |
 | [05-er-diagram.md](05-er-diagram.md) | Current Sequelize ER diagram and table relationships |
+| [05-er-board.html](05-er-board.html) | Proper dark ERD board with table cards and relationship wires |
 | [05-er-diagram.html](05-er-diagram.html) | Browser-friendly ER diagram view |
 | [05-er-wiring.html](05-er-wiring.html) | Dark interactive table wiring canvas |
 | [06-domain-model.md](06-domain-model.md) | Domain language and bounded contexts |
