@@ -54,15 +54,7 @@ import { ProviderHealthService } from './health/provider-health.service';
 import { ProviderDashboardController } from './health/provider-dashboard.controller';
 import { CoverageDashboardService } from './health/coverage-dashboard.service';
 
-// Places & Graph
-import { UniversalSearchService } from '../places/universal-search.service';
-import { AliasResolverService } from '../places/alias-resolver.service';
-import { TransportGraphEngine } from '../graph/transport-graph.engine';
-import { NearestStopEngine } from '../places/nearest-stop.engine';
-import { RouteService } from '../places/route.service';
-import { VillageService } from '../places/village.service';
-import { VillageJourneyService } from '../planner/village-journey.service';
-import { PublicTransportGraphController, InternalProviderHealthDashboardController } from '../places/public-transport-graph.controller';
+// Removed Places & Graph imports
 
 import { InternalOpsDashboardController } from './health/internal-ops-dashboard.controller';
 
@@ -81,8 +73,6 @@ import { InternalOpsDashboardController } from './health/internal-ops-dashboard.
     MetroNetworkController,
     InternalProviderIngestionController,
     ProviderDashboardController,
-    PublicTransportGraphController,
-    InternalProviderHealthDashboardController,
     InternalOpsDashboardController,
   ],
   providers: [
@@ -122,13 +112,6 @@ import { InternalOpsDashboardController } from './health/internal-ops-dashboard.
     DataQualityGateService,
     CanonicalStopResolutionEngine,
     ProviderHealthService,
-    UniversalSearchService,
-    AliasResolverService,
-    TransportGraphEngine,
-    NearestStopEngine,
-    RouteService,
-    VillageService,
-    VillageJourneyService,
     CoverageDashboardService,
   ],
   exports: [
@@ -166,13 +149,6 @@ import { InternalOpsDashboardController } from './health/internal-ops-dashboard.
     DataQualityGateService,
     CanonicalStopResolutionEngine,
     ProviderHealthService,
-    UniversalSearchService,
-    AliasResolverService,
-    TransportGraphEngine,
-    NearestStopEngine,
-    RouteService,
-    VillageService,
-    VillageJourneyService,
     CoverageDashboardService,
   ],
 })

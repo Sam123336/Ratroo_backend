@@ -14,6 +14,9 @@ async function bootstrap() {
     }),
   );
 
+  const { TransformResponseInterceptor } = await import('./modules/core/interceptors/transform-response.interceptor');
+  app.useGlobalInterceptors(new TransformResponseInterceptor());
+
   app.enableCors();
 
   const swaggerConfig = new DocumentBuilder()

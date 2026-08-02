@@ -59,6 +59,21 @@ function databaseConfig(config: ConfigService): SequelizeModuleOptions {
   };
 }
 
+import { SearchModule } from './modules/search/search.module';
+import { RouteModule } from './modules/routes/route.module';
+import { VillageModule } from './modules/villages/village.module';
+import { NearbyModule } from './modules/nearby/nearby.module';
+import { JourneyModule } from './modules/journey/journey.module';
+import { CoreModule } from './modules/core/core.module';
+import { PlacesModule } from './modules/places/places.module';
+import { ConnectivityModule } from './modules/connectivity/connectivity.module';
+import { FerryModule } from './modules/ferry/ferry.module';
+import { RailwayModule } from './modules/rail/rail.module';
+import { MetroModule } from './modules/metro/metro.module';
+import { TramModule } from './modules/tram/tram.module';
+import { FavoritesModule } from './modules/favorites/favorites.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -74,6 +89,20 @@ function databaseConfig(config: ConfigService): SequelizeModuleOptions {
     RegionsModule,
     ProviderIngestionModule,
     WBBusModule,
+    CoreModule,
+    SearchModule,
+    RouteModule,
+    VillageModule,
+    NearbyModule,
+    JourneyModule,
+    PlacesModule,
+    ConnectivityModule,
+    FerryModule,
+    RailwayModule,
+    MetroModule,
+    TramModule,
+    FavoritesModule,
+    AnalyticsModule,
   ],
   controllers: [HealthController],
 })
