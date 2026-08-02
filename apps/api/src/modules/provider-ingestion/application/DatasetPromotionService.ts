@@ -850,6 +850,7 @@ export class DatasetPromotionService {
       const existingRoute = mapping?.canonicalId ? routesById.get(mapping.canonicalId) : null;
       const metadata = {
         ...(existingRoute?.metadata || {}),
+        ...(payload.metadata || {}),
         shortName: payload.shortName,
         mode: payload.mode,
         serviceClass: payload.serviceClass,

@@ -6,12 +6,12 @@ export class ProviderDashboardController {
   constructor(private readonly healthService: ProviderHealthService) {}
 
   @Get('stats')
-  getAllStats(): ProviderDashboardStats[] {
+  async getAllStats(): Promise<ProviderDashboardStats[]> {
     return this.healthService.getAllDashboardStats();
   }
 
   @Get('stats/:providerCode')
-  getProviderStats(@Param('providerCode') providerCode: string): ProviderDashboardStats {
+  async getProviderStats(@Param('providerCode') providerCode: string): Promise<ProviderDashboardStats> {
     return this.healthService.getDashboardStats(providerCode);
   }
 }

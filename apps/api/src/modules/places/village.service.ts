@@ -42,30 +42,76 @@ export class VillageService {
     }
 
     if (!villageStop) {
-      villageStop = await this.busStopModel.findOne({
-        order: [['createdAt', 'DESC']],
-      });
-    }
-
-    if (!villageStop) {
       throw new NotFoundException(`Village or stop '${id}' not found in database.`);
     }
 
-    const allStops = await this.busStopModel.findAll({ limit: 100 });
+    const vLat = (villageStop.metadata as any)?.latitude ? parseFloat((villageStop.metadata as any).latitude) : 0;
+    const vLon = (villageStop.metadata as any)?.longitude ? parseFloat((villageStop.metadata as any).longitude) : 0;
+    const district = (villageStop.metadata as any)?.district;
+    const block = (villageStop.metadata as any)?.block;
+
+    // Hierarchy-Aware Candidate Retrieval (Same Block -> Same District -> Same State)
+    let candidateStops: any[] = [];
+
+    if (district && block) {
+      candidateStops = await this.sequelize.query(
+        `SELECT * FROM "bus_stops"
+         WHERE "metadata"->>'district' = :district AND "metadata"->>'block' = :block
+           AND CAST("metadata"->>'latitude' AS FLOAT) BETWEEN 21.5 AND 27.5
+         LIMIT 200;`,
+        { replacements: { district, block }, type: QueryTypes.SELECT }
+      );
+    }
+
+    if (candidateStops.length === 0 && district) {
+      candidateStops = await this.sequelize.query(
+        `SELECT * FROM "bus_stops"
+         WHERE "metadata"->>'district' = :district
+           AND CAST("metadata"->>'latitude' AS FLOAT) BETWEEN 21.5 AND 27.5
+         LIMIT 200;`,
+        { replacements: { district }, type: QueryTypes.SELECT }
+      );
+    }
+
+    if (candidateStops.length === 0) {
+      const replacements: any = {};
+      let stopFilterClause = '';
+
+      if (vLat !== 0 && vLon !== 0) {
+        stopFilterClause = `WHERE CAST("metadata"->>'latitude' AS FLOAT) BETWEEN :minLat AND :maxLat
+                               AND CAST("metadata"->>'longitude' AS FLOAT) BETWEEN :minLon AND :maxLon`;
+        replacements.minLat = vLat - 0.5;
+        replacements.maxLat = vLat + 0.5;
+        replacements.minLon = vLon - 0.5;
+        replacements.maxLon = vLon + 0.5;
+      } else {
+        stopFilterClause = `WHERE CAST("metadata"->>'latitude' AS FLOAT) BETWEEN 21.5 AND 27.5
+                               AND CAST("metadata"->>'longitude' AS FLOAT) BETWEEN 85.8 AND 89.9`;
+      }
+
+      candidateStops = await this.sequelize.query(
+        `SELECT * FROM "bus_stops" ${stopFilterClause} LIMIT 200;`,
+        { replacements, type: QueryTypes.SELECT }
+      );
+    }
+
+    // Exclude the village node itself if other candidates exist
+    const otherStops = candidateStops.filter((s) => s.id !== villageStop!.id);
+    const stopsToSearch = otherStops.length > 0 ? otherStops : candidateStops;
 
     const nearestRes = this.nearestStopEngine.findNearestStop(
       villageStop.name,
-      (villageStop.metadata as any)?.latitude || 22.8600,
-      (villageStop.metadata as any)?.longitude || 87.9700,
-      allStops.map((s) => ({
+      vLat,
+      vLon,
+      stopsToSearch.map((s) => ({
         externalId: s.id,
         providerCode: s.providerCode as any,
         nodeType: 'BUS_STOP',
         name: s.name,
         normalizedName: s.normalizedName,
         aliases: [],
-        latitude: (s.metadata as any)?.latitude || 22.8600,
-        longitude: (s.metadata as any)?.longitude || 87.9700,
+        latitude: parseFloat((s.metadata as any)?.latitude || '0'),
+        longitude: parseFloat((s.metadata as any)?.longitude || '0'),
         geography: { countryCode: 'IN' as const, stateCode: 'WB' },
         confidence: 0.90,
       }))
@@ -95,11 +141,11 @@ export class VillageService {
     );
 
     return {
-      villageId: id,
+      villageId: villageStop.id,
       villageName: villageStop.name,
-      gramPanchayat: (villageStop.metadata as any)?.gramPanchayat || 'Gram Panchayat',
-      block: (villageStop.metadata as any)?.block || 'Block',
-      district: (villageStop.metadata as any)?.district || 'Hooghly',
+      gramPanchayat: (villageStop.metadata as any)?.gramPanchayat || null,
+      block: block || null,
+      district: district || null,
       state: 'West Bengal',
       nearestStop: {
         id: nearestRes.nearestStop.externalId,

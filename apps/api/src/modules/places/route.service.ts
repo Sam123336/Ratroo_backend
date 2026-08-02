@@ -42,10 +42,6 @@ export class RouteService {
     }
 
     if (!route) {
-      route = await this.busRouteModel.findOne({ order: [['createdAt', 'DESC']] });
-    }
-
-    if (!route) {
       throw new NotFoundException(`Bus route with ID or query '${id}' not found in database.`);
     }
 
@@ -76,11 +72,11 @@ export class RouteService {
       id: route.id,
       externalId: route.externalId,
       providerCode: route.providerCode,
-      shortName: (route.metadata as any)?.shortName || 'BUS',
+      shortName: (route.metadata as any)?.shortName || null,
       longName: route.longName,
       operationalStatus: route.operationalStatus,
       datasetVersionId: route.datasetVersionId,
-      operator: (route.metadata as any)?.agency || (trips[0]?.vehicleName) || `${route.providerCode} Operator`,
+      operator: (route.metadata as any)?.agency || (trips[0]?.vehicleName) || null,
       fareINR: (route.metadata as any)?.fareINR || null,
       trips,
       intermediateStops: stops.map((s) => ({

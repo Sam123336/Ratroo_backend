@@ -59,6 +59,8 @@ import { VillageService } from '../places/village.service';
 import { VillageJourneyService } from '../planner/village-journey.service';
 import { PublicTransportGraphController, InternalProviderHealthDashboardController } from '../places/public-transport-graph.controller';
 
+import { InternalOpsDashboardController } from './health/internal-ops-dashboard.controller';
+
 @Module({
   imports: [SequelizeModule.forFeature(PROVIDER_INGESTION_SEQUELIZE_MODELS)],
   controllers: [
@@ -76,6 +78,7 @@ import { PublicTransportGraphController, InternalProviderHealthDashboardControll
     ProviderDashboardController,
     PublicTransportGraphController,
     InternalProviderHealthDashboardController,
+    InternalOpsDashboardController,
   ],
   providers: [
     ProviderRegistryService,
