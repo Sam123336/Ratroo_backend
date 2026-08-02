@@ -43,6 +43,11 @@ import { StopEnrichmentEngine } from './enrichment/stop-enrichment.engine';
 import { RouteEnrichmentEngine } from './enrichment/route-enrichment.engine';
 import { ConfidenceScoringEngine } from './enrichment/confidence-scoring.engine';
 import { PluggableGeocoderEngine } from './geocoding/pluggable-geocoder.engine';
+import { DataQualityEnrichmentEngine } from './enrichment/data-quality-enrichment.engine';
+import { StopDeduplicationService } from './enrichment/stop-deduplication.service';
+import { DataQualityGateService } from './enrichment/data-quality-gate.service';
+import { GeocodingAliasService } from './geocoding/geocoding-alias.service';
+import { CanonicalStopResolutionEngine } from './enrichment/canonical-stop-resolution.engine';
 
 // Health & Dashboard
 import { ProviderHealthService } from './health/provider-health.service';
@@ -111,6 +116,11 @@ import { InternalOpsDashboardController } from './health/internal-ops-dashboard.
     RouteEnrichmentEngine,
     ConfidenceScoringEngine,
     PluggableGeocoderEngine,
+    GeocodingAliasService,
+    DataQualityEnrichmentEngine,
+    StopDeduplicationService,
+    DataQualityGateService,
+    CanonicalStopResolutionEngine,
     ProviderHealthService,
     UniversalSearchService,
     AliasResolverService,
@@ -151,6 +161,10 @@ import { InternalOpsDashboardController } from './health/internal-ops-dashboard.
     RouteEnrichmentEngine,
     ConfidenceScoringEngine,
     PluggableGeocoderEngine,
+    GeocodingAliasService,
+    StopDeduplicationService,
+    DataQualityGateService,
+    CanonicalStopResolutionEngine,
     ProviderHealthService,
     UniversalSearchService,
     AliasResolverService,

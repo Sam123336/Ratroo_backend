@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ProviderHealthService } from './provider-health.service';
 import { CoverageDashboardService } from './coverage-dashboard.service';
+import { DataQualityGateService } from '../enrichment/data-quality-gate.service';
 import { Sequelize } from 'sequelize-typescript';
 import { QueryTypes } from 'sequelize';
 
@@ -9,6 +10,7 @@ export class InternalOpsDashboardController {
   constructor(
     private readonly providerHealthService: ProviderHealthService,
     private readonly coverageDashboardService: CoverageDashboardService,
+    private readonly dataQualityGateService: DataQualityGateService,
     private readonly sequelize: Sequelize
   ) {}
 
@@ -30,6 +32,11 @@ export class InternalOpsDashboardController {
       providersCount: qualityMetrics.length,
       qualityMetrics,
     };
+  }
+
+  @Get('quality-gates')
+  async getQualityGates() {
+    return this.dataQualityGateService.runAllGates();
   }
 
   @Get('provider/:providerCode')

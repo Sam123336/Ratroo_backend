@@ -30,6 +30,7 @@ export {
   StagedStopTimeModel,
   StagedTripModel,
 } from './staged-canonical.model';
+export { PlaceModel, PlaceAliasModel, PlaceMergeHistoryModel } from '../../../../places/infrastructure/sequelize/models/place.model';
 
 import { DatasetModel } from './dataset.model';
 import { DatasetVersionModel } from './dataset-version.model';
@@ -64,6 +65,8 @@ import {
   StagedTripModel,
 } from './staged-canonical.model';
 
+import { PlaceModel, PlaceAliasModel, PlaceMergeHistoryModel } from '../../../../places/infrastructure/sequelize/models/place.model';
+
 export const PROVIDER_INGESTION_SEQUELIZE_MODELS = [
   ProviderModel,
   BusRouteModel,
@@ -97,4 +100,7 @@ export const PROVIDER_INGESTION_SEQUELIZE_MODELS = [
   ProviderRouteMappingModel,
   ProviderTripMappingModel,
   CanonicalConflictModel,
+  PlaceModel,
+  PlaceAliasModel,
+  PlaceMergeHistoryModel,
 ];

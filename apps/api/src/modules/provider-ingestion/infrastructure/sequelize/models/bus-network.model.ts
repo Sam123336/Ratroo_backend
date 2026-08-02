@@ -59,6 +59,9 @@ export class BusStopModel extends Model {
   @Column({ type: DataType.UUID, allowNull: false })
   declare datasetVersionId: string;
 
+  @Column({ type: DataType.UUID, allowNull: true })
+  declare placeId?: string;
+
   @Column({ type: DataType.JSONB, allowNull: false, defaultValue: {} })
   declare metadata: Record<string, unknown>;
 

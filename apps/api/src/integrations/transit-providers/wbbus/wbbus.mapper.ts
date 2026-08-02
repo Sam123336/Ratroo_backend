@@ -53,8 +53,8 @@ export class WBBusMapper {
         stopTimes: validStops.map((stop, idx) => ({
           stopName: stop.stoppageName.trim(),
           stopSequence: idx + 1,
-          arrivalTime: (stop.upTime && stop.upTime !== '_ _ : _ _') ? stop.upTime : undefined,
-          departureTime: (stop.upTime && stop.upTime !== '_ _ : _ _') ? stop.upTime : undefined,
+          arrivalTime: (stop.upTime && !stop.upTime.includes('_ _')) ? stop.upTime : null,
+          departureTime: (stop.upTime && !stop.upTime.includes('_ _')) ? stop.upTime : null,
         })),
       });
 
@@ -80,8 +80,8 @@ export class WBBusMapper {
         stopTimes: reversedStops.map((stop, idx) => ({
           stopName: stop.stoppageName.trim(),
           stopSequence: idx + 1,
-          arrivalTime: (stop.downTime && stop.downTime !== '_ _ : _ _') ? stop.downTime : undefined,
-          departureTime: (stop.downTime && stop.downTime !== '_ _ : _ _') ? stop.downTime : undefined,
+          arrivalTime: (stop.downTime && !stop.downTime.includes('_ _')) ? stop.downTime : null,
+          departureTime: (stop.downTime && !stop.downTime.includes('_ _')) ? stop.downTime : null,
         })),
       });
     }
