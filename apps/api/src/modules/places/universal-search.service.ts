@@ -41,16 +41,23 @@ export class UniversalSearchService {
     const q = (query || '').toLowerCase().trim();
     if (!q) return [];
 
-    // Query bus_stops from PostgreSQL database
-    const stopsRes: Array<{
+    // Query places and place_aliases from PostgreSQL database
+    const placesRes: Array<{
       id: string;
       name: string;
-      providerCode: string;
-      metadata: any;
+      latitude: number;
+      longitude: number;
+      aliases: string[];
     }> = await this.sequelize.query(
-      `SELECT "id", "name", "providerCode", "metadata"
-       FROM "bus_stops"
-       WHERE LOWER("name") LIKE :query OR LOWER("normalizedName") LIKE :query
+      `SELECT p.id, p."canonicalName" as "name", p.latitude, p.longitude, 
+              COALESCE(ARRAY_AGG(DISTINCT pa.alias) FILTER (WHERE pa.alias IS NOT NULL), ARRAY[]::VARCHAR[]) as aliases
+       FROM "places" p
+       LEFT JOIN "place_aliases" pa ON p.id = pa."placeId"
+       WHERE LOWER(p."canonicalName") LIKE :query 
+          OR LOWER(p."normalizedName") LIKE :query 
+          OR LOWER(pa.alias) LIKE :query
+          OR LOWER(pa."normalizedAlias") LIKE :query
+       GROUP BY p.id, p."canonicalName", p.latitude, p.longitude
        LIMIT 10;`,
       {
         replacements: { query: `%${q}%` },
@@ -77,18 +84,16 @@ export class UniversalSearchService {
 
     const results: SearchResultItem[] = [];
 
-    stopsRes.forEach((stop) => {
+    placesRes.forEach((place) => {
       results.push({
-        id: stop.id,
+        id: place.id,
         category: 'BUS_STOP',
-        title: stop.name,
-        subtitle: `${stop.providerCode} Bus Stop`,
-        latitude: (stop.metadata as any)?.latitude,
-        longitude: (stop.metadata as any)?.longitude,
-        district: (stop.metadata as any)?.district,
-        block: (stop.metadata as any)?.block,
-        providerCode: stop.providerCode,
-        aliases: [],
+        title: place.name,
+        subtitle: `Canonical Place`,
+        latitude: place.latitude,
+        longitude: place.longitude,
+        providerCode: 'CANONICAL',
+        aliases: place.aliases || [],
         relevanceScore: 0.95,
       });
     });

@@ -1,6 +1,4 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/sequelize';
-import { BusStopModel, BusRouteModel, BusRouteStopModel } from '../provider-ingestion/infrastructure/sequelize/models/bus-network.model';
 import { Sequelize } from 'sequelize-typescript';
 import { QueryTypes } from 'sequelize';
 import { NearestStopEngine } from './nearest-stop.engine';
@@ -12,108 +10,89 @@ function isUuid(str: string): boolean {
 @Injectable()
 export class VillageService {
   constructor(
-    @InjectModel(BusStopModel)
-    private readonly busStopModel: typeof BusStopModel,
-    @InjectModel(BusRouteModel)
-    private readonly busRouteModel: typeof BusRouteModel,
     private readonly nearestStopEngine: NearestStopEngine,
     private readonly sequelize: Sequelize
   ) {}
 
   async getVillageCoverageById(id: string) {
     const cleanId = id.replace(/_/g, ' ').toLowerCase();
-    let villageStop: BusStopModel | null = null;
+    let villagePlace: any = null;
 
     if (isUuid(id)) {
-      villageStop = await this.busStopModel.findOne({ where: { id } });
+      const res = await this.sequelize.query(
+        `SELECT * FROM "places" WHERE id = :id LIMIT 1;`,
+        { replacements: { id }, type: QueryTypes.SELECT }
+      );
+      if (res.length > 0) villagePlace = res[0];
     }
 
-    if (!villageStop) {
+    if (!villagePlace) {
       const searchRes: any[] = await this.sequelize.query(
-        `SELECT * FROM "bus_stops" WHERE LOWER("name") LIKE :query OR LOWER("normalizedName") LIKE :query LIMIT 1;`,
+        `SELECT * FROM "places" WHERE LOWER("canonicalName") LIKE :query OR LOWER("normalizedName") LIKE :query LIMIT 1;`,
         {
           replacements: { query: `%${cleanId}%` },
           type: QueryTypes.SELECT,
         }
       );
       if (searchRes.length > 0) {
-        villageStop = searchRes[0];
+        villagePlace = searchRes[0];
       }
     }
 
-    if (!villageStop) {
-      throw new NotFoundException(`Village or stop '${id}' not found in database.`);
+    if (!villagePlace) {
+      throw new NotFoundException(`Village or place '${id}' not found in canonical graph.`);
     }
 
-    const vLat = (villageStop.metadata as any)?.latitude ? parseFloat((villageStop.metadata as any).latitude) : 0;
-    const vLon = (villageStop.metadata as any)?.longitude ? parseFloat((villageStop.metadata as any).longitude) : 0;
-    const district = (villageStop.metadata as any)?.district;
-    const block = (villageStop.metadata as any)?.block;
+    const vLat = villagePlace.latitude ? parseFloat(villagePlace.latitude) : 0;
+    const vLon = villagePlace.longitude ? parseFloat(villagePlace.longitude) : 0;
+    const district = villagePlace.districtId; // Just for fallback, assuming hierarchy exists
+    const block = villagePlace.blockId;
 
-    // Hierarchy-Aware Candidate Retrieval (Same Block -> Same District -> Same State)
     let candidateStops: any[] = [];
 
-    if (district && block) {
+    if (vLat !== 0 && vLon !== 0) {
       candidateStops = await this.sequelize.query(
-        `SELECT * FROM "bus_stops"
-         WHERE "metadata"->>'district' = :district AND "metadata"->>'block' = :block
-           AND CAST("metadata"->>'latitude' AS FLOAT) BETWEEN 21.5 AND 27.5
+        `SELECT * FROM "places" 
+         WHERE "latitude" BETWEEN :minLat AND :maxLat
+           AND "longitude" BETWEEN :minLon AND :maxLon
          LIMIT 200;`,
-        { replacements: { district, block }, type: QueryTypes.SELECT }
+        { 
+          replacements: { 
+            minLat: vLat - 0.5, maxLat: vLat + 0.5, 
+            minLon: vLon - 0.5, maxLon: vLon + 0.5 
+          }, 
+          type: QueryTypes.SELECT 
+        }
       );
-    }
-
-    if (candidateStops.length === 0 && district) {
+    } else {
       candidateStops = await this.sequelize.query(
-        `SELECT * FROM "bus_stops"
-         WHERE "metadata"->>'district' = :district
-           AND CAST("metadata"->>'latitude' AS FLOAT) BETWEEN 21.5 AND 27.5
+        `SELECT * FROM "places" 
+         WHERE "latitude" BETWEEN 21.5 AND 27.5
+           AND "longitude" BETWEEN 85.8 AND 89.9
          LIMIT 200;`,
-        { replacements: { district }, type: QueryTypes.SELECT }
-      );
-    }
-
-    if (candidateStops.length === 0) {
-      const replacements: any = {};
-      let stopFilterClause = '';
-
-      if (vLat !== 0 && vLon !== 0) {
-        stopFilterClause = `WHERE CAST("metadata"->>'latitude' AS FLOAT) BETWEEN :minLat AND :maxLat
-                               AND CAST("metadata"->>'longitude' AS FLOAT) BETWEEN :minLon AND :maxLon`;
-        replacements.minLat = vLat - 0.5;
-        replacements.maxLat = vLat + 0.5;
-        replacements.minLon = vLon - 0.5;
-        replacements.maxLon = vLon + 0.5;
-      } else {
-        stopFilterClause = `WHERE CAST("metadata"->>'latitude' AS FLOAT) BETWEEN 21.5 AND 27.5
-                               AND CAST("metadata"->>'longitude' AS FLOAT) BETWEEN 85.8 AND 89.9`;
-      }
-
-      candidateStops = await this.sequelize.query(
-        `SELECT * FROM "bus_stops" ${stopFilterClause} LIMIT 200;`,
-        { replacements, type: QueryTypes.SELECT }
+        { type: QueryTypes.SELECT }
       );
     }
 
     // Exclude the village node itself if other candidates exist
-    const otherStops = candidateStops.filter((s) => s.id !== villageStop!.id);
+    const otherStops = candidateStops.filter((s) => s.id !== villagePlace.id);
     const stopsToSearch = otherStops.length > 0 ? otherStops : candidateStops;
 
     const nearestRes = this.nearestStopEngine.findNearestStop(
-      villageStop.name,
+      villagePlace.canonicalName,
       vLat,
       vLon,
       stopsToSearch.map((s) => ({
-        externalId: s.id,
-        providerCode: s.providerCode as any,
-        nodeType: 'BUS_STOP',
-        name: s.name,
+        externalId: s.id, // This is now placeId
+        providerCode: 'CANONICAL',
+        nodeType: s.type || 'BUS_STOP',
+        name: s.canonicalName,
         normalizedName: s.normalizedName,
         aliases: [],
-        latitude: parseFloat((s.metadata as any)?.latitude || '0'),
-        longitude: parseFloat((s.metadata as any)?.longitude || '0'),
-        geography: { countryCode: 'IN' as const, stateCode: 'WB' },
-        confidence: 0.90,
+        latitude: parseFloat(s.latitude || '0'),
+        longitude: parseFloat(s.longitude || '0'),
+        geography: { countryCode: 'IN', stateCode: 'WB' } as any,
+        confidence: parseFloat(s.confidence || '0.90'),
       }))
     );
 
@@ -121,7 +100,8 @@ export class VillageService {
       `SELECT COUNT(DISTINCT r."id") as count
        FROM "bus_routes" r
        JOIN "bus_route_stops" rs ON rs."routeId" = r."id"
-       WHERE rs."stopId" = :stopId;`,
+       JOIN "bus_stops" s ON s."id" = rs."stopId"
+       WHERE s."placeId" = :stopId;`,
       {
         replacements: { stopId: nearestRes.nearestStop.externalId },
         type: QueryTypes.SELECT,
@@ -132,7 +112,8 @@ export class VillageService {
       `SELECT DISTINCT r."id" as "routeId", r."longName" as "name", r."providerCode"
        FROM "bus_routes" r
        JOIN "bus_route_stops" rs ON rs."routeId" = r."id"
-       WHERE rs."stopId" = :stopId
+       JOIN "bus_stops" s ON s."id" = rs."stopId"
+       WHERE s."placeId" = :stopId
        LIMIT 10;`,
       {
         replacements: { stopId: nearestRes.nearestStop.externalId },
@@ -141,9 +122,9 @@ export class VillageService {
     );
 
     return {
-      villageId: villageStop.id,
-      villageName: villageStop.name,
-      gramPanchayat: (villageStop.metadata as any)?.gramPanchayat || null,
+      villageId: villagePlace.id,
+      villageName: villagePlace.canonicalName,
+      gramPanchayat: villagePlace.gpId || null,
       block: block || null,
       district: district || null,
       state: 'West Bengal',

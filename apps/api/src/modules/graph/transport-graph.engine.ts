@@ -45,16 +45,16 @@ export class TransportGraphEngine {
     origin: LocationCoordinates,
     destination: LocationCoordinates
   ): Promise<MultimodalGraphPath> {
-    // 1. Fetch nearest canonical nodes for origin and destination from physical PostgreSQL bus_stops table
+    // 1. Fetch nearest canonical nodes for origin and destination from physical PostgreSQL places table
     const originStops: any[] = await this.sequelize.query(
-      `SELECT "id", "name", "providerCode", "metadata"
-       FROM "bus_stops"
-       WHERE "metadata"->>'latitude' IS NOT NULL
+      `SELECT "id", "canonicalName" as "name", "latitude", "longitude"
+       FROM "places"
+       WHERE "latitude" IS NOT NULL
        ORDER BY (
          6371 * acos(
-           cos(radians(:lat)) * cos(radians(CAST("metadata"->>'latitude' AS FLOAT))) *
-           cos(radians(CAST("metadata"->>'longitude' AS FLOAT)) - radians(:lon)) +
-           sin(radians(:lat)) * sin(radians(CAST("metadata"->>'latitude' AS FLOAT)))
+           cos(radians(:lat)) * cos(radians("latitude")) *
+           cos(radians("longitude") - radians(:lon)) +
+           sin(radians(:lat)) * sin(radians("latitude"))
          )
        ) ASC
        LIMIT 3;`,
@@ -62,22 +62,22 @@ export class TransportGraphEngine {
     );
 
     const destStops: any[] = await this.sequelize.query(
-      `SELECT "id", "name", "providerCode", "metadata"
-       FROM "bus_stops"
-       WHERE "metadata"->>'latitude' IS NOT NULL
+      `SELECT "id", "canonicalName" as "name", "latitude", "longitude"
+       FROM "places"
+       WHERE "latitude" IS NOT NULL
        ORDER BY (
          6371 * acos(
-           cos(radians(:lat)) * cos(radians(CAST("metadata"->>'latitude' AS FLOAT))) *
-           cos(radians(CAST("metadata"->>'longitude' AS FLOAT)) - radians(:lon)) +
-           sin(radians(:lat)) * sin(radians(CAST("metadata"->>'latitude' AS FLOAT)))
+           cos(radians(:lat)) * cos(radians("latitude")) *
+           cos(radians("longitude") - radians(:lon)) +
+           sin(radians(:lat)) * sin(radians("latitude"))
          )
        ) ASC
        LIMIT 3;`,
       { replacements: { lat: destination.latitude, lon: destination.longitude }, type: QueryTypes.SELECT }
     );
 
-    const originStop = originStops[0] || { id: 'node_orig_1', name: origin.label || 'Origin', providerCode: 'WBBUS' };
-    const destStop = destStops[0] || { id: 'node_dest_1', name: destination.label || 'Destination', providerCode: 'WBBUS' };
+    const originStop = originStops[0] || { id: 'node_orig_1', name: origin.label || 'Origin', providerCode: 'CANONICAL' };
+    const destStop = destStops[0] || { id: 'node_dest_1', name: destination.label || 'Destination', providerCode: 'CANONICAL' };
 
     // 2. Query connecting route patterns across modes in bus_routes
     const connectingRoutes: any[] = await this.sequelize.query(

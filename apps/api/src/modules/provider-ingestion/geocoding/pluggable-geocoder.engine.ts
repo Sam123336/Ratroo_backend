@@ -68,14 +68,14 @@ export class PluggableGeocoderEngine {
   private async lookupExistingDb(qName: string, rawName: string, query: GeocodeQuery): Promise<GeocodeResult | null> {
     // Fetch candidates from DB that have valid coordinates
     const candidates: any[] = await this.sequelize.query(
-      `SELECT "id", "name", "providerCode", "metadata"
-       FROM "bus_stops"
-       WHERE "metadata"->>'latitude' IS NOT NULL
-         AND CAST("metadata"->>'latitude' AS FLOAT) BETWEEN :latMin AND :latMax
-         AND CAST("metadata"->>'longitude' AS FLOAT) BETWEEN :lonMin AND :lonMax
+      `SELECT "id", "canonicalName" as "name", "latitude", "longitude", "districtId" as "district"
+       FROM "places"
+       WHERE "latitude" IS NOT NULL
+         AND "latitude" BETWEEN :latMin AND :latMax
+         AND "longitude" BETWEEN :lonMin AND :lonMax
          AND (
-           LOWER("name") = :rawLower OR
-           LOWER("name") LIKE :fuzzyQ OR
+           LOWER("canonicalName") = :rawLower OR
+           LOWER("canonicalName") LIKE :fuzzyQ OR
            LOWER("normalizedName") LIKE :fuzzyQ
          )
        LIMIT 50;`,
@@ -118,7 +118,7 @@ export class PluggableGeocoderEngine {
 
       // If we have a district, and the candidate has a district, they must match
       if (query.district) {
-        const cDist = (candidate.metadata as any)?.district?.toLowerCase();
+        const cDist = candidate.district?.toLowerCase();
         if (cDist && !cDist.includes(query.district.toLowerCase()) && !query.district.toLowerCase().includes(cDist)) {
           // District mismatch, penalize heavily
           confidence -= 0.3;
@@ -133,8 +133,8 @@ export class PluggableGeocoderEngine {
     }
 
     if (bestCandidate && bestConfidence >= 0.8) {
-      const lat = parseFloat((bestCandidate.metadata as any)?.latitude);
-      const lon = parseFloat((bestCandidate.metadata as any)?.longitude);
+      const lat = parseFloat(bestCandidate.latitude);
+      const lon = parseFloat(bestCandidate.longitude);
       
       return {
         latitude: lat,

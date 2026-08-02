@@ -46,9 +46,10 @@ export class RouteService {
     }
 
     const stops: Array<{ name: string; sequence: number; stopId: string }> = await this.sequelize.query(
-      `SELECT s."id" as "stopId", s."name", rs."sequence"
+      `SELECT p."id" as "stopId", p."canonicalName" as "name", rs."sequence"
        FROM "bus_route_stops" rs
        JOIN "bus_stops" s ON s."id" = rs."stopId"
+       JOIN "places" p ON p."id" = s."placeId"
        WHERE rs."routeId" = :routeId
        ORDER BY rs."sequence" ASC;`,
       {
@@ -80,7 +81,7 @@ export class RouteService {
       fareINR: (route.metadata as any)?.fareINR || null,
       trips,
       intermediateStops: stops.map((s) => ({
-        stopId: s.stopId,
+        stopId: s.stopId, // This is now placeId
         name: s.name,
         sequence: s.sequence,
       })),
@@ -89,11 +90,14 @@ export class RouteService {
 
   async findRoutesPassingStop(stopId: string) {
     if (!isUuid(stopId)) return [];
+    
+    // Assume stopId passed from UI is now a Place ID (canonical)
     const routes: Array<{ id: string; longName: string; providerCode: string }> = await this.sequelize.query(
       `SELECT DISTINCT r."id", r."longName", r."providerCode"
        FROM "bus_routes" r
        JOIN "bus_route_stops" rs ON rs."routeId" = r."id"
-       WHERE rs."stopId" = :stopId
+       JOIN "bus_stops" s ON s."id" = rs."stopId"
+       WHERE s."placeId" = :stopId
        LIMIT 10;`,
       {
         replacements: { stopId },

@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import { Op, Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
+import { StopEnrichmentEngine } from '../enrichment/stop-enrichment.engine';
+import { CanonicalStopResolutionEngine } from '../enrichment/canonical-stop-resolution.engine';
 import { ensureUuidV7 } from '../../../shared/ids/uuid-v7';
 import {
   BusRouteModel,
@@ -85,11 +87,12 @@ export class DatasetPromotionService {
     private readonly busTripModel: typeof BusTripModel,
     @InjectModel(BusStopTimeModel)
     private readonly busStopTimeModel: typeof BusStopTimeModel,
+    private readonly canonicalStopResolutionEngine: CanonicalStopResolutionEngine,
   ) {}
 
   async promoteDatasetVersion(id: string) {
     try {
-      return await this.sequelize.transaction(async transaction => {
+      const result = await this.sequelize.transaction(async transaction => {
         const version = await this.datasetVersionModel.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
 
         if (!version) {
@@ -134,6 +137,20 @@ export class DatasetPromotionService {
           promoted: true,
         };
       });
+
+      // Post-transaction Canonical Resolution Hook
+      if (result.promoted) {
+        const newUnlinkedStops = await this.busStopModel.findAll({
+          where: { datasetVersionId: id, placeId: null }
+        });
+
+        if (newUnlinkedStops.length > 0) {
+          console.log(`Resolving ${newUnlinkedStops.length} new stops for dataset version ${id}...`);
+          await this.canonicalStopResolutionEngine.bulkResolveStops(newUnlinkedStops);
+        }
+      }
+
+      return result;
     } catch (error) {
       if (error instanceof BadRequestException) {
         await this.datasetVersionModel.update({ status: 'REJECTED' }, { where: { id, status: 'STAGED' } });

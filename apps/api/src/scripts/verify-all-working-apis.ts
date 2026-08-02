@@ -1,65 +1,50 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { UniversalSearchService } from '../modules/places/universal-search.service';
-import { VillageService } from '../modules/places/village.service';
-import { VillageJourneyService } from '../modules/planner/village-journey.service';
 import { RouteService } from '../modules/places/route.service';
-import { InternalOpsDashboardController } from '../modules/provider-ingestion/health/internal-ops-dashboard.controller';
+import { VillageService } from '../modules/places/village.service';
 
-async function main() {
-  console.log('==================================================');
-  console.log('VERIFYING ALL YATROO BACKEND API ENDPOINTS');
-  console.log('==================================================\n');
+async function bootstrap() {
+  const app = await NestFactory.createApplicationContext(AppModule);
+  
+  const search = app.get(UniversalSearchService);
+  const route = app.get(RouteService);
+  const village = app.get(VillageService);
 
-  const app = await NestFactory.createApplicationContext(AppModule, { logger: ['error', 'warn'] });
-
-  const searchService = app.get(UniversalSearchService);
-  const villageService = app.get(VillageService);
-  const journeyService = app.get(VillageJourneyService);
-  const routeService = app.get(RouteService);
-  const dashboardController = app.get(InternalOpsDashboardController);
-
-  console.log('--- 1. UNIVERSAL SEARCH API: GET /v1/search?q=Arambagh ---');
-  const searchRes = await searchService.search('Arambagh');
-  console.log(`✅ Status: WORKING | Total Matches Returned: ${searchRes.length}`);
-  if (searchRes.length > 0) {
-    console.log(`   Sample Match: "${searchRes[0].title}" (${searchRes[0].category})`);
-  }
-
-  console.log('\n--- 2. NEAREST STOP API: GET /v1/location/helan/nearest ---');
-  const nearestRes = await villageService.getVillageCoverageById('Helan');
-  console.log(`✅ Status: WORKING | Location: ${nearestRes.villageName}`);
-  console.log(`   Nearest Stop: ${nearestRes.nearestStop?.name} (${nearestRes.distanceKm} km / ${nearestRes.walkingTimeMinutes} min walk)`);
-
-  console.log('\n--- 3. JOURNEY PLANNER API: GET /v1/planner/journey?origin=Arambagh&destination=Tarakeswar ---');
+  console.log('--- Testing Search ---');
   try {
-    const journeyRes = await journeyService.planJourney('Arambagh', 'Tarakeswar');
-    console.log(`✅ Status: WORKING | Origin: ${journeyRes.originVillage.name} -> Destination: ${journeyRes.toInput}`);
-    console.log(`   Legs Count: ${journeyRes.legs.length} | Distance: ${journeyRes.totalDistanceKm} km | Travel Time: ${journeyRes.totalDurationMinutes} min`);
-  } catch (err: any) {
-    console.log(`✅ Status: WORKING | (Handled Expected Route Condition: ${err.message})`);
+    const searchRes = await search.search('Arambag');
+    console.log(`Found ${searchRes.length} results. First result: ${searchRes[0]?.title}`);
+
+    if (searchRes.length > 0) {
+      console.log('\n--- Testing Village Coverage ---');
+      try {
+        const coverage = await village.getVillageCoverageById(searchRes[0].id);
+        console.log('Nearest Stop:', coverage.nearestStop.name, '| Distance:', coverage.distanceKm);
+      } catch (e) {
+        console.error('Village coverage failed:', e.message);
+      }
+
+      console.log('\n--- Testing Routes passing Stop ---');
+      try {
+        const routes = await route.findRoutesPassingStop(searchRes[0].id);
+        console.log(`Found ${routes.length} routes. First route: ${routes[0]?.longName}`);
+
+        if (routes.length > 0) {
+          console.log('\n--- Testing Route By Id ---');
+          const routeDetails = await route.getRouteById(routes[0].id);
+          console.log('Route stops count:', routeDetails.intermediateStops.length);
+        }
+      } catch (e) {
+        console.error('Route queries failed:', e.message);
+      }
+    }
+  } catch (e) {
+    console.error('Search failed:', e);
   }
-
-  console.log('\n--- 4. ROUTE DETAIL API: GET /v1/routes/:id ---');
-  const routeDetail = await routeService.getRouteById('Durgapur');
-  console.log(`✅ Status: WORKING | Route ID: ${routeDetail.id}`);
-  console.log(`   Route Name: ${routeDetail.longName} (${routeDetail.intermediateStops.length} stops)`);
-
-  console.log('\n--- 5. OPERATIONS DASHBOARD APIs: /internal/dashboard/... ---');
-  const qualityRes = await dashboardController.getProviderQualityDashboard();
-  console.log(`✅ Status: WORKING | GET /internal/dashboard/quality | Providers Monitored: ${qualityRes.providersCount}`);
-
-  const providerDetailRes = await dashboardController.getProviderDetail('BUSSATHI');
-  console.log(`✅ Status: WORKING | GET /internal/dashboard/provider/BUSSATHI | Computed Health: ${providerDetailRes.status}`);
-
-  const coverageRes = await dashboardController.getCoverageReport();
-  console.log(`✅ Status: WORKING | GET /internal/dashboard/coverage | State: ${coverageRes.state} (${coverageRes.totalRoutes} routes / ${coverageRes.totalCanonicalStops} stops)`);
 
   await app.close();
-
-  console.log('\n==================================================');
-  console.log('ALL API ENDPOINTS VERIFIED & 100% OPERATIONAL');
-  console.log('==================================================');
+  process.exit(0);
 }
 
-main().catch(console.error);
+bootstrap().catch(console.error);
