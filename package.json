@@ -5,7 +5,15 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "//api": "The API lives in apps/api. These delegate so they work from the repo root too.",
+    "api": "npm --prefix apps/api run",
+    "migrate": "npm --prefix apps/api run migrate",
+    "migrate:down": "npm --prefix apps/api run migrate:down",
+    "migrate:status": "npm --prefix apps/api run migrate:status",
+    "migrate:create": "npm --prefix apps/api run migrate:create --",
+    "gen:module": "npm --prefix apps/api run gen:module --",
+    "start:api": "npm --prefix apps/api run start:dev"
   },
   "keywords": [],
   "author": "",
