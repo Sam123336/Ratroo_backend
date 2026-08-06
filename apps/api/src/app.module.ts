@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { postgresConnection } from './database/connection-options';
+import { AuthModule } from './modules/auth/auth.module';
+import { AUTH_SEQUELIZE_MODELS } from './modules/auth/entities';
+import { FAVORITES_SEQUELIZE_MODELS } from './modules/favorites/entities/favorite.model';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { SequelizeModuleOptions } from '@nestjs/sequelize/dist/interfaces/sequelize-options.interface';
 import { HealthController } from './modules/health/health.controller';
@@ -16,6 +19,8 @@ function databaseConfig(config: ConfigService): SequelizeModuleOptions {
   const models = [
     ...TRANSIT_SEQUELIZE_MODELS,
     ...PROVIDER_INGESTION_SEQUELIZE_MODELS,
+    ...AUTH_SEQUELIZE_MODELS,
+    ...FAVORITES_SEQUELIZE_MODELS,
   ];
   const databaseUrl = config.get<string>('DATABASE_URL');
   // Once you have migrations, schema changes belong in them — leave this false.
@@ -55,6 +60,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     // Powers @Cron in ProviderSyncSchedulerService. No-op on serverless (Vercel)
     // where nothing stays resident — the Vercel Cron entry covers that case.
     ScheduleModule.forRoot(),
+    AuthModule,
     SequelizeModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
