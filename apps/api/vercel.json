@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/index.ts": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ],
+  "crons": [
+    {
+      "//": "Vercel cron is UTC. 20:30 UTC = 02:00 IST the next day.",
+      "path": "/internal/cron/provider-sync",
+      "schedule": "30 20 * * *"
+    }
+  ]
+}

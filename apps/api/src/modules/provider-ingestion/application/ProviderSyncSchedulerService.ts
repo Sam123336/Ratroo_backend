@@ -1,14 +1,35 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { BmrclStaticImportService } from './BmrclStaticImportService';
 import { BmtcGtfsImportService } from './BmtcGtfsImportService';
 import { GovernmentBusStaticImportService } from './GovernmentBusStaticImportService';
 import { KolkataMetroStaticImportService } from './KolkataMetroStaticImportService';
 import { WBBusImportService } from './WBBusImportService';
 
+/** Every provider the scheduler knows how to import, in run order. */
+export const SYNCABLE_PROVIDER_CODES = [
+  'WBBUS',
+  'WBTC',
+  'NBSTC',
+  'SBSTC',
+  'KOLKATA_TRAM',
+  'KOLKATA_METRO',
+  'WB_FERRY',
+  'EASTERN_RAILWAY_SUBURBAN',
+  'BMRCL',
+  'BMTC',
+] as const;
+
+/** Aliases the same importer answers to. */
+const PROVIDER_ALIASES: Record<string, string> = {
+  WTBC: 'WBTC',
+  BMRCL_METRO: 'BMRCL',
+  BMTC_OFFICIAL: 'BMTC',
+};
+
 @Injectable()
-export class ProviderSyncSchedulerService implements OnModuleInit, OnModuleDestroy {
+export class ProviderSyncSchedulerService {
   private readonly logger = new Logger(ProviderSyncSchedulerService.name);
-  private timer?: ReturnType<typeof setInterval>;
   private running = false;
 
   constructor(
@@ -19,100 +40,107 @@ export class ProviderSyncSchedulerService implements OnModuleInit, OnModuleDestr
     private readonly kolkataMetroImport: KolkataMetroStaticImportService,
   ) {}
 
-  onModuleInit() {
+  /**
+   * Nightly full sync. Runs in-process, so it only fires on a long-lived host
+   * (docker / Railway / Fly). On Vercel there is no persistent process — use the
+   * Vercel Cron entry that POSTs /internal/cron/provider-sync instead.
+   *
+   * Gate with PROVIDER_SYNC_CRON_ENABLED=true; override the time with
+   * PROVIDER_SYNC_CRON (standard 5-field cron).
+   */
+  @Cron(process.env.PROVIDER_SYNC_CRON || '0 2 * * *', {
+    name: 'provider-nightly-sync',
+    timeZone: process.env.PROVIDER_SYNC_TIMEZONE || 'Asia/Kolkata',
+  })
+  async nightlySync() {
     if (!this.enabled()) {
       return;
     }
 
-    const intervalMinutes = this.positiveInt('PROVIDER_SYNC_INTERVAL_MINUTES', 360);
-    const intervalMs = intervalMinutes * 60 * 1000;
-    const providers = this.providerCodes();
-
-    this.logger.log(`Provider sync scheduler enabled for ${providers.join(', ')} every ${intervalMinutes} minutes.`);
-
-    if (this.envFlag('PROVIDER_SYNC_RUN_ON_START')) {
-      void this.runOnce('startup');
-    }
-
-    this.timer = setInterval(() => {
-      void this.runOnce('interval');
-    }, intervalMs);
+    await this.runOnce('nightly-cron');
   }
 
-  onModuleDestroy() {
-    if (this.timer) {
-      clearInterval(this.timer);
-    }
-  }
-
+  /** Runs every configured provider once. Re-entrant calls are dropped, not queued. */
   async runOnce(trigger: string) {
     if (this.running) {
-      this.logger.warn(`Skipping provider sync ${trigger}; a previous scheduler run is still active.`);
-      return;
+      this.logger.warn(`Skipping provider sync ${trigger}; a previous run is still active.`);
+      return { skipped: true, reason: 'already-running' };
     }
 
     this.running = true;
+    const startedAt = Date.now();
+    const results: Array<{ providerCode: string; status: 'ok' | 'failed' | 'unsupported' }> = [];
 
     try {
       for (const providerCode of this.providerCodes()) {
-        await this.syncProvider(providerCode, trigger);
+        results.push(await this.syncProvider(providerCode, trigger));
       }
     } finally {
       this.running = false;
     }
+
+    const failed = results.filter(result => result.status === 'failed').length;
+    this.logger.log(
+      `Provider sync (${trigger}) finished in ${Math.round((Date.now() - startedAt) / 1000)}s — ` +
+        `${results.length - failed}/${results.length} succeeded.`,
+    );
+
+    return { trigger, durationMs: Date.now() - startedAt, results };
   }
 
   private async syncProvider(providerCode: string, trigger: string) {
-    const code = providerCode.toUpperCase();
+    const code = this.canonicalCode(providerCode);
     this.logger.log(`Starting ${code} provider sync from ${trigger}.`);
 
     try {
-      if (code === 'WBBUS') {
-        await this.wbbusImport.importAllBuses({
-          maxPages: this.positiveInt('WBBUS_SYNC_MAX_PAGES', 200),
-          maxItems: this.positiveInt('WBBUS_SYNC_MAX_ITEMS', 1280),
-        });
-        this.logger.log(`Finished ${code} provider sync.`);
-        return;
+      const importer = this.importerFor(code);
+
+      if (!importer) {
+        this.logger.warn(`Provider ${code} has no importer yet; skipped.`);
+        return { providerCode: code, status: 'unsupported' as const };
       }
 
-      if (code === 'BMRCL' || code === 'BMRCL_METRO') {
-        await this.bmrclImport.importStaticNetwork();
-        this.logger.log(`Finished ${code} provider sync.`);
-        return;
-      }
-
-      if (code === 'KOLKATA_METRO') {
-        await this.kolkataMetroImport.importStaticNetwork();
-        this.logger.log(`Finished ${code} provider sync.`);
-        return;
-      }
-
-      if (code === 'BMTC' || code === 'BMTC_OFFICIAL') {
-        await this.bmtcImport.importGtfsFeed();
-        this.logger.log(`Finished ${code} provider sync.`);
-        return;
-      }
-
-      if (
-        code === 'WBTC' ||
-        code === 'WTBC' ||
-        code === 'NBSTC' ||
-        code === 'SBSTC' ||
-        code === 'KOLKATA_TRAM' ||
-        code === 'WB_FERRY' ||
-        code === 'EASTERN_RAILWAY_SUBURBAN'
-      ) {
-        await this.governmentBusImport.importRoutes(code === 'WTBC' ? 'WBTC' : code);
-        this.logger.log(`Finished ${code} provider sync.`);
-        return;
-      }
-
-      this.logger.warn(`Provider ${code} has no real importer yet; scheduler skipped it.`);
+      await importer();
+      this.logger.log(`Finished ${code} provider sync.`);
+      return { providerCode: code, status: 'ok' as const };
     } catch (error) {
       const message = error instanceof Error ? error.stack || error.message : String(error);
       this.logger.error(`Provider ${code} sync failed.`, message);
+      // One bad provider must not abort the rest of the night's run.
+      return { providerCode: code, status: 'failed' as const };
     }
+  }
+
+  /** Single source of truth for code -> importer. Was an if-chain duplicated here and in the internal controller. */
+  private importerFor(code: string): (() => Promise<unknown>) | undefined {
+    switch (code) {
+      case 'WBBUS':
+        return () =>
+          this.wbbusImport.importAllBuses({
+            maxPages: this.positiveInt('WBBUS_SYNC_MAX_PAGES', 200),
+            maxItems: this.positiveInt('WBBUS_SYNC_MAX_ITEMS', 1280),
+          });
+      case 'BMRCL':
+        return () => this.bmrclImport.importStaticNetwork();
+      case 'KOLKATA_METRO':
+        return () => this.kolkataMetroImport.importStaticNetwork();
+      case 'BMTC':
+        return () => this.bmtcImport.importGtfsFeed();
+      case 'WBTC':
+      case 'NBSTC':
+      case 'SBSTC':
+      case 'KOLKATA_TRAM':
+      case 'WB_FERRY':
+      case 'EASTERN_RAILWAY_SUBURBAN':
+        return () => this.governmentBusImport.importRoutes(code);
+      default:
+        return undefined;
+    }
+  }
+
+  private canonicalCode(providerCode: string) {
+    const upper = providerCode.trim().toUpperCase();
+    return PROVIDER_ALIASES[upper] || upper;
   }
 
   private enabled() {
@@ -123,11 +151,14 @@ export class ProviderSyncSchedulerService implements OnModuleInit, OnModuleDestr
     return ['true', '1', 'yes', 'on'].includes(String(process.env[name] || '').toLowerCase());
   }
 
-  private providerCodes() {
-    return String(process.env.PROVIDER_SYNC_PROVIDERS || 'WBBUS')
+  /** Defaults to every syncable provider; narrow it with PROVIDER_SYNC_PROVIDERS. */
+  providerCodes(): string[] {
+    const configured = String(process.env.PROVIDER_SYNC_PROVIDERS || '')
       .split(',')
       .map(code => code.trim().toUpperCase())
       .filter(Boolean);
+
+    return configured.length ? configured : [...SYNCABLE_PROVIDER_CODES];
   }
 
   private positiveInt(name: string, fallback: number) {

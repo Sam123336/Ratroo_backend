@@ -1,22 +1,21 @@
 # Provider Sync Cron
 
-## Why There Is No Migration Yet
+## Migrations
 
-The current database tables were created by Sequelize auto-sync:
+The *existing* tables were created by Sequelize auto-sync (`DB_SYNCHRONIZE=true`),
+so they have no migration history. Every table from here on goes through a
+migration instead:
 
-```env
-DB_SYNCHRONIZE=true
+```bash
+cd apps/api
+npm run migrate:create -- add-ferry-terminals
+npm run migrate
 ```
 
-That means Sequelize inspected the registered models and created/updated tables directly when the NestJS API started. DBeaver can see the tables, but there is no migration history because no migration files were executed.
-
-For production, move away from auto-sync:
-
-```env
-DB_SYNCHRONIZE=false
-```
-
-Then create explicit Sequelize migrations for every table. Until that migration system exists, treat auto-sync as a development bootstrap tool only.
+`DB_SYNCHRONIZE` already defaults to `false` when `DATABASE_URL` is set. See
+[deployment.md](./deployment.md) for the full migration workflow, and note the
+outstanding task to backfill an initial schema migration for the auto-synced
+tables.
 
 ## Why Only Some Data Appeared
 
@@ -48,16 +47,27 @@ select count(*) from trips;
 
 The API includes a controlled provider sync scheduler. It is disabled by default.
 
-Enable it only when you want the API process to keep syncing providers:
+It runs **nightly at 02:00 IST** (`@Cron` in `ProviderSyncSchedulerService`) and
+covers every syncable provider unless you narrow the list.
 
 ```env
 PROVIDER_SYNC_CRON_ENABLED=true
-PROVIDER_SYNC_RUN_ON_START=true
-PROVIDER_SYNC_INTERVAL_MINUTES=360
-PROVIDER_SYNC_PROVIDERS=WBBUS,WBTC,NBSTC,SBSTC,KOLKATA_METRO,WB_FERRY,KOLKATA_TRAM,EASTERN_RAILWAY_SUBURBAN
+# Optional overrides:
+PROVIDER_SYNC_CRON=0 2 * * *          # standard 5-field cron
+PROVIDER_SYNC_TIMEZONE=Asia/Kolkata
+PROVIDER_SYNC_PROVIDERS=WBBUS,WBTC    # defaults to every provider below
 WBBUS_SYNC_MAX_ITEMS=1280
 WBBUS_SYNC_MAX_PAGES=200
 ```
+
+One failing provider is logged and skipped; the rest of the night's run
+continues. A run that is still going when the next one fires is dropped, not
+queued.
+
+> The in-process `@Cron` only fires on a host that stays resident (docker,
+> Railway, Fly). **On Vercel there is no resident process** — use the Vercel Cron
+> entry in `apps/api/vercel.json`, which hits `/internal/cron/provider-sync`.
+> See [deployment.md](./deployment.md).
 
 Then start the API:
 

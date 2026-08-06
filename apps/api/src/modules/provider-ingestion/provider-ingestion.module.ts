@@ -12,6 +12,8 @@ import { MetroNetworkQueryService } from './application/MetroNetworkQueryService
 import { ProviderIngestionQueryService } from './application/ProviderIngestionQueryService';
 import { ProviderRegistryService } from './application/ProviderRegistryService';
 import { ProviderSyncSchedulerService } from './application/ProviderSyncSchedulerService';
+import { ProviderSyncQueueService } from './application/ProviderSyncQueueService';
+import { ProviderSyncCronController } from './presentation/controllers/provider-sync-cron.controller';
 import { WBBusImportService } from './application/WBBusImportService';
 import { GenericProviderIngestionService } from './application/GenericProviderIngestionService';
 
@@ -74,6 +76,7 @@ import { InternalOpsDashboardController } from './health/internal-ops-dashboard.
     InternalProviderIngestionController,
     ProviderDashboardController,
     InternalOpsDashboardController,
+    ProviderSyncCronController,
   ],
   providers: [
     ProviderRegistryService,
@@ -88,6 +91,7 @@ import { InternalOpsDashboardController } from './health/internal-ops-dashboard.
     WBBusImportService,
     GovernmentBusStaticImportService,
     ProviderSyncSchedulerService,
+    ProviderSyncQueueService,
     DatasetPromotionService,
     GenericProviderIngestionService,
     RawSourceRecordRepository,
@@ -115,6 +119,7 @@ import { InternalOpsDashboardController } from './health/internal-ops-dashboard.
     CoverageDashboardService,
   ],
   exports: [
+    ProviderSyncSchedulerService,
     ProviderRegistryService,
     BengaluruJourneyPlannerService,
     BengaluruMobilityQueryService,

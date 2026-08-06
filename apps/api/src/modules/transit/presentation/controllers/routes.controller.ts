@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { FindRoutesUseCase } from '../../application/use-cases/FindRoutesUseCase';
 import { FindRouteDetailsUseCase } from '../../application/use-cases/FindRouteDetailsUseCase';
 
@@ -19,9 +19,10 @@ export class RoutesController {
     return { data: result.items, total: result.total, page: +page, limit: +limit };
   }
 
+  // ParseUUIDPipe: a non-UUID id used to reach Postgres and 500 on a cast error.
+  // Returned bare — TransformResponseInterceptor supplies the { success, data } envelope.
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    const route = await this.findRouteDetails.execute(id);
-    return { data: route };
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.findRouteDetails.execute(id);
   }
 }
