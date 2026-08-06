@@ -37,7 +37,7 @@ export class TransformResponseInterceptor<T> implements NestInterceptor<T, ApiRe
       providers: partialMeta.providers || ['CANONICAL'],
       providerProvenance: partialMeta.providerProvenance || [],
       deepLinks: partialMeta.deepLinks || [],
-      dataSources: partialMeta.dataSources || ['Yatroo Graph'],
+      dataSources: partialMeta.dataSources || ['Ratroo Graph'],
       quality: partialMeta.quality || {
         overallConfidence: partialMeta.confidenceScore ?? 1.0,
       },

@@ -1,9 +1,167 @@
-import { Injectable, NotImplementedException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { QueryTypes } from 'sequelize';
+import { Sequelize } from 'sequelize-typescript';
 import { ApiResult } from '../../core/dto/api-response.dto';
+
+export interface PlaceDetailDto {
+  id: string;
+  title: string;
+  category: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  confidence: number | null;
+  verified: boolean;
+  aliases: string[];
+  /** Services calling at any stop mapped to this place. */
+  routes: Array<{ id: string; name: string; providerCode: string }>;
+  stopCount: number;
+  /** Operators behind this data. `website` is null until the providers table is seeded. */
+  sources: Array<{ providerCode: string; name: string; website: string | null }>;
+}
 
 @Injectable()
 export class PlacesService {
-  async getMockData(): Promise<ApiResult<any>> {
-    throw new NotImplementedException('Places APIs are under development.');
+  constructor(private readonly sequelize: Sequelize) {}
+
+  /**
+   * Detail for one canonical place, including the services that call there.
+   *
+   * Previously a 501 stub, which is why the app's Place Details screen could
+   * only ever say "No details found".
+   */
+  async findById(requestedId: string): Promise<ApiResult<PlaceDetailDto>> {
+    // The app reaches this screen from two lists with different id spaces:
+    // /v1/search returns place ids, /v1/stops/nearby returns stop ids. Accept
+    // either rather than making the client know which it is holding.
+    const id = await this.resolvePlaceId(requestedId);
+
+    const [place] = await this.sequelize.query<{
+      id: string; canonicalName: string; type: string | null;
+      latitude: string | null; longitude: string | null;
+      confidence: string | null; verified: boolean;
+    }>(
+      `SELECT id, "canonicalName", type, latitude, longitude, confidence, verified
+       FROM places WHERE id = :id LIMIT 1`,
+      { replacements: { id }, type: QueryTypes.SELECT },
+    );
+
+    if (!place) {
+      // A stop with no canonical place still has a name and coordinates, which
+      // beats showing the user nothing.
+      const fromStop = await this.stopAsPlace(requestedId);
+      if (fromStop) return fromStop;
+
+      throw new NotFoundException(`No place or stop found with id ${requestedId}.`);
+    }
+
+    const aliasRows = await this.sequelize.query<{ alias: string }>(
+      `SELECT alias FROM place_aliases WHERE "placeId" = :id ORDER BY alias LIMIT 20`,
+      { replacements: { id }, type: QueryTypes.SELECT },
+    );
+
+    // Stops carry the placeId, and routes reach places through their stops.
+    const routes = await this.sequelize.query<{ id: string; name: string; providerCode: string }>(
+      `SELECT DISTINCT r.id, r."longName" AS name, r."providerCode"
+       FROM bus_stops s
+       JOIN bus_route_stops rs ON rs."stopId" = s.id
+       JOIN bus_routes r ON r.id = rs."routeId"
+       WHERE s."placeId" = :id
+       ORDER BY r."longName"
+       LIMIT 50`,
+      { replacements: { id }, type: QueryTypes.SELECT },
+    );
+
+    const [{ count }] = await this.sequelize.query<{ count: number }>(
+      `SELECT count(*)::int AS count FROM bus_stops WHERE "placeId" = :id`,
+      { replacements: { id }, type: QueryTypes.SELECT },
+    );
+
+    const confidence = place.confidence === null ? null : Number(place.confidence);
+
+    return new ApiResult(
+      {
+        id: place.id,
+        title: place.canonicalName,
+        category: place.type,
+        latitude: place.latitude === null ? null : Number(place.latitude),
+        longitude: place.longitude === null ? null : Number(place.longitude),
+        confidence,
+        verified: Boolean(place.verified),
+        aliases: aliasRows.map(row => row.alias),
+        routes,
+        stopCount: count,
+        sources: await this.sourcesFor(routes.map(r => r.providerCode)),
+      },
+      { confidenceScore: confidence ?? 1, providers: [...new Set(routes.map(r => r.providerCode))] },
+    );
+  }
+
+
+  /** Provider name/website from the registry table. Returns null websites when unseeded. */
+  private async sourcesFor(providerCodes: string[]) {
+    const codes = [...new Set(providerCodes)].filter(Boolean);
+    if (!codes.length) return [];
+
+    const rows = await this.sequelize.query<{ code: string; name: string; website: string | null }>(
+      `SELECT code, name, website FROM providers WHERE code IN (:codes)`,
+      { replacements: { codes }, type: QueryTypes.SELECT },
+    );
+
+    const byCode = new Map(rows.map(r => [r.code, r]));
+    return codes.map(code => ({
+      providerCode: code,
+      name: byCode.get(code)?.name ?? code,
+      website: byCode.get(code)?.website ?? null,
+    }));
+  }
+
+  /** Returns the id unchanged if it is a place, or the stop's placeId if it is a stop. */
+  private async resolvePlaceId(id: string): Promise<string> {
+    const [stop] = await this.sequelize.query<{ placeId: string | null }>(
+      `SELECT "placeId" FROM bus_stops WHERE id = :id LIMIT 1`,
+      { replacements: { id }, type: QueryTypes.SELECT },
+    );
+
+    return stop?.placeId ?? id;
+  }
+
+  /** Fallback detail built from a stop when it maps to no canonical place. */
+  private async stopAsPlace(id: string): Promise<ApiResult<PlaceDetailDto> | null> {
+    const [stop] = await this.sequelize.query<{
+      id: string; name: string; providerCode: string; lat: string | null; lng: string | null;
+    }>(
+      `SELECT id, name, "providerCode",
+              metadata->>'latitude' AS lat, metadata->>'longitude' AS lng
+       FROM bus_stops WHERE id = :id LIMIT 1`,
+      { replacements: { id }, type: QueryTypes.SELECT },
+    );
+
+    if (!stop) return null;
+
+    const routes = await this.sequelize.query<{ id: string; name: string; providerCode: string }>(
+      `SELECT DISTINCT r.id, r."longName" AS name, r."providerCode"
+       FROM bus_route_stops rs
+       JOIN bus_routes r ON r.id = rs."routeId"
+       WHERE rs."stopId" = :id
+       ORDER BY r."longName" LIMIT 50`,
+      { replacements: { id }, type: QueryTypes.SELECT },
+    );
+
+    return new ApiResult(
+      {
+        id: stop.id,
+        title: stop.name,
+        category: 'STOP',
+        latitude: stop.lat === null ? null : Number(stop.lat),
+        longitude: stop.lng === null ? null : Number(stop.lng),
+        confidence: null,
+        verified: false,
+        aliases: [],
+        routes,
+        stopCount: 1,
+        sources: await this.sourcesFor([stop.providerCode]),
+      },
+      { providers: [stop.providerCode] },
+    );
   }
 }

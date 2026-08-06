@@ -62,6 +62,7 @@ export class JourneyService {
       durationMinutes: leg.durationMinutes,
       providerCode: leg.providerCode,
       serviceName: leg.routeName,
+      routeId: leg.routeId,
       instructions:
         leg.mode === 'WALK'
           ? `Walk ${leg.distanceKm.toFixed(1)} km to ${leg.toStop.name}`
@@ -90,7 +91,7 @@ export class JourneyService {
       confidenceScore: confidence,
       providerCount: journey.providers.length,
       providers: journey.providers,
-      dataSources: ['Yatroo Graph Planner'],
+      dataSources: ['Ratroo Graph Planner'],
     });
   }
 }

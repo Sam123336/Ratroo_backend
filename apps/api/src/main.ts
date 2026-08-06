@@ -20,7 +20,7 @@ async function bootstrap() {
   app.enableCors();
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Yatroo Mobility API')
+    .setTitle('Ratroo Mobility API')
     .setDescription('Provider ingestion, coverage, and canonical mobility APIs.')
     .setVersion('1.0')
     .addApiKey(

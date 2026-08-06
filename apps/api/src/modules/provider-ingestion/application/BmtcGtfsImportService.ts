@@ -205,7 +205,7 @@ export class BmtcGtfsImportService {
   private async fetchFeed(url: string) {
     const response = await fetch(url, {
       headers: {
-        'user-agent': 'YatrooBot/0.1 BMTC GTFS importer',
+        'user-agent': 'RatrooBot/0.1 BMTC GTFS importer',
       },
     });
 

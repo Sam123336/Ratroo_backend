@@ -29,7 +29,7 @@ export class NominatimFetcher extends JsonFetcher {
     const fetchedAt = new Date().toISOString();
     try {
       const res = await fetch(url, {
-        headers: { 'User-Agent': 'YatrooBot/1.0 (WestBengalTransport)' },
+        headers: { 'User-Agent': 'RatrooBot/1.0 (WestBengalTransport)' },
       });
       const body = await res.json();
       return {

@@ -244,7 +244,7 @@ export class BmrclStaticImportService {
   private async fetchPage(url: string, sourceKind: string): Promise<FetchedBmrclPage> {
     const response = await fetch(url, {
       headers: {
-        'user-agent': 'YatrooBot/0.1 BMRCL static-network importer',
+        'user-agent': 'RatrooBot/0.1 BMRCL static-network importer',
       },
     });
     const body = await response.text();

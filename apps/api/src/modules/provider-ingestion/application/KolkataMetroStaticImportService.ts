@@ -213,7 +213,7 @@ export class KolkataMetroStaticImportService {
   private async fetchPage(url: string, sourceKind: string): Promise<FetchedKolkataMetroPage> {
     const response = await fetch(url, {
       headers: {
-        'user-agent': 'YatrooBot/0.1 Kolkata Metro static-network importer',
+        'user-agent': 'RatrooBot/0.1 Kolkata Metro static-network importer',
       },
     });
     const body = await response.text();

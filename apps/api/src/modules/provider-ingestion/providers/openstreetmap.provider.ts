@@ -30,7 +30,7 @@ export class OpenStreetMapFetcher extends JsonFetcher {
     try {
       const overpassUrl = 'https://overpass-api.de/api/interpreter?data=[out:json];node[highway=bus_stop](22.5,88.3,22.6,88.4);out%2020;';
       const res = await fetch(overpassUrl, {
-        headers: { 'User-Agent': 'YatrooBot/1.0 (WestBengalTransport)' },
+        headers: { 'User-Agent': 'RatrooBot/1.0 (WestBengalTransport)' },
       });
       const body = await res.json();
       return {

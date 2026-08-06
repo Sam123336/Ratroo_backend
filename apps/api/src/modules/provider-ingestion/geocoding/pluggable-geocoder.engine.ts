@@ -169,7 +169,7 @@ export class PluggableGeocoderEngine {
 
       const searchUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchTerm)}&format=json&addressdetails=1&limit=3`;
       const res = await fetch(searchUrl, {
-        headers: { 'User-Agent': 'YatrooBot/2.0 (WestBengalTransport)' },
+        headers: { 'User-Agent': 'RatrooBot/2.0 (WestBengalTransport)' },
       });
       const data = await res.json();
       

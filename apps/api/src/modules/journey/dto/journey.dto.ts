@@ -19,6 +19,8 @@ export interface JourneyLegDto {
   durationMinutes: number;
   providerCode?: string;
   serviceName?: string;
+  /** Set on transit legs so the client can open Route Details for that leg. */
+  routeId?: string;
   instructions: string;
 }
 

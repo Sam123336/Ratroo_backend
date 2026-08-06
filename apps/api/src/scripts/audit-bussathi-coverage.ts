@@ -57,7 +57,7 @@ async function main() {
 
     try {
       const res = await fetch(currentUrl, {
-        headers: { 'User-Agent': 'YatrooBot/1.0 (WestBengalTransportGraph)' },
+        headers: { 'User-Agent': 'RatrooBot/1.0 (WestBengalTransportGraph)' },
       });
 
       if (!res.ok) {

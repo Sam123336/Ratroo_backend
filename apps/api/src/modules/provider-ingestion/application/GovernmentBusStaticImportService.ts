@@ -241,7 +241,7 @@ export class GovernmentBusStaticImportService {
       const response = await fetch(url, {
         signal: controller.signal,
         headers: {
-          'user-agent': `YatrooBot/0.1 ${providerCode} route importer`,
+          'user-agent': `RatrooBot/0.1 ${providerCode} route importer`,
         },
       });
       const body = await response.text();

@@ -25,6 +25,7 @@ interface NearbyStopRow {
   createdAt?: Date;
   updatedAt?: Date;
   distanceMeters: string;
+  category: string;
 }
 
 @Injectable()
@@ -66,6 +67,18 @@ export class SequelizeStopRepository implements StopRepository {
           "externalId",
           "createdAt",
           "updatedAt",
+          -- Mode of the services calling here, so clients can filter by
+          -- bus/metro/ferry. Clients had no category field at all and could
+          -- not tell a bus stop from a metro station.
+          COALESCE(
+            (SELECT r."routeType" || '_STOP'
+             FROM trips t
+             JOIN routes r ON r.id = t."routeId"
+             JOIN stop_times st ON st."tripId" = t.id
+             WHERE st."stopId" = stops.id
+             LIMIT 1),
+            'BUS_STOP'
+          ) AS category,
           ST_Distance(location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) AS "distanceMeters"
         FROM stops
         WHERE location IS NOT NULL
@@ -91,6 +104,7 @@ export class SequelizeStopRepository implements StopRepository {
     return rows.map(row => ({
       stop: this.toDomain(row),
       distanceMeters: Number(row.distanceMeters),
+      category: row.category,
     }));
   }
 

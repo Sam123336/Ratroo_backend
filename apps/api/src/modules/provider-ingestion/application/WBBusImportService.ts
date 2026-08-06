@@ -397,7 +397,7 @@ export class WBBusImportService {
       try {
         const response = await fetch(url, {
           headers: {
-            'user-agent': 'YatrooBot/0.1 WBBus importer',
+            'user-agent': 'RatrooBot/0.1 WBBus importer',
           },
         });
         const body = await response.text();

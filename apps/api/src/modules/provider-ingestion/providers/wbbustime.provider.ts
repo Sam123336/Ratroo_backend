@@ -30,7 +30,7 @@ export class WBBustimeFetcher extends HtmlFetcher {
     const fetchedAt = new Date().toISOString();
     try {
       const res = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Yatroo/1.0' },
+        headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ratroo/1.0' },
       });
       const body = await res.text();
       return {

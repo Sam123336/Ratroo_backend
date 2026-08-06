@@ -4,6 +4,8 @@ import { Coordinates } from '../value-objects/Coordinates';
 export interface NearbyStopResult {
   stop: Stop;
   distanceMeters: number;
+  /** Mode of services calling here, e.g. BUS_STOP. */
+  category?: string;
 }
 
 export interface TransitQueryScope {
