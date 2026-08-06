@@ -13,6 +13,7 @@ import { ProviderIngestionQueryService } from './application/ProviderIngestionQu
 import { ProviderRegistryService } from './application/ProviderRegistryService';
 import { ProviderSyncSchedulerService } from './application/ProviderSyncSchedulerService';
 import { ProviderSyncQueueService } from './application/ProviderSyncQueueService';
+import { CanonicalTransitProjectionService } from './application/CanonicalTransitProjectionService';
 import { ProviderSyncCronController } from './presentation/controllers/provider-sync-cron.controller';
 import { WBBusImportService } from './application/WBBusImportService';
 import { GenericProviderIngestionService } from './application/GenericProviderIngestionService';
@@ -92,6 +93,7 @@ import { InternalOpsDashboardController } from './health/internal-ops-dashboard.
     GovernmentBusStaticImportService,
     ProviderSyncSchedulerService,
     ProviderSyncQueueService,
+    CanonicalTransitProjectionService,
     DatasetPromotionService,
     GenericProviderIngestionService,
     RawSourceRecordRepository,
@@ -120,6 +122,7 @@ import { InternalOpsDashboardController } from './health/internal-ops-dashboard.
   ],
   exports: [
     ProviderSyncSchedulerService,
+    CanonicalTransitProjectionService,
     ProviderRegistryService,
     BengaluruJourneyPlannerService,
     BengaluruMobilityQueryService,

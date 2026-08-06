@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { CanonicalTransitProjectionService } from './CanonicalTransitProjectionService';
 import { BmrclStaticImportService } from './BmrclStaticImportService';
 import { BmtcGtfsImportService } from './BmtcGtfsImportService';
 import { GovernmentBusStaticImportService } from './GovernmentBusStaticImportService';
@@ -38,6 +39,7 @@ export class ProviderSyncSchedulerService {
     private readonly wbbusImport: WBBusImportService,
     private readonly governmentBusImport: GovernmentBusStaticImportService,
     private readonly kolkataMetroImport: KolkataMetroStaticImportService,
+    private readonly projection: CanonicalTransitProjectionService,
   ) {}
 
   /**
@@ -74,6 +76,14 @@ export class ProviderSyncSchedulerService {
     try {
       for (const providerCode of this.providerCodes()) {
         results.push(await this.syncProvider(providerCode, trigger));
+      }
+      // Importing without publishing leaves the app reading empty tables, which
+      // is exactly how /v1/routes stayed at 0 rows while bus_routes had 1,239.
+      try {
+        await this.projection.project();
+      } catch (error) {
+        const message = error instanceof Error ? error.stack || error.message : String(error);
+        this.logger.error('Canonical transit projection failed after sync.', message);
       }
     } finally {
       this.running = false;

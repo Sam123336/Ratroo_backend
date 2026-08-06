@@ -1,4 +1,5 @@
 import { All, Controller, Headers, Logger, UnauthorizedException } from '@nestjs/common';
+import { CanonicalTransitProjectionService } from '../../application/CanonicalTransitProjectionService';
 import { ProviderSyncQueueService } from '../../application/ProviderSyncQueueService';
 import { ProviderSyncSchedulerService } from '../../application/ProviderSyncSchedulerService';
 
@@ -16,7 +17,22 @@ export class ProviderSyncCronController {
   constructor(
     private readonly queue: ProviderSyncQueueService,
     private readonly scheduler: ProviderSyncSchedulerService,
+    private readonly projection: CanonicalTransitProjectionService,
   ) {}
+
+  /**
+   * Republish the promoted provider network into the canonical transit tables
+   * that /v1/routes, /v1/stops/nearby and /v1/journey read. Idempotent — safe to
+   * re-run any time ingestion has added data.
+   */
+  @All('project-transit')
+  async projectTransit(
+    @Headers('authorization') authorization?: string,
+    @Headers('x-internal-api-key') internalApiKey?: string,
+  ) {
+    this.assertAuthorized(authorization, internalApiKey);
+    return this.projection.project();
+  }
 
   // @All, not @Get + @Post: Nest keeps only the last stacked method decorator.
   // Vercel Cron invokes with GET; POST is for manual/curl triggering.
