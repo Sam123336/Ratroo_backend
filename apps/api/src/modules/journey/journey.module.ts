@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { JourneyController } from './controllers/journey.controller';
-import { JourneyService } from './services/journey.service';
 import { JourneyRepository } from './repositories/journey.repository';
+import { JourneyPlannerService } from './services/journey-planner.service';
+import { JourneyService } from './services/journey.service';
+import { TransitGraphService } from './services/transit-graph.service';
 
 @Module({
   controllers: [JourneyController],
-  providers: [JourneyService, JourneyRepository],
-  exports: [JourneyService],
+  providers: [JourneyService, JourneyRepository, JourneyPlannerService, TransitGraphService],
+  exports: [JourneyService, TransitGraphService],
 })
 export class JourneyModule {}

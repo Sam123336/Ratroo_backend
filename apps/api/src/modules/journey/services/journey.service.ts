@@ -1,18 +1,18 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { JourneyRepository } from '../repositories/journey.repository';
-import { JourneyResponseDto, JourneyLegDto } from '../dto/journey.dto';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ApiResult } from '../../core/dto/api-response.dto';
-import { ProvenanceService } from '../../core/services/provenance.service';
+import { JourneyLegDto, JourneyResponseDto } from '../dto/journey.dto';
+import { JourneyRepository } from '../repositories/journey.repository';
+import { JourneyPlannerService } from './journey-planner.service';
 
 @Injectable()
 export class JourneyService {
   constructor(
     private readonly journeyRepository: JourneyRepository,
-    private readonly provenanceService: ProvenanceService
+    private readonly planner: JourneyPlannerService,
   ) {}
 
   async planJourney(from: string, to: string): Promise<ApiResult<JourneyResponseDto>> {
-    if (!from || !from.trim() || !to || !to.trim()) {
+    if (!from?.trim() || !to?.trim()) {
       throw new BadRequestException('Both from and to location parameters are required.');
     }
 
@@ -26,39 +26,51 @@ export class JourneyService {
       throw new NotFoundException(`Destination location '${to}' was not found in the canonical graph database.`);
     }
 
-    const matchingRoutes = await this.journeyRepository.findConnectingRoutes(originPlace.id, destPlace.id);
+    // Number(null) is 0, so a place with no coordinates would otherwise look
+    // like a valid point in the Gulf of Guinea and quietly return nonsense.
+    const coordinate = (value: unknown) => {
+      if (value === null || value === undefined || value === '') return NaN;
+      return Number(value);
+    };
 
-    const mainRoute = matchingRoutes[0];
-    if (!mainRoute) {
-      throw new NotFoundException(`No connecting transport route found between '${originPlace.canonicalName}' and '${destPlace.canonicalName}' in database.`);
+    const originLat = coordinate(originPlace.latitude);
+    const originLng = coordinate(originPlace.longitude);
+    const destLat = coordinate(destPlace.latitude);
+    const destLng = coordinate(destPlace.longitude);
+
+    // Missing coordinates are not fatal — the planner falls back to matching
+    // stops by name, which is how places like Kolkata (no lat/lng in `places`)
+    // still resolve.
+    const journey = await this.planner.plan(
+      { lat: originLat, lng: originLng, placeId: originPlace.id, name: originPlace.canonicalName || from },
+      { lat: destLat, lng: destLng, placeId: destPlace.id, name: destPlace.canonicalName || to },
+    );
+
+    if (!journey) {
+      throw new NotFoundException(
+        `No route found between '${originPlace.canonicalName}' and '${destPlace.canonicalName}', ` +
+          `even allowing up to two transfers.`,
+      );
     }
 
-    const legs: JourneyLegDto[] = [
-      {
-        legNumber: 1,
-        mode: 'WALK',
-        fromName: `${originPlace.canonicalName} Area`,
-        toName: originPlace.canonicalName,
-        distanceKm: '0.5 km',
-        durationMinutes: 6,
-        instructions: `Walk to ${originPlace.canonicalName}`,
-      },
-      {
-        legNumber: 2,
-        mode: 'BUS',
-        fromName: originPlace.canonicalName,
-        toName: destPlace.canonicalName,
-        distanceKm: '12.0 km',
-        durationMinutes: 30,
-        providerCode: mainRoute.providerCode,
-        serviceName: mainRoute.longName,
-        instructions: `Board ${mainRoute.longName} from ${originPlace.canonicalName} to ${destPlace.canonicalName}`,
-      },
-    ];
+    const legs: JourneyLegDto[] = journey.legs.map((leg, index) => ({
+      legNumber: index + 1,
+      mode: leg.mode,
+      fromName: leg.fromStop?.name ?? originPlace.canonicalName,
+      toName: leg.toStop.name,
+      distanceKm: `${leg.distanceKm.toFixed(1)} km`,
+      durationMinutes: leg.durationMinutes,
+      providerCode: leg.providerCode,
+      serviceName: leg.routeName,
+      instructions:
+        leg.mode === 'WALK'
+          ? `Walk ${leg.distanceKm.toFixed(1)} km to ${leg.toStop.name}`
+          : `Board ${leg.routeName} at ${leg.fromStop?.name} and ride to ${leg.toStop.name}`,
+    }));
 
-    const totalDuration = legs.reduce((s, leg) => s + leg.durationMinutes, 0);
+    const confidence = originPlace.confidence ? parseFloat(originPlace.confidence) : 0.9;
 
-    const dto = {
+    const dto: JourneyResponseDto = {
       fromInput: from,
       toInput: to,
       originVillage: {
@@ -67,17 +79,17 @@ export class JourneyService {
         state: 'West Bengal',
       },
       legs,
-      totalDistanceKm: '12.5 km',
-      totalDurationMinutes: totalDuration,
-      transfersCount: 0,
-      confidenceScore: originPlace.confidence ? parseFloat(originPlace.confidence) : 0.98,
-      confidenceBadges: [mainRoute.providerCode, 'Canonical Graph ✓'],
+      totalDistanceKm: `${journey.totalDistanceKm.toFixed(1)} km`,
+      totalDurationMinutes: journey.totalDurationMinutes,
+      transfersCount: journey.transfersCount,
+      confidenceScore: confidence,
+      confidenceBadges: [...journey.providers, 'Canonical Graph ✓'],
     };
 
     return new ApiResult(dto, {
-      confidenceScore: originPlace.confidence ? parseFloat(originPlace.confidence) : 0.98,
-      providerCount: 1,
-      providers: [mainRoute.providerCode],
+      confidenceScore: confidence,
+      providerCount: journey.providers.length,
+      providers: journey.providers,
       dataSources: ['Yatroo Graph Planner'],
     });
   }

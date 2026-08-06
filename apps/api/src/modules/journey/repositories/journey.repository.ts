@@ -6,11 +6,27 @@ import { QueryTypes } from 'sequelize';
 export class JourneyRepository {
   constructor(private readonly sequelize: Sequelize) {}
 
+  /**
+   * `LIKE '%name%' LIMIT 1` returned whichever row Postgres happened to reach
+   * first — for "Kolkata" that was a place with no coordinates, so every
+   * journey from it was unplannable. Rank instead: usable coordinates first,
+   * then exact match, then prefix, then shortest name.
+   */
   async findPlaceByName(name: string): Promise<any | null> {
     const cleanName = name.trim().toLowerCase();
     const search: any[] = await this.sequelize.query(
-      `SELECT * FROM "places" WHERE LOWER("canonicalName") LIKE :q OR LOWER("normalizedName") LIKE :q LIMIT 1;`,
-      { replacements: { q: `%${cleanName}%` }, type: QueryTypes.SELECT }
+      `SELECT * FROM "places"
+       WHERE LOWER("canonicalName") LIKE :like OR LOWER("normalizedName") LIKE :like
+       ORDER BY
+         ("latitude" IS NOT NULL AND "longitude" IS NOT NULL) DESC,
+         (LOWER("canonicalName") = :exact) DESC,
+         (LOWER("canonicalName") LIKE :prefix) DESC,
+         LENGTH("canonicalName") ASC
+       LIMIT 1;`,
+      {
+        replacements: { like: `%${cleanName}%`, exact: cleanName, prefix: `${cleanName}%` },
+        type: QueryTypes.SELECT,
+      }
     );
     if (search.length > 0) return search[0];
     return null;
