@@ -72,6 +72,33 @@ docs/
 
 ## Feature Module Contract
 
+Each feature owns one folder under `apps/api/src/modules/`. Everything that
+feature needs lives in it — no global `controllers/`, `services/`, or `models/`
+buckets to hunt through.
+
+There are two tiers. Start at Tier 1; move to Tier 2 only when a module earns it.
+
+### Tier 1 — standard feature module (the default)
+
+`npm run gen:module -- <name>` emits exactly this.
+
+```text
+modules/<feature>/
+  <feature>.module.ts   # NestJS wiring. The only file other modules import.
+  controllers/          # HTTP in, DTO out. No business logic.
+  services/             # Business logic. No SQL, no req/res.
+  repositories/         # Data access. The only place models are queried.
+  entities/             # Sequelize models = table shape.
+  dto/                  # Request/response contracts.
+```
+
+`modules/villages/` is the reference implementation.
+
+### Tier 2 — layered module
+
+For modules too big for Tier 1. Today only `provider-ingestion` qualifies
+(~60 services, many external adapters).
+
 ```text
 modules/<feature>/
   domain/              # Pure business model, no NestJS or Sequelize
@@ -81,7 +108,65 @@ modules/<feature>/
   <feature>.module.ts  # NestJS wiring
 ```
 
-Developers should be able to add or change a feature without hunting across global `controllers/`, `services/`, `models/`, and `repositories/` folders.
+**Graduate to Tier 2 when** a module passes ~10 services, or integrates several
+external systems that each need their own adapter. Not before — premature
+layering costs more than it saves.
+
+### Layer rules
+
+The folder names matter less than these. They are what keep the codebase
+predictable.
+
+| Layer | May do | Must never do |
+|---|---|---|
+| Controller | Parse/validate input, call one service, return its result | Contain business logic; touch a model or repository |
+| Service | Business rules, orchestration, call repositories and other services | Write SQL; touch `req`/`res`; import another module's repository |
+| Repository | All queries for its own models | Contain business rules |
+| Entity | Describe a table | Contain logic |
+
+Dependency direction is one-way: controller → service → repository → entity.
+Nothing points back up.
+
+**Cross-feature access goes through the exported service**, never the other
+feature's repository or model. If `journey` needs stops, it imports
+`TransitModule` and injects the stop service — it does not import `StopModel`.
+Import the *module*, inject the *service*.
+
+### Where things go
+
+| You want to… | Put it in |
+|---|---|
+| Add an endpoint | `controllers/` + a service method |
+| Change a rule ("confidence below 0.5 is unreliable") | `services/` |
+| Change a query | `repositories/` |
+| Add a column | `entities/` **and** a migration |
+| Change what the API returns | `dto/` — a contract change; clients depend on it |
+
+### Adding a feature
+
+```bash
+cd apps/api
+npm run gen:module -- ferry-terminal        # add --no-entity if there is no table
+```
+
+Then register the module in `src/app.module.ts` (the generator prints both
+lines) and, if it has an entity, create the table with a migration — see
+[deployment.md](./deployment.md).
+
+The generator deliberately does not edit `app.module.ts`; it prints what to
+paste, so a generator bug can never scramble the root module.
+
+### Response envelope
+
+`TransformResponseInterceptor` wraps every response:
+
+```json
+{ "success": true, "data": "<payload>", "metadata": { "confidenceScore": 1.0 } }
+```
+
+Return `new ApiResult(data, metadata)` to control the metadata, or return the
+payload bare and the interceptor fills in defaults. **Do not wrap the payload
+yourself** — returning `{ data: x }` reaches the client as `data.data.x`.
 
 ## Migration Rule
 

@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
+import { postgresConnection } from './database/connection-options';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { SequelizeModuleOptions } from '@nestjs/sequelize/dist/interfaces/sequelize-options.interface';
 import { HealthController } from './modules/health/health.controller';
@@ -16,46 +18,16 @@ function databaseConfig(config: ConfigService): SequelizeModuleOptions {
     ...PROVIDER_INGESTION_SEQUELIZE_MODELS,
   ];
   const databaseUrl = config.get<string>('DATABASE_URL');
+  // Once you have migrations, schema changes belong in them — leave this false.
   const synchronize = config.get<string>('DB_SYNCHRONIZE', databaseUrl ? 'false' : 'true') === 'true';
-  const common = {
+
+  return {
     dialect: 'postgres' as const,
     models,
     autoLoadModels: true,
     synchronize,
     logging: config.get<string>('DB_LOGGING', 'false') === 'true' ? console.log : false,
-  };
-  const sslEnabled = config.get<string>('DB_SSL', databaseUrl ? 'true' : 'false') === 'true';
-  const dialectOptions = sslEnabled
-    ? {
-        ssl: {
-          require: true,
-          rejectUnauthorized: false,
-        },
-      }
-    : undefined;
-
-  if (databaseUrl) {
-    const parsedUrl = new URL(databaseUrl);
-
-    return {
-      ...common,
-      host: parsedUrl.hostname,
-      port: Number(parsedUrl.port || 5432),
-      username: decodeURIComponent(parsedUrl.username),
-      password: decodeURIComponent(parsedUrl.password),
-      database: decodeURIComponent(parsedUrl.pathname.replace(/^\//, '')),
-      dialectOptions,
-    };
-  }
-
-  return {
-    ...common,
-    host: config.get<string>('DB_HOST', 'localhost'),
-    port: Number(config.get<string>('DB_PORT', '5432')),
-    username: config.get<string>('DB_USER', 'transit_admin'),
-    password: config.get<string>('DB_PASSWORD', 'transit_password'),
-    database: config.get<string>('DB_NAME', 'transit_db'),
-    dialectOptions,
+    ...postgresConnection((key, fallback) => config.get<string>(key, fallback as string)),
   };
 }
 
@@ -80,6 +52,9 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],
     }),
+    // Powers @Cron in ProviderSyncSchedulerService. No-op on serverless (Vercel)
+    // where nothing stays resident — the Vercel Cron entry covers that case.
+    ScheduleModule.forRoot(),
     SequelizeModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
