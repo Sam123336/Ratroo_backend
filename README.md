@@ -1,4 +1,4 @@
-# Yatroo Backend
+# Ratroo Backend
 
 Backend for Yatroo, an India-first public transport platform for ingesting provider data, normalizing it into a canonical transit model, and serving route, stop, and future journey-planning APIs.
 
