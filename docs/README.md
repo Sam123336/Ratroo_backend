@@ -1,4 +1,4 @@
-# Yatroo Project Bible
+# Ratroo Project Bible
 
 This directory is the living engineering handbook for Yatroo: a national, multi-modal public transport platform for India.
 
