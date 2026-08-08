@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { postgresConnection } from './database/connection-options';
 import { AuthModule } from './modules/auth/auth.module';
+import { AssistantModule } from './modules/assistant/assistant.module';
 import { AUTH_SEQUELIZE_MODELS } from './modules/auth/entities';
 import { FAVORITES_SEQUELIZE_MODELS } from './modules/favorites/entities/favorite.model';
 import { SequelizeModule } from '@nestjs/sequelize';
@@ -61,6 +62,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     // where nothing stays resident — the Vercel Cron entry covers that case.
     ScheduleModule.forRoot(),
     AuthModule,
+    AssistantModule,
     SequelizeModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
