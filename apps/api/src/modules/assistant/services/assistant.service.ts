@@ -1,5 +1,7 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import Groq from 'groq-sdk';
+import { QueryTypes } from 'sequelize';
+import { Sequelize } from 'sequelize-typescript';
 import { JourneyService } from '../../journey/services/journey.service';
 import { SearchService } from '../../search/services/search.service';
 
@@ -34,8 +36,26 @@ RULES — these are absolute:
 - Do not translate place names. Pass what the user typed to search_places and
   use the canonical name the tool returns.
 
-Reply in the language the user wrote in. Be brief and concrete: which service to
-board, where to change, roughly how long it takes.`;
+Reply in the language the user wrote in.
+
+STARTING POINT:
+- If a "USER LOCATION" note appears below, that is where the user is standing.
+  When they name only one place, treat it as the DESTINATION and plan from
+  their nearest stop. Do not ask them where they are starting from.
+- Only ask for a starting point when there is no USER LOCATION note.
+
+FORMAT — the reply is shown in a chat bubble, not a web page:
+- Plain text only. Never write ** or ## or markdown tables; asterisks appear
+  literally on screen.
+- Open with one line: 🚏 <origin> → <destination>, then total time and fare.
+- Then one line per leg, in order, each starting with an emoji:
+  🚌 bus, 🚶 walk, 🚇 metro, 🚉 train, ⛴️ ferry, 🚊 tram.
+- Put the boarding time first when a time is known, then the service name, then
+  where to get off, then the duration. Example:
+  🚌 06:30  WBBus service 112 — Kolkata to Arambagh (3 h 11 m)
+- Say "time not published" rather than leaving a leg without a time.
+- Close with one short line for caveats (estimated fares, interpolated times).
+- No more than 10 lines total.`;
 
 const TOOLS: Groq.Chat.Completions.ChatCompletionTool[] = [
   {
@@ -95,6 +115,7 @@ export class AssistantService {
   constructor(
     private readonly journeys: JourneyService,
     private readonly search: SearchService,
+    private readonly sequelize: Sequelize,
   ) {}
 
   private groq(): Groq {
@@ -105,11 +126,20 @@ export class AssistantService {
     return this.client;
   }
 
-  async ask(question: string): Promise<{ answer: string; toolCalls: string[]; model: string }> {
+  async ask(
+    question: string,
+    origin?: { lat: number; lng: number },
+  ): Promise<{ answer: string; toolCalls: string[]; model: string }> {
     const messages: Groq.Chat.Completions.ChatCompletionMessageParam[] = [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: question },
     ];
+
+    // Resolved to real stop names here rather than handed to the model as raw
+    // coordinates, which it cannot match against the network.
+    const here = origin ? await this.describeLocation(origin.lat, origin.lng) : null;
+    if (here) messages.push({ role: 'system', content: here });
+
+    messages.push({ role: 'user', content: question });
     const toolCalls: string[] = [];
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -123,7 +153,12 @@ export class AssistantService {
         messages,
         ...(isLastRound ? {} : { tools: TOOLS }),
         temperature: 0.3, // Low: this is extraction and explanation, not creativity.
-        max_completion_tokens: 1024,
+        // Qwen thinks by default and was spending its whole budget in <think>,
+        // which truncated the answer away entirely and left the user watching
+        // "Checking routes..." for a minute. Nothing here needs deliberation:
+        // the routes come from tools, and the model only has to format them.
+        reasoning_effort: 'none',
+        max_completion_tokens: 900,
       });
 
       const choice = completion.choices[0]?.message;
@@ -132,7 +167,20 @@ export class AssistantService {
       messages.push(choice as Groq.Chat.Completions.ChatCompletionMessageParam);
 
       if (!choice.tool_calls?.length) {
-        return { answer: stripReasoning(choice.content ?? ''), toolCalls, model: this.model };
+        const answer = stripReasoning(choice.content ?? '');
+
+        // Blank means the reply was all reasoning and got cut off before the
+        // answer. Returning it rendered an empty chat bubble with a "from live
+        // route data" badge under it. Ask again instead: the tool results are
+        // still in the conversation, so the retry is cheap.
+        if (answer) return { answer, toolCalls, model: this.model };
+
+        this.logger.warn('Assistant returned only reasoning; retrying for an answer.');
+        messages.push({
+          role: 'user',
+          content: 'Give the answer only, in the format above. Do not think out loud.',
+        });
+        continue;
       }
 
       for (const call of choice.tool_calls) {
@@ -162,6 +210,37 @@ export class AssistantService {
       toolCalls,
       model: this.model,
     };
+  }
+
+  /**
+   * The stops within walking reach of the user, named so plan_journey can use
+   * them. Returns null when nothing is close enough to board — better that the
+   * model asks for a starting point than plans from a stop 40 km away.
+   */
+  private async describeLocation(lat: number, lng: number): Promise<string | null> {
+    const rows = await this.sequelize.query<{ name: string; metres: number }>(
+      `SELECT name,
+              ST_DistanceSphere(
+                ST_MakePoint(longitude, latitude),
+                ST_MakePoint(:lng, :lat)
+              ) AS metres
+       FROM stops
+       WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+       ORDER BY metres
+       LIMIT 5`,
+      { replacements: { lat, lng }, type: QueryTypes.SELECT },
+    );
+
+    const walkable = rows.filter(row => Number(row.metres) <= 3000);
+    if (!walkable.length) return null;
+
+    const list = walkable
+      .map(row => `${row.name} (${Math.round(Number(row.metres))} m away)`)
+      .join(', ');
+
+    return `USER LOCATION: the user is at ${lat.toFixed(5)}, ${lng.toFixed(5)}. ` +
+      `Their nearest stops are: ${list}. Use the closest one as the origin when ` +
+      `the user names only a destination.`;
   }
 
   private async runTool(name: string, args: Record<string, string>) {

@@ -3,6 +3,17 @@ import { QueryTypes } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { ApiResult } from '../../core/dto/api-response.dto';
 
+export interface Departure {
+  /** "HH:MM", local time. */
+  time: string;
+  routeId: string;
+  routeName: string;
+  /** Last stop on the trip — where this service is headed. */
+  headsign: string | null;
+  /** SCRAPED (from the operator) or INTERPOLATED (estimated between known times). */
+  timeSource: string | null;
+}
+
 export interface PlaceDetailDto {
   id: string;
   title: string;
@@ -14,6 +25,12 @@ export interface PlaceDetailDto {
   aliases: string[];
   /** Services calling at any stop mapped to this place. */
   routes: Array<{ id: string; name: string; providerCode: string }>;
+  /**
+   * The day's scheduled departures from this place, earliest first. Empty when
+   * no timetable has been sourced for it — the client says so rather than
+   * implying a stop is unserved.
+   */
+  departures: Departure[];
   stopCount: number;
   /** Operators behind this data. `website` is null until the providers table is seeded. */
   sources: Array<{ providerCode: string; name: string; website: string | null }>;
@@ -71,8 +88,8 @@ export class PlacesService {
       { replacements: { id }, type: QueryTypes.SELECT },
     );
 
-    const [{ count }] = await this.sequelize.query<{ count: number }>(
-      `SELECT count(*)::int AS count FROM bus_stops WHERE "placeId" = :id`,
+    const stopRows = await this.sequelize.query<{ id: string }>(
+      `SELECT id FROM bus_stops WHERE "placeId" = :id`,
       { replacements: { id }, type: QueryTypes.SELECT },
     );
 
@@ -89,13 +106,53 @@ export class PlacesService {
         verified: Boolean(place.verified),
         aliases: aliasRows.map(row => row.alias),
         routes,
-        stopCount: count,
+        departures: await this.departuresFor(stopRows.map(row => row.id)),
+        stopCount: stopRows.length,
         sources: await this.sourcesFor(routes.map(r => r.providerCode)),
       },
       { confidenceScore: confidence ?? 1, providers: [...new Set(routes.map(r => r.providerCode))] },
     );
   }
 
+
+  /**
+   * Scheduled departures from the given stops, earliest first.
+   *
+   * bus_stops and stops share ids, so the ids resolved for a place index
+   * straight into stop_times. DISTINCT because a route running the same
+   * timing in both directions stores one row per trip.
+   */
+  private async departuresFor(stopIds: string[]): Promise<Departure[]> {
+    if (!stopIds.length) return [];
+
+    return this.sequelize.query<Departure>(
+      `SELECT DISTINCT
+              st."departureTime" AS time,
+              r.id AS "routeId",
+              COALESCE(NULLIF(r."shortName", ''), r."longName") AS "routeName",
+              st."timeSource" AS "timeSource",
+              last_stop.name AS headsign
+       FROM stop_times st
+       JOIN trips t ON t.id = st."tripId"
+       JOIN routes r ON r.id = t."routeId"
+       LEFT JOIN LATERAL (
+         SELECT s2.name
+         FROM stop_times st2
+         JOIN stops s2 ON s2.id = st2."stopId"
+         WHERE st2."tripId" = t.id
+         ORDER BY st2."stopSequence" DESC
+         LIMIT 1
+       ) last_stop ON TRUE
+       WHERE st."stopId" IN (:stopIds)
+         AND st."departureTime" IS NOT NULL
+       ORDER BY time
+       LIMIT 800`,
+      // ponytail: 800 is a backstop, not a page — the busiest place currently
+      // has 571 departures. If a hub ever exceeds it the tail is dropped
+      // silently; add a `from` time window before that becomes possible.
+      { replacements: { stopIds }, type: QueryTypes.SELECT },
+    );
+  }
 
   /** Provider name/website from the registry table. Returns null websites when unseeded. */
   private async sourcesFor(providerCodes: string[]) {
@@ -158,6 +215,7 @@ export class PlacesService {
         verified: false,
         aliases: [],
         routes,
+        departures: await this.departuresFor([stop.id]),
         stopCount: 1,
         sources: await this.sourcesFor([stop.providerCode]),
       },
