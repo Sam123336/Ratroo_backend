@@ -159,8 +159,14 @@ export class WBBusMapper implements IMapper {
         name: stopName,
         normalizedName: stopName.toLowerCase().trim(),
         aliases: [`${stopName} Stop`],
-        latitude: 22.5700 + idx * 0.01,
-        longitude: 88.3500 + idx * 0.01,
+        // No coordinates. These were previously fabricated as
+        // `22.57 + idx * 0.01`, placing every stop on a diagonal line marching
+        // out of West Bengal — 464 WBBUS stops ended up outside the state, and
+        // stops sharing an index shared a point. A null coordinate is honest and
+        // gets filled by the geocoding engine; a fake one silently corrupts
+        // nearby-search and every journey distance.
+        latitude: null,
+        longitude: null,
         geography: { countryCode: 'IN' as const, stateCode: 'WB', district: 'Kolkata' },
         confidence: 0.85,
       });

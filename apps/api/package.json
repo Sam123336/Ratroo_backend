@@ -20,7 +20,8 @@
     "gen:module": "node scripts/generate-module.js",
     "timetables:interpolate": "ts-node -r tsconfig-paths/register src/scripts/interpolate-timetables.ts",
     "timetables:curated": "ts-node -r tsconfig-paths/register src/scripts/import-curated-timetables.ts",
-    "routes:prune": "ts-node -r tsconfig-paths/register src/scripts/prune-experimental-routes.ts"
+    "routes:prune": "ts-node -r tsconfig-paths/register src/scripts/prune-experimental-routes.ts",
+    "stops:repair": "ts-node -r tsconfig-paths/register src/scripts/repair-stop-coordinates.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
