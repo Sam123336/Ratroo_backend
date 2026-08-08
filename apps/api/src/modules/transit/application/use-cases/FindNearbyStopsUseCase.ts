@@ -23,6 +23,8 @@ export interface NearbyStopOutput {
   distanceMeters: number;
   /** Lets clients filter Nearby by bus/metro/ferry. */
   category?: string;
+  /** Services calling here, so the row can name them. */
+  routes?: Array<{ id: string; name: string | null }>;
 }
 
 @Injectable()
@@ -50,6 +52,7 @@ export class FindNearbyStopsUseCase {
       state: r.stop.state,
       distanceMeters: Math.round(r.distanceMeters),
       category: r.category,
+      routes: r.routes,
     }));
   }
 }

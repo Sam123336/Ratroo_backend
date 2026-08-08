@@ -26,6 +26,7 @@ interface NearbyStopRow {
   updatedAt?: Date;
   distanceMeters: string;
   category: string;
+  routes: Array<{ id: string; name: string | null }>;
 }
 
 @Injectable()
@@ -79,6 +80,20 @@ export class SequelizeStopRepository implements StopRepository {
              LIMIT 1),
             'BUS_STOP'
           ) AS category,
+          -- The services calling here, so a stop in the list says which buses
+          -- you can catch rather than only its name and distance.
+          COALESCE(
+            (SELECT json_agg(json_build_object('id', s.id, 'name', s.name) ORDER BY s.name)
+             FROM (
+               SELECT DISTINCT r.id, COALESCE(NULLIF(r."longName", ''), r."shortName") AS name
+               FROM stop_times st
+               JOIN trips t ON t.id = st."tripId"
+               JOIN routes r ON r.id = t."routeId"
+               WHERE st."stopId" = stops.id
+               LIMIT 8
+             ) s),
+            '[]'::json
+          ) AS routes,
           ST_Distance(location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) AS "distanceMeters"
         FROM stops
         WHERE location IS NOT NULL
@@ -105,6 +120,7 @@ export class SequelizeStopRepository implements StopRepository {
       stop: this.toDomain(row),
       distanceMeters: Number(row.distanceMeters),
       category: row.category,
+      routes: (row.routes ?? []).filter(route => route.name),
     }));
   }
 

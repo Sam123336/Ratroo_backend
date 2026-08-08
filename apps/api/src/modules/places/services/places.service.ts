@@ -10,6 +10,10 @@ export interface Departure {
   routeName: string;
   /** Last stop on the trip — where this service is headed. */
   headsign: string | null;
+  /** The name painted on the bus, e.g. "APANJAN". Null when unrecorded. */
+  operator: string | null;
+  /** Its registration, e.g. "WB67D5949". */
+  vehicle: string | null;
   /** SCRAPED (from the operator) or INTERPOLATED (estimated between known times). */
   timeSource: string | null;
 }
@@ -99,7 +103,7 @@ export class PlacesService {
       {
         id: place.id,
         title: place.canonicalName,
-        category: place.type,
+        category: (await this.categoryFor(stopRows.map(row => row.id))) ?? place.type,
         latitude: place.latitude === null ? null : Number(place.latitude),
         longitude: place.longitude === null ? null : Number(place.longitude),
         confidence,
@@ -114,6 +118,35 @@ export class PlacesService {
     );
   }
 
+
+  /**
+   * The mode of the services calling at these stops, as `<routeType>_STOP`.
+   *
+   * The places table only stores the generic type "STOP", so the app was
+   * showing a tram stop as a bus stop. /v1/stops/nearby already derives the
+   * mode this way; this keeps the detail screen consistent with the list the
+   * user tapped through from. Null when no route reaches these stops — better
+   * than assuming a bus.
+   */
+  private async categoryFor(stopIds: string[]): Promise<string | null> {
+    if (!stopIds.length) return null;
+
+    const [row] = await this.sequelize.query<{ category: string }>(
+      // The mode with the most services here, not whichever row came back
+      // first: an interchange served by 40 buses and one tram is a bus stop.
+      `SELECT r."routeType" || '_STOP' AS category
+       FROM stop_times st
+       JOIN trips t ON t.id = st."tripId"
+       JOIN routes r ON r.id = t."routeId"
+       WHERE st."stopId" IN (:stopIds)
+       GROUP BY r."routeType"
+       ORDER BY count(DISTINCT r.id) DESC, r."routeType"
+       LIMIT 1`,
+      { replacements: { stopIds }, type: QueryTypes.SELECT },
+    );
+
+    return row?.category ?? null;
+  }
 
   /**
    * Scheduled departures from the given stops, earliest first.
@@ -131,6 +164,11 @@ export class PlacesService {
               r.id AS "routeId",
               COALESCE(NULLIF(r."shortName", ''), r."longName") AS "routeName",
               st."timeSource" AS "timeSource",
+              -- The name on the bus. For West Bengal's private operators this
+              -- is how a rider identifies the service at the stand, far more
+              -- than any route code.
+              t."vehicleName" AS operator,
+              t."vehicleRegistration" AS vehicle,
               last_stop.name AS headsign
        FROM stop_times st
        JOIN trips t ON t.id = st."tripId"
@@ -208,7 +246,7 @@ export class PlacesService {
       {
         id: stop.id,
         title: stop.name,
-        category: 'STOP',
+        category: (await this.categoryFor([stop.id])) ?? 'STOP',
         latitude: stop.lat === null ? null : Number(stop.lat),
         longitude: stop.lng === null ? null : Number(stop.lng),
         confidence: null,

@@ -1,8 +1,17 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
 import { QueryTypes } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { GetRegionUseCase } from '../../application/GetRegionUseCase';
 import { ListRegionsUseCase } from '../../application/ListRegionsUseCase';
+
+interface ProviderRow {
+  code: string;
+  name: string | null;
+  website: string | null;
+  routeCount: number;
+  modes: string[];
+  lastUpdated: Date | null;
+}
 
 /** Stops store a state code; the app needs something a person would say. */
 const STATE_NAMES: Record<string, string> = {
@@ -84,6 +93,88 @@ export class CoverageController {
         // answer: it means we have stops but no services mapped yet.
         modes: (rows[0]?.modes ?? []).filter(Boolean).map(mode => mode.toLowerCase()),
       },
+    };
+  }
+
+  /**
+   * The operators behind the data, counted from it.
+   *
+   * Listed from the routes themselves rather than the providers table, because
+   * only four operators are registered there while thirteen appear in the data.
+   * A registered operator contributes its name and confirmed website; the rest
+   * show their code and no link.
+   */
+  @Get('providers')
+  async providers() {
+    const rows = await this.sequelize.query<ProviderRow>(
+      `SELECT r.provider AS code,
+              p.name,
+              p.website,
+              count(*)::int AS "routeCount",
+              array_agg(DISTINCT r."routeType") AS modes,
+              max(r."updatedAt") AS "lastUpdated"
+       FROM routes r
+       LEFT JOIN providers p ON p.code = r.provider
+       GROUP BY r.provider, p.name, p.website
+       ORDER BY "routeCount" DESC`,
+      { type: QueryTypes.SELECT },
+    );
+
+    return { data: rows.map(row => this.presentProvider(row)), count: rows.length };
+  }
+
+  @Get('providers/:code')
+  async provider(@Param('code') code: string) {
+    const [row] = await this.sequelize.query<ProviderRow>(
+      `SELECT r.provider AS code,
+              p.name,
+              p.website,
+              count(*)::int AS "routeCount",
+              array_agg(DISTINCT r."routeType") AS modes,
+              max(r."updatedAt") AS "lastUpdated"
+       FROM routes r
+       LEFT JOIN providers p ON p.code = r.provider
+       WHERE r.provider = :code
+       GROUP BY r.provider, p.name, p.website`,
+      { replacements: { code }, type: QueryTypes.SELECT },
+    );
+
+    if (!row) throw new NotFoundException(`No operator with code ${code}.`);
+
+    // Where it runs, from the stops it serves. Districts are sparse, so state
+    // is the fallback rather than an empty list.
+    const areas = await this.sequelize.query<{ area: string }>(
+      `SELECT DISTINCT COALESCE(district, city, state) AS area
+       FROM stops WHERE provider = :code AND COALESCE(district, city, state) IS NOT NULL
+       ORDER BY area LIMIT 12`,
+      { replacements: { code }, type: QueryTypes.SELECT },
+    );
+
+    const [stops] = await this.sequelize.query<{ count: number }>(
+      `SELECT count(*)::int AS count FROM stops WHERE provider = :code`,
+      { replacements: { code }, type: QueryTypes.SELECT },
+    );
+
+    return {
+      data: {
+        ...this.presentProvider(row),
+        stopCount: stops?.count ?? 0,
+        coverage: areas.map(a => a.area),
+      },
+    };
+  }
+
+  private presentProvider(row: ProviderRow) {
+    return {
+      code: row.code,
+      // Falls back to the code: inventing a friendly name for an unregistered
+      // operator would be making up a fact about a real company.
+      name: row.name ?? row.code,
+      website: row.website ?? null,
+      registered: row.name !== null,
+      routeCount: row.routeCount,
+      modes: (row.modes ?? []).filter(Boolean).map(mode => mode.toLowerCase()),
+      lastUpdated: row.lastUpdated,
     };
   }
 

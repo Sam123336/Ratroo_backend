@@ -6,6 +6,8 @@ export interface NearbyStopResult {
   distanceMeters: number;
   /** Mode of services calling here, e.g. BUS_STOP. */
   category?: string;
+  /** Services calling here, so a list row can name the buses you can catch. */
+  routes?: Array<{ id: string; name: string | null }>;
 }
 
 export interface TransitQueryScope {
