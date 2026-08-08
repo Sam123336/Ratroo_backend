@@ -1,0 +1,236 @@
+{
+  "$schema": "curated timetables. Fill in ONLY values you can cite. Leave others null.",
+  "sourceNote": "Cite where each timing came from — depot board, official notice, operator PDF.",
+  "routes": [
+    {
+      "routeId": "019fbded-f48c-7d97-9a97-dec31f8a6399",
+      "providerCode": "EASTERN_RAILWAY_SUBURBAN",
+      "name": "Bandel to Naihati",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbded-f48c-7de5-8602-50cffee6c96d",
+      "providerCode": "EASTERN_RAILWAY_SUBURBAN",
+      "name": "Howrah to Bardhaman",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbded-f48c-721b-bf3f-9ac2f0aec1f2",
+      "providerCode": "EASTERN_RAILWAY_SUBURBAN",
+      "name": "Howrah to Katwa",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbded-f48c-7da0-b73b-eba40d643e53",
+      "providerCode": "EASTERN_RAILWAY_SUBURBAN",
+      "name": "Sealdah to Bongaon",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbded-f48c-7a61-ae69-cb90d074290e",
+      "providerCode": "EASTERN_RAILWAY_SUBURBAN",
+      "name": "Sealdah to Canning",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbded-f48c-7910-99e3-98e8753c447e",
+      "providerCode": "EASTERN_RAILWAY_SUBURBAN",
+      "name": "Sealdah to Diamond Harbour",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbded-f48c-79e3-9783-3f58d81a2688",
+      "providerCode": "EASTERN_RAILWAY_SUBURBAN",
+      "name": "Sealdah to Lakshmikantapur",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbded-f48c-7861-9bf3-bac0b60c331c",
+      "providerCode": "EASTERN_RAILWAY_SUBURBAN",
+      "name": "Sealdah to Ranaghat",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbded-f3fe-7c7c-8098-9125e26a67f0",
+      "providerCode": "KOLKATA_TRAM",
+      "name": "Esplanade to Kidderpore",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbded-f3fe-759f-a794-931ade3747aa",
+      "providerCode": "KOLKATA_TRAM",
+      "name": "Esplanade to Shyambazar",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbded-f3fe-7081-acee-dd7e32d70118",
+      "providerCode": "KOLKATA_TRAM",
+      "name": "Gariahat to Esplanade",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbded-f3fe-70e9-bf9f-695b159dbcd1",
+      "providerCode": "KOLKATA_TRAM",
+      "name": "Nonapukur to Esplanade",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbded-f3fe-7cfd-b016-7e8235192740",
+      "providerCode": "KOLKATA_TRAM",
+      "name": "Rajabazar to Howrah Bridge",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbded-f3fe-7574-a24a-ecda7d1d7dd1",
+      "providerCode": "KOLKATA_TRAM",
+      "name": "Tollygunge to Ballygunge",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbdf2-3417-7034-b88a-f9fbd12e92a0",
+      "providerCode": "WB_FERRY",
+      "name": "Dakshineswar to Belur",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbded-f3fd-76b5-904c-4c7d1c734431",
+      "providerCode": "WB_FERRY",
+      "name": "Fairlie to Ariyadaha",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbdf2-3417-7174-b838-6e4617b5cd27",
+      "providerCode": "WB_FERRY",
+      "name": "Hasnabad to Par Hasnabad",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbdf2-3417-72d9-9933-e34e3178548e",
+      "providerCode": "WB_FERRY",
+      "name": "Howrah to Fairlie",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbdf2-3416-7449-84ed-3bc5b44a836e",
+      "providerCode": "WB_FERRY",
+      "name": "Howrah to Shipping Millennium Park",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbdf2-3417-782f-8408-360fb0236aae",
+      "providerCode": "WB_FERRY",
+      "name": "Lot No. 8 to Kachuberia Sagar Island",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbdf2-3417-7c2c-96bf-1891610e6112",
+      "providerCode": "WB_FERRY",
+      "name": "Narayanpur to Namkhana",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbdf2-3417-78c4-91b3-0ec3b9e38557",
+      "providerCode": "WB_FERRY",
+      "name": "Nebukhali to Dulduli",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    },
+    {
+      "routeId": "019fbdf2-3417-73c1-8f38-b44c060555d5",
+      "providerCode": "WB_FERRY",
+      "name": "Roychak to Kukrahati",
+      "source": null,
+      "firstDeparture": null,
+      "lastDeparture": null,
+      "headwayMinutes": null,
+      "departures": []
+    }
+  ]
+}

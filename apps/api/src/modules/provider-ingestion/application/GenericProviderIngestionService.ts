@@ -106,11 +106,22 @@ export class GenericProviderIngestionService {
       });
 
       const rawResponses = [];
-      for (const item of discoveryItems) {
-        const rawRes = await adapter.fetch(item, discoveryContext);
-        rawResponses.push(rawRes);
+      // WBBUS has roughly a thousand independent detail pages. A tiny pool
+      // avoids a multi-hour serial crawl while remaining gentle to the
+      // community site. Other adapters retain the original serial behaviour.
+      const fetchConcurrency = providerCode === 'WBBUS'
+        ? Math.max(1, Number(process.env.WBBUS_FETCH_CONCURRENCY || 3))
+        : 1;
 
-        await this.rawSourceRecordModel.create({
+      for (let index = 0; index < discoveryItems.length; index += fetchConcurrency) {
+        const batch = discoveryItems.slice(index, index + fetchConcurrency);
+        const batchResponses = await Promise.all(
+          batch.map(item => adapter.fetch(item, discoveryContext)),
+        );
+
+        for (const rawRes of batchResponses) {
+          rawResponses.push(rawRes);
+          await this.rawSourceRecordModel.create({
           providerCode,
           providerRunId: run.id,
           sourceUrl: rawRes.sourceUrl,
@@ -121,7 +132,8 @@ export class GenericProviderIngestionService {
           metadata: rawRes.metadata || {},
           status: 'RAW_SAVED',
           fetchedAt: new Date(rawRes.fetchedAt),
-        });
+          });
+        }
       }
 
       await run.update({ status: 'PARSING', fetchedCount: rawResponses.length });

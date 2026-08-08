@@ -18,7 +18,9 @@
     "migrate:status": "ts-node -r tsconfig-paths/register src/database/migrate.ts status",
     "migrate:create": "ts-node -r tsconfig-paths/register src/database/migrate.ts create",
     "gen:module": "node scripts/generate-module.js",
-    "timetables:interpolate": "ts-node -r tsconfig-paths/register src/scripts/interpolate-timetables.ts"
+    "timetables:interpolate": "ts-node -r tsconfig-paths/register src/scripts/interpolate-timetables.ts",
+    "timetables:curated": "ts-node -r tsconfig-paths/register src/scripts/import-curated-timetables.ts",
+    "routes:prune": "ts-node -r tsconfig-paths/register src/scripts/prune-experimental-routes.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

@@ -524,6 +524,7 @@ export class DatasetPromotionService {
         sequence: Number(payload.sequence),
         arrivalTime: payload.arrivalTime,
         departureTime: payload.departureTime,
+        timeSource: payload.timeSource || (payload.arrivalTime ? 'SCRAPED' : null),
         datasetVersionId: version.id,
       });
     }
