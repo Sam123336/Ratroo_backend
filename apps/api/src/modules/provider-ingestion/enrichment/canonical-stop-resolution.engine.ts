@@ -107,8 +107,11 @@ export class CanonicalStopResolutionEngine {
         const newPlaceId = crypto.randomUUID();
         const newPlaceObj = {
           id: newPlaceId,
-          canonicalName: rawStop.name,
-          normalizedName,
+          // Scraped stop names occasionally arrive as a whole block of page
+          // text. The column is varchar(255), so an untruncated one aborted the
+          // entire bulkCreate and failed the whole ingestion run.
+          canonicalName: (rawStop.name || '').slice(0, 255),
+          normalizedName: (normalizedName || '').slice(0, 255),
           type: PlaceType.STOP,
           latitude: rawLat || null,
           longitude: rawLon || null,
@@ -133,8 +136,9 @@ export class CanonicalStopResolutionEngine {
           id: crypto.randomUUID(),
           placeId: matchedPlace!.id,
           providerCode: rawStop.providerCode,
-          alias: rawStop.name,
-          normalizedAlias: normalizedName,
+          // Same varchar(255) ceiling as places — see above.
+          alias: (rawStop.name || '').slice(0, 255),
+          normalizedAlias: (normalizedName || '').slice(0, 255),
           confidence: 1.0,
         };
         aliasesToCreate.push(newAliasObj);

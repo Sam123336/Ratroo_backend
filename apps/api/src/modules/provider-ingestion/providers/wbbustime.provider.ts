@@ -58,7 +58,15 @@ export class WBBustimeMapper implements IMapper {
     const busEntries: Array<{ id: string; name: string; route: string; stops: string[] }> = [];
 
     records.forEach((rec, idx) => {
-      const html = typeof rec.extractedText === 'string' ? rec.extractedText : '';
+      // DomParser puts the full HTML in `rawContent` and only sets
+      // `extractedText` to a tiny regex match like "Route 12". Reading
+      // extractedText alone gave cheerio an 8-character string, so no
+      // links were ever found and every scrape parsed to empty.
+      const html = typeof rec.rawContent === 'string'
+        ? rec.rawContent
+        : typeof rec.extractedText === 'string'
+          ? rec.extractedText
+          : '';
       if (html) {
         const $ = cheerio.load(html);
         $('a[href*="/bus/"]').each((i, el) => {

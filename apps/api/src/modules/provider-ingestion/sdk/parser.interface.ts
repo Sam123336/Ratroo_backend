@@ -11,23 +11,27 @@ export class DomParser implements IParser {
   async parse(response: RawProviderResponse): Promise<Array<Record<string, unknown>>> {
     const html = typeof response.body === 'string' ? response.body : JSON.stringify(response.body);
     const records: Array<Record<string, unknown>> = [];
-    const routeMatch = html.match(/Route\s+([A-Za-z0-9\-]+)/gi);
-    if (routeMatch) {
-      routeMatch.forEach((m, idx) => {
-        records.push({
-          id: `dom_record_${idx + 1}`,
-          extractedText: m,
-          sourceUrl: response.sourceUrl,
-        });
-      });
-    }
-    if (records.length === 0) {
-      records.push({
-        id: 'dom_record_1',
-        rawContent: html,
-        sourceUrl: response.sourceUrl,
-      });
-    }
+    // One record per page, always carrying the full HTML.
+    //
+    // This used to emit one record per /Route \w+/ regex hit, holding only the
+    // matched string. wbbus.in contains the words "route bus", so every scrape
+    // produced records containing the 9-character string "route bus" and no
+    // markup — mappers ran cheerio over that, found no links, and the whole
+    // ingestion validated as "empty" despite a healthy 52KB fetch.
+    //
+    // Emitting per-match also meant the same page was mapped N times, which
+    // duplicated every stop and route it contained.
+    const routeMatches = html.match(/Route\s+([A-Za-z0-9\-]+)/gi) ?? [];
+
+    records.push({
+      id: 'dom_record_1',
+      rawContent: html,
+      // Kept for mappers that still read it; the page is the real payload.
+      extractedText: routeMatches.join(' | '),
+      matchCount: routeMatches.length,
+      sourceUrl: response.sourceUrl,
+    });
+
     return records;
   }
 }

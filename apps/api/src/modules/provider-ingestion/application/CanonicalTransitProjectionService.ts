@@ -55,8 +55,8 @@ export class CanonicalTransitProjectionService {
                            city, district, state, provider, "externalId", "createdAt", "updatedAt")
         SELECT
           bs.id,
-          bs.name,
-          bs."normalizedName",
+          LEFT(bs.name, 255),
+          LEFT(bs."normalizedName", 255),
           (bs.metadata->>'latitude')::numeric,
           (bs.metadata->>'longitude')::numeric,
           CASE
@@ -95,11 +95,21 @@ export class CanonicalTransitProjectionService {
         SELECT
           br.id,
           a.id,
-          br.metadata->>'shortName',
-          br."longName",
+          LEFT(br.metadata->>'shortName', 255),
+          LEFT(br."longName", 255),
           origin."stopId",
           dest."stopId",
-          'BUS',
+          -- Mode from the operator. Everything was hardcoded 'BUS', which is why
+          -- Kolkata's 7 tram routes and 11 ferry routes were indistinguishable
+          -- from buses and the Ferry/Train/Metro screens had nothing to show.
+          CASE br."providerCode"
+            WHEN 'KOLKATA_TRAM' THEN 'TRAM'
+            WHEN 'WB_FERRY' THEN 'FERRY'
+            WHEN 'EASTERN_RAILWAY_SUBURBAN' THEN 'RAIL'
+            WHEN 'KOLKATA_METRO' THEN 'METRO'
+            WHEN 'BMRCL' THEN 'METRO'
+            ELSE 'BUS'
+          END,
           br."providerCode",
           br."externalId",
           now(), now()
@@ -119,6 +129,7 @@ export class CanonicalTransitProjectionService {
           "longName" = EXCLUDED."longName",
           "originStopId" = EXCLUDED."originStopId",
           "destinationStopId" = EXCLUDED."destinationStopId",
+          "routeType" = EXCLUDED."routeType",
           "updatedAt" = now()
         `,
       );
@@ -151,15 +162,18 @@ export class CanonicalTransitProjectionService {
       await run(
         'stop_times',
         `
-        INSERT INTO stop_times (id, "tripId", "stopId", "stopSequence", "arrivalTime", "departureTime")
-        SELECT bst.id, bst."tripId", bst."stopId", bst.sequence, bst."arrivalTime", bst."departureTime"
+        INSERT INTO stop_times (id, "tripId", "stopId", "stopSequence", "arrivalTime", "departureTime", "timeSource")
+        SELECT bst.id, bst."tripId", bst."stopId", bst.sequence, bst."arrivalTime", bst."departureTime", bst."timeSource"
         FROM bus_stop_times bst
         JOIN trips t ON t.id = bst."tripId"
         JOIN stops s ON s.id = bst."stopId"
         ON CONFLICT (id) DO UPDATE SET
           "stopSequence" = EXCLUDED."stopSequence",
           "arrivalTime" = EXCLUDED."arrivalTime",
-          "departureTime" = EXCLUDED."departureTime"
+          "departureTime" = EXCLUDED."departureTime",
+          -- Carry the provenance through, or estimates arrive indistinguishable
+          -- from scraped operator times.
+          "timeSource" = EXCLUDED."timeSource"
         `,
       );
 

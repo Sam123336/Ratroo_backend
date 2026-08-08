@@ -13,7 +13,8 @@
     "migrate:status": "npm --prefix apps/api run migrate:status",
     "migrate:create": "npm --prefix apps/api run migrate:create --",
     "gen:module": "npm --prefix apps/api run gen:module --",
-    "start:api": "npm --prefix apps/api run start:dev"
+    "start:api": "npm --prefix apps/api run start:dev",
+    "sync:timetables": "./scripts/fetch-timetables.sh"
   },
   "keywords": [],
   "author": "",
