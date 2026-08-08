@@ -148,8 +148,17 @@ export class WBBusMapper implements IMapper {
     const routePatterns: any[] = [];
     const stopSet = new Set<string>();
 
-    busEntries.forEach((b) => b.stops.forEach((s) => stopSet.add(s)));
+    // Detail pages give real stop names from the timetable table. The
+    // directory listing does not: splitting its link text produced entries like
+    // "ABIR SUPER\n Reg No : WB05C4556" — 488 characters of markup treated as a
+    // stop, which then overflowed places.canonicalName (varchar 255) and failed
+    // the whole ingestion. Only take stops from detail pages.
     detailPages.forEach((d) => d.rows.forEach((r) => stopSet.add(r.stopName)));
+
+    // Directory entries still contribute route names when no detail page exists.
+    busEntries.forEach((b) => b.stops.forEach((s) => {
+      if (s.length <= 120 && !/\n/.test(s)) stopSet.add(s);
+    }));
 
     Array.from(stopSet).forEach((stopName, idx) => {
       nodes.push({
@@ -237,7 +246,12 @@ export class WBBusMapper implements IMapper {
       }
     });
 
-    busEntries.forEach((b) => {
+    // Detail pages already provide these routes with real stops and times, so a
+    // directory-derived duplicate adds nothing. Skip them entirely when detail
+    // pages are present — they reference the garbage stop names filtered above.
+    const directoryEntries = detailPages.length ? [] : busEntries;
+
+    directoryEntries.forEach((b) => {
       const routeId = `wbbus:directory:${slug(`${b.name}-${b.route}`)}`;
       routePatterns.push({
         externalId: routeId,
