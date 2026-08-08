@@ -21,6 +21,8 @@ export interface JourneyLegDto {
   serviceName?: string;
   /** Set on transit legs so the client can open Route Details for that leg. */
   routeId?: string;
+  /** Fare for this leg's service, where the operator publishes one. */
+  fareINR?: number | null;
   instructions: string;
 }
 
@@ -36,6 +38,12 @@ export class JourneyResponseDto {
   totalDistanceKm: string;
   totalDurationMinutes: number;
   transfersCount: number;
+  /** Sum of priced legs. Null when no leg has a fare — never 0, which reads as free. */
+  totalFare?: number | null;
+  /** True when some legs are unpriced, so totalFare is a lower bound. */
+  fareIncomplete?: boolean;
+  /** e.g. ESTIMATED_BY_DISTANCE. Most WBBus fares are derived, not official. */
+  fareSources?: string[];
   confidenceScore: number;
   confidenceBadges: string[];
 }

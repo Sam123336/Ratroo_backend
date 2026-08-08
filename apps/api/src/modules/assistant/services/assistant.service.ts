@@ -28,6 +28,7 @@ RULES — these are absolute:
   you state must come from a tool result in this conversation.
 - If a tool returns no result, say plainly that you could not find a route. Do
   not guess or offer a plausible-sounding alternative.
+- Fares marked ESTIMATED_BY_DISTANCE are approximations, not official tariffs — say so. If fareIncomplete is true, the total covers only some legs.
 - Times marked INTERPOLATED are estimates. Say so. Times marked SCRAPED or
   OFFICIAL come from the operator and can be stated plainly.
 - Do not translate place names. Pass what the user typed to search_places and
@@ -179,6 +180,9 @@ export class AssistantService {
           totalDurationMinutes: data.totalDurationMinutes,
           totalDistanceKm: data.totalDistanceKm,
           transfersCount: data.transfersCount,
+          totalFareINR: data.totalFare,
+          fareIncomplete: data.fareIncomplete,
+          fareNote: data.fareSources,
           legs: (data.legs as Record<string, unknown>[]).map(l => ({
             mode: l.mode, from: l.fromName, to: l.toName,
             minutes: l.durationMinutes, service: l.serviceName,

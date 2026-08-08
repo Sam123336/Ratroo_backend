@@ -40,6 +40,9 @@ export interface PlannedLeg {
   routeId?: string;
   routeName?: string;
   providerCode?: string;
+  /** Whole-route fare, where the operator publishes one. */
+  fareINR?: number | null;
+  fareSource?: string | null;
 }
 
 export interface JourneyEndpoint {
@@ -56,6 +59,11 @@ export interface PlannedJourney {
   totalDurationMinutes: number;
   transfersCount: number;
   providers: string[];
+  /** Sum of the ride legs that have a fare. Null when none of them do. */
+  totalFareINR: number | null;
+  /** True when at least one ride leg has no fare, so the total is a floor. */
+  fareIncomplete: boolean;
+  fareSources: string[];
 }
 
 /**
@@ -208,6 +216,23 @@ export class JourneyPlannerService {
     return usable.map(({ stopId, walkMinutes }) => ({ stopId, walkMinutes }));
   }
 
+  /**
+   * Share of the route fare matching the distance actually ridden.
+   *
+   * fareINR prices the whole route, so a short hop on a long-distance service
+   * must not be charged the full amount. Consistent with the fares themselves,
+   * which providers derive by distance (ESTIMATED_BY_DISTANCE).
+   */
+  private proratedFare(route: { id: string; fareINR: number | null } | undefined, riddenKm: number) {
+    if (!route || route.fareINR === null) return null;
+
+    const total = this.graph.routeLengthKm(route.id);
+    if (!total || riddenKm >= total) return route.fareINR;
+
+    // Round up to the rupee: transit fares are not fractional.
+    return Math.max(1, Math.ceil(route.fareINR * (riddenKm / total)));
+  }
+
   private bestOf(destStops: Set<string>, labels: Map<string, Label>) {
     let bestId: string | undefined;
     let bestCost = Infinity;
@@ -298,6 +323,8 @@ export class JourneyPlannerService {
         routeId: route?.id,
         routeName: route?.name,
         providerCode: route?.providerCode,
+        fareINR: this.proratedFare(route, km),
+        fareSource: route?.fareSource ?? null,
       });
     }
 
@@ -317,6 +344,7 @@ export class JourneyPlannerService {
     }
 
     const rides = legs.filter(leg => leg.mode !== 'WALK');
+    const priced = rides.filter(leg => typeof leg.fareINR === 'number');
 
     return {
       legs,
@@ -324,6 +352,10 @@ export class JourneyPlannerService {
       totalDurationMinutes: legs.reduce((sum, leg) => sum + leg.durationMinutes, 0),
       transfersCount: Math.max(0, rides.length - 1),
       providers: [...new Set(rides.map(leg => leg.providerCode).filter(Boolean) as string[])],
+      // Null rather than 0 when nothing is priced — 0 reads as "free".
+      totalFareINR: priced.length ? priced.reduce((sum, leg) => sum + (leg.fareINR ?? 0), 0) : null,
+      fareIncomplete: priced.length > 0 && priced.length < rides.length,
+      fareSources: [...new Set(priced.map(leg => leg.fareSource).filter(Boolean) as string[])],
     };
   }
 }

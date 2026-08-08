@@ -17,6 +17,10 @@ export interface GraphRoute {
   mode: 'BUS' | 'METRO';
   /** Stop ids in travel order. */
   stopIds: string[];
+  /** Operator fare for the whole route, where the provider publishes one. */
+  fareINR: number | null;
+  /** e.g. ESTIMATED_BY_DISTANCE — most WBBus fares are derived, not official. */
+  fareSource: string | null;
 }
 
 /**
@@ -38,12 +42,14 @@ export class TransitGraphService {
   private stopsByPlace = new Map<string, string[]>();
   /** Spatial buckets keyed by rounded lat/lng, for walking-transfer lookups. */
   private grid = new Map<string, string[]>();
+  private routeLengths = new Map<string, number>();
   private loaded?: Promise<void>;
 
   constructor(private readonly sequelize: Sequelize) {}
 
   invalidate() {
     this.loaded = undefined;
+    this.routeLengths.clear();
   }
 
   async ready() {
@@ -57,6 +63,30 @@ export class TransitGraphService {
 
   getRoute(id: string) {
     return this.routes.get(id);
+  }
+
+  /**
+   * End-to-end length of a route, cached. Needed to prorate fares: fareINR is
+   * the whole-route price, so charging it for a two-stop hop overstated a
+   * Sealdah-Barasat ride at the full Digha-Baharampur fare of Rs 1385.
+   */
+  routeLengthKm(id: string): number {
+    const cached = this.routeLengths.get(id);
+    if (cached !== undefined) return cached;
+
+    const route = this.routes.get(id);
+    let km = 0;
+
+    if (route) {
+      for (let i = 1; i < route.stopIds.length; i++) {
+        const a = this.stops.get(route.stopIds[i - 1]);
+        const b = this.stops.get(route.stopIds[i]);
+        if (a && b) km += haversineMeters(a.lat, a.lng, b.lat, b.lng) / 1000;
+      }
+    }
+
+    this.routeLengths.set(id, km);
+    return km;
   }
 
   routesServing(stopId: string) {
@@ -158,15 +188,17 @@ export class TransitGraphService {
     }
 
     const routeRows = await this.sequelize.query<{
-      routeId: string; name: string; providerCode: string; mode: 'BUS' | 'METRO'; stopId: string; sequence: number;
+      routeId: string; name: string; providerCode: string; mode: 'BUS' | 'METRO';
+      stopId: string; sequence: number; fareINR: string | null; fareSource: string | null;
     }>(
       `SELECT r.id AS "routeId", r."longName" AS name, r."providerCode", 'BUS' AS mode,
-              rs."stopId", rs.sequence
+              rs."stopId", rs.sequence,
+              r.metadata->>'fareINR' AS "fareINR", r.metadata->>'fareSource' AS "fareSource"
        FROM bus_routes r
        JOIN bus_route_stops rs ON rs."routeId" = r.id
        UNION ALL
        SELECT l.id AS "routeId", l.name, l."providerCode", 'METRO' AS mode,
-              ls."stationId" AS "stopId", ls.sequence
+              ls."stationId" AS "stopId", ls.sequence, NULL AS "fareINR", NULL AS "fareSource"
        FROM metro_lines l
        JOIN metro_line_stations ls ON ls."lineId" = l.id
        ORDER BY "routeId", sequence`,
@@ -181,7 +213,12 @@ export class TransitGraphService {
 
       let route = this.routes.get(row.routeId);
       if (!route) {
-        route = { id: row.routeId, name: row.name, providerCode: row.providerCode, mode: row.mode, stopIds: [] };
+        route = {
+          id: row.routeId, name: row.name, providerCode: row.providerCode, mode: row.mode,
+          stopIds: [],
+          fareINR: row.fareINR === null ? null : Number(row.fareINR),
+          fareSource: row.fareSource,
+        };
         this.routes.set(row.routeId, route);
       }
 

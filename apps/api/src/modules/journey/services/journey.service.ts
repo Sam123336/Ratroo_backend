@@ -63,6 +63,7 @@ export class JourneyService {
       providerCode: leg.providerCode,
       serviceName: leg.routeName,
       routeId: leg.routeId,
+      fareINR: leg.fareINR ?? null,
       instructions:
         leg.mode === 'WALK'
           ? `Walk ${leg.distanceKm.toFixed(1)} km to ${leg.toStop.name}`
@@ -83,6 +84,9 @@ export class JourneyService {
       totalDistanceKm: `${journey.totalDistanceKm.toFixed(1)} km`,
       totalDurationMinutes: journey.totalDurationMinutes,
       transfersCount: journey.transfersCount,
+      totalFare: journey.totalFareINR,
+      fareIncomplete: journey.fareIncomplete,
+      fareSources: journey.fareSources,
       confidenceScore: confidence,
       confidenceBadges: [...journey.providers, 'Canonical Graph ✓'],
     };
