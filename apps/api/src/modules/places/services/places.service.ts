@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { QueryTypes } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { ApiResult } from '../../core/dto/api-response.dto';
+import { stopSourceUrl } from '../../../shared/provider-links';
 
 export interface Departure {
   /** "HH:MM", local time. */
@@ -38,6 +39,12 @@ export interface PlaceDetailDto {
   stopCount: number;
   /** Operators behind this data. `website` is null until the providers table is seeded. */
   sources: Array<{ providerCode: string; name: string; website: string | null }>;
+  /**
+   * The operator's own timetable page for THIS stop. Null when the provider
+   * publishes no per-stop page — the client then falls back to the website,
+   * or shows nothing.
+   */
+  sourceUrl: string | null;
 }
 
 @Injectable()
@@ -113,6 +120,10 @@ export class PlacesService {
         departures: await this.departuresFor(stopRows.map(row => row.id)),
         stopCount: stopRows.length,
         sources: await this.sourcesFor(routes.map(r => r.providerCode)),
+        sourceUrl: stopSourceUrl(
+          routes.find(r => r.providerCode === 'WBBUS')?.providerCode ?? null,
+          place.canonicalName,
+        ),
       },
       { confidenceScore: confidence ?? 1, providers: [...new Set(routes.map(r => r.providerCode))] },
     );
@@ -256,6 +267,7 @@ export class PlacesService {
         departures: await this.departuresFor([stop.id]),
         stopCount: 1,
         sources: await this.sourcesFor([stop.providerCode]),
+        sourceUrl: stopSourceUrl(stop.providerCode, stop.name),
       },
       { providers: [stop.providerCode] },
     );

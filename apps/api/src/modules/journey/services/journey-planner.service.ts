@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GraphStop, TransitGraphService, haversineMeters } from './transit-graph.service';
+import { GraphStop, TransitGraphService, clockTime, haversineMeters } from './transit-graph.service';
 
 /** Average speeds (km/h) used to turn distance into minutes. */
 const SPEED = { WALK: 4.5, BUS: 22, METRO: 32 } as const;
@@ -13,6 +13,9 @@ const TRANSFER_WALK_METERS = 600;
 
 /** Legs of transit; 3 allows bus → bus → bus, i.e. two transfers. */
 const MAX_RIDES = 3;
+
+/** How many alternative journeys to offer before stopping. */
+const MAX_OPTIONS = 4;
 
 /**
  * Consecutive stops further apart than this mean a bad geocode, not a long hop
@@ -43,6 +46,13 @@ export interface PlannedLeg {
   /** Whole-route fare, where the operator publishes one. */
   fareINR?: number | null;
   fareSource?: string | null;
+  /**
+   * Scheduled "HH:MM" at the boarding and alighting stops, from the operator's
+   * timetable. Both null on walking legs and on services with no published
+   * times — the client says "time not published" rather than inventing one.
+   */
+  departureTime?: string | null;
+  arrivalTime?: string | null;
 }
 
 export interface JourneyEndpoint {
@@ -82,8 +92,72 @@ export interface PlannedJourney {
 export class JourneyPlannerService {
   constructor(private readonly graph: TransitGraphService) {}
 
+  /** The single best journey, kept for callers that want one answer. */
   async plan(origin: JourneyEndpoint, destination: JourneyEndpoint): Promise<PlannedJourney | null> {
+    return (await this.planAll(origin, destination))[0] ?? null;
+  }
+
+  /**
+   * Several genuinely different ways to make the trip, fastest first.
+   *
+   * A round-based search answers "the best journey", and its later rounds only
+   * beat round one by being faster — so it returns a single option however many
+   * services run the corridor. WBBus.in lists five buses for Kolkata to
+   * Arambagh; a rider wants to see them.
+   *
+   * So the search is run repeatedly, each pass banning the services the
+   * previous answers boarded. That forces a different first bus each time, and
+   * naturally surfaces both "direct but slower" and "one change, quicker".
+   *
+   * ponytail: re-running the whole search per option is O(k · search). k is 4
+   * and a warm search is ~350ms, so this is cheap enough; if the corridor
+   * count ever grows, cache the round labels between passes instead.
+   */
+  async planAll(
+    origin: JourneyEndpoint,
+    destination: JourneyEndpoint,
+    limit = MAX_OPTIONS,
+  ): Promise<PlannedJourney[]> {
     await this.graph.ready();
+
+    const journeys: PlannedJourney[] = [];
+    const banned = new Set<string>();
+    const seen = new Set<string>();
+
+    for (let attempt = 0; attempt < limit; attempt++) {
+      const journey = this.search(origin, destination, banned);
+      if (!journey) break;
+
+      // Identity is the services ridden, in order.
+      const signature = journey.legs.map(leg => leg.routeId ?? 'walk').join('>');
+      if (seen.has(signature)) break;
+      seen.add(signature);
+      journeys.push(journey);
+
+      // Ban the first service this journey boards, so the next pass has to
+      // find another one. Banning every leg would rule out corridors that
+      // legitimately share a connecting bus.
+      const firstRide = journey.legs.find(leg => leg.routeId);
+      if (!firstRide?.routeId) break;
+      banned.add(firstRide.routeId);
+    }
+
+    // Fastest first, then earliest departure. Without the tie-break, four
+    // services of equal length came back in search order and the list opened
+    // with the 17:30 — a rider reads a timetable in clock order.
+    return journeys.sort((a, b) => {
+      const byDuration = a.totalDurationMinutes - b.totalDurationMinutes;
+      if (byDuration !== 0) return byDuration;
+      return (departsAt(a) ?? Infinity) - (departsAt(b) ?? Infinity);
+    });
+  }
+
+  /** One round-based search, optionally forbidden from boarding some routes. */
+  private search(
+    origin: JourneyEndpoint,
+    destination: JourneyEndpoint,
+    banned: Set<string>,
+  ): PlannedJourney | null {
 
     const originStops = this.accessStops(origin);
     const destStops = new Set(this.accessStops(destination).map(s => s.stopId));
@@ -114,6 +188,9 @@ export class JourneyPlannerService {
       }
 
       for (const routeId of candidateRoutes) {
+        // Already offered as an earlier option; find the rider a different bus.
+        if (banned.has(routeId)) continue;
+
         const route = this.graph.getRoute(routeId)!;
         let boardIndex = -1;
         let boardCost = Infinity;
@@ -138,12 +215,13 @@ export class JourneyPlannerService {
 
             const current = labels.get(route.stopIds[i]);
             if (!current || boardCost < current.costMinutes) {
-              labels.set(route.stopIds[i], {
+              const label: Label = {
                 costMinutes: boardCost,
                 round,
                 prevStopId: route.stopIds[boardIndex],
                 viaRouteId: routeId,
-              });
+              };
+              labels.set(route.stopIds[i], label);
               reachedThisRound.add(route.stopIds[i]);
             }
           }
@@ -260,6 +338,17 @@ export class JourneyPlannerService {
   }
 
   /** Walk the label chain back to the origin, merging consecutive same-route hops. */
+  /**
+   * The operator's scheduled time at a stop, or null when it publishes none.
+   *
+   * Never derived from the journey's own duration estimate: a computed "board
+   * at 06:47" would look exactly like a real timetable while being a guess.
+   */
+  private timeAt(route: { times: Map<string, number> } | undefined, stopId: string): string | null {
+    const minutes = route?.times.get(stopId);
+    return minutes === undefined ? null : clockTime(minutes);
+  }
+
   private buildJourney(
     destStopId: string,
     labels: Map<string, Label>,
@@ -309,6 +398,8 @@ export class JourneyPlannerService {
         previous.toStop = to;
         previous.distanceKm += km;
         previous.durationMinutes += minutesFor(km * 1000, SPEED[mode]);
+        // Riding further means alighting later; the boarding time is unchanged.
+        previous.arrivalTime = this.timeAt(route, to.id) ?? previous.arrivalTime;
         continue;
       }
 
@@ -325,6 +416,8 @@ export class JourneyPlannerService {
         providerCode: route?.providerCode,
         fareINR: this.proratedFare(route, km),
         fareSource: route?.fareSource ?? null,
+        departureTime: route ? this.timeAt(route, from.id) : null,
+        arrivalTime: route ? this.timeAt(route, to.id) : null,
       });
     }
 
@@ -362,4 +455,15 @@ export class JourneyPlannerService {
 
 function minutesFor(meters: number, speedKmh: number) {
   return Math.max(1, Math.round((meters / 1000 / speedKmh) * 60));
+}
+
+/** Minutes past midnight of a journey's first timed boarding, or null. */
+function departsAt(journey: PlannedJourney): number | null {
+  for (const leg of journey.legs) {
+    const time = leg.departureTime;
+    if (!time) continue;
+    const [hours, minutes] = time.split(':').map(Number);
+    if (Number.isFinite(hours) && Number.isFinite(minutes)) return hours * 60 + minutes;
+  }
+  return null;
 }

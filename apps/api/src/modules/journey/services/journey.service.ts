@@ -41,10 +41,12 @@ export class JourneyService {
     // Missing coordinates are not fatal — the planner falls back to matching
     // stops by name, which is how places like Kolkata (no lat/lng in `places`)
     // still resolve.
-    const journey = await this.planner.plan(
+    const journeys = await this.planner.planAll(
       { lat: originLat, lng: originLng, placeId: originPlace.id, name: originPlace.canonicalName || from },
       { lat: destLat, lng: destLng, placeId: destPlace.id, name: destPlace.canonicalName || to },
     );
+
+    const journey = journeys[0];
 
     if (!journey) {
       throw new NotFoundException(
@@ -53,22 +55,30 @@ export class JourneyService {
       );
     }
 
-    const legs: JourneyLegDto[] = journey.legs.map((leg, index) => ({
-      legNumber: index + 1,
-      mode: leg.mode,
-      fromName: leg.fromStop?.name ?? originPlace.canonicalName,
-      toName: leg.toStop.name,
-      distanceKm: `${leg.distanceKm.toFixed(1)} km`,
-      durationMinutes: leg.durationMinutes,
-      providerCode: leg.providerCode,
-      serviceName: leg.routeName,
-      routeId: leg.routeId,
-      fareINR: leg.fareINR ?? null,
-      instructions:
-        leg.mode === 'WALK'
-          ? `Walk ${leg.distanceKm.toFixed(1)} km to ${leg.toStop.name}`
-          : `Board ${leg.routeName} at ${leg.fromStop?.name} and ride to ${leg.toStop.name}`,
-    }));
+    const toLegs = (plan: typeof journey): JourneyLegDto[] =>
+      plan.legs.map((leg, index) => ({
+        legNumber: index + 1,
+        mode: leg.mode,
+        fromName: leg.fromStop?.name ?? originPlace.canonicalName,
+        toName: leg.toStop.name,
+        distanceKm: `${leg.distanceKm.toFixed(1)} km`,
+        durationMinutes: leg.durationMinutes,
+        providerCode: leg.providerCode,
+        serviceName: leg.routeName,
+        routeId: leg.routeId,
+        fareINR: leg.fareINR ?? null,
+        departureTime: leg.departureTime ?? null,
+        arrivalTime: leg.arrivalTime ?? null,
+        instructions:
+          leg.mode === 'WALK'
+            ? `Walk ${leg.distanceKm.toFixed(1)} km to ${leg.toStop.name}`
+            : leg.departureTime
+              ? `Board ${leg.routeName} at ${leg.fromStop?.name} at ${leg.departureTime}, ` +
+                `ride to ${leg.toStop.name}`
+              : `Board ${leg.routeName} at ${leg.fromStop?.name} and ride to ${leg.toStop.name}`,
+      }));
+
+    const legs = toLegs(journey);
 
     const confidence = originPlace.confidence ? parseFloat(originPlace.confidence) : 0.9;
 
@@ -89,6 +99,17 @@ export class JourneyService {
       fareSources: journey.fareSources,
       confidenceScore: confidence,
       confidenceBadges: [...journey.providers, 'Canonical Graph ✓'],
+      // Everything else the search found, so a rider can trade a change
+      // against twenty minutes instead of being handed one answer.
+      alternatives: journeys.slice(1).map(plan => ({
+        legs: toLegs(plan),
+        totalDistanceKm: `${plan.totalDistanceKm.toFixed(1)} km`,
+        totalDurationMinutes: plan.totalDurationMinutes,
+        transfersCount: plan.transfersCount,
+        totalFare: plan.totalFareINR,
+        fareIncomplete: plan.fareIncomplete,
+        fareSources: plan.fareSources,
+      })),
     };
 
     return new ApiResult(dto, {

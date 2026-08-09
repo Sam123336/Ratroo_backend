@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { QueryTypes } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 
@@ -21,6 +21,12 @@ export interface GraphRoute {
   fareINR: number | null;
   /** e.g. ESTIMATED_BY_DISTANCE — most WBBus fares are derived, not official. */
   fareSource: string | null;
+  /**
+   * Scheduled departure per stop, as minutes since midnight, for the trip that
+   * runs in this route's direction. Missing for stops the operator does not
+   * time, and empty for routes with no published timetable at all.
+   */
+  times: Map<string, number>;
 }
 
 /**
@@ -33,7 +39,7 @@ export interface GraphRoute {
  * most once a day.
  */
 @Injectable()
-export class TransitGraphService {
+export class TransitGraphService implements OnModuleInit {
   private readonly logger = new Logger(TransitGraphService.name);
 
   private stops = new Map<string, GraphStop>();
@@ -50,6 +56,21 @@ export class TransitGraphService {
   invalidate() {
     this.loaded = undefined;
     this.routeLengths.clear();
+  }
+
+  /**
+   * Warm the graph at boot instead of on the first traveller's request.
+   *
+   * Loading takes ~6 seconds. Paid lazily it landed on whoever planned first
+   * after a deploy, whose request then blew through the client timeout and
+   * reported "the server took too long" — for a search that answers in under
+   * half a second once warm. Deliberately not awaited: the API can serve
+   * everything else while this runs.
+   */
+  onModuleInit(): void {
+    void this.ready().catch(error =>
+      this.logger.warn(`Transit graph warm-up failed, will retry on demand: ${error}`),
+    );
   }
 
   async ready() {
@@ -218,6 +239,7 @@ export class TransitGraphService {
           stopIds: [],
           fareINR: row.fareINR === null ? null : Number(row.fareINR),
           fareSource: row.fareSource,
+          times: new Map(),
         };
         this.routes.set(row.routeId, route);
       }
@@ -226,11 +248,64 @@ export class TransitGraphService {
       pushTo(this.routesByStop, row.stopId, row.routeId);
     }
 
+    await this.loadTimes();
+
+    const timed = [...this.routes.values()].filter(route => route.times.size).length;
     this.logger.log(
       `Transit graph loaded in ${Date.now() - startedAt}ms: ` +
-        `${this.stops.size} stops, ${this.routes.size} routes`,
+        `${this.stops.size} stops, ${this.routes.size} routes ` +
+        `(${timed} with a timetable)`,
     );
   }
+
+  /**
+   * Scheduled times per route, so a leg can say when to be at the stop.
+   *
+   * One trip per route — chosen by direction then id, the same one Route
+   * Details shows — because merging both directions would give a stop two
+   * different departure times and the planner would pick between them
+   * arbitrarily.
+   */
+  private async loadTimes(): Promise<void> {
+    const rows = await this.sequelize.query<{
+      routeId: string;
+      stopId: string;
+      departureTime: string;
+    }>(
+      `SELECT DISTINCT ON (t."routeId", st."stopId")
+              t."routeId", st."stopId", st."departureTime"
+       FROM stop_times st
+       JOIN trips t ON t.id = st."tripId"
+       WHERE st."departureTime" IS NOT NULL
+       ORDER BY t."routeId", st."stopId", t.direction, t.id, st."stopSequence"`,
+      { type: QueryTypes.SELECT },
+    );
+
+    for (const row of rows) {
+      const route = this.routes.get(row.routeId);
+      if (!route) continue;
+
+      const minutes = minutesOfDay(row.departureTime);
+      if (minutes !== null) route.times.set(row.stopId, minutes);
+    }
+  }
+}
+
+/** "HH:MM" -> minutes since midnight, or null when it is not that shape. */
+export function minutesOfDay(value: string | null | undefined): number | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec((value ?? '').trim());
+  if (!match) return null;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  return hours > 23 || minutes > 59 ? null : hours * 60 + minutes;
+}
+
+/** Minutes since midnight -> "HH:MM", wrapping past midnight. */
+export function clockTime(minutes: number): string {
+  const wrapped = ((minutes % 1440) + 1440) % 1440;
+  const hours = Math.floor(wrapped / 60);
+  return `${hours.toString().padStart(2, '0')}:${(wrapped % 60).toString().padStart(2, '0')}`;
 }
 
 function pushTo(map: Map<string, string[]>, key: string, value: string) {

@@ -23,7 +23,24 @@ export interface JourneyLegDto {
   routeId?: string;
   /** Fare for this leg's service, where the operator publishes one. */
   fareINR?: number | null;
+  /**
+   * Scheduled "HH:MM" at the boarding and alighting stops. Null on walking
+   * legs and on services whose operator publishes no timetable.
+   */
+  departureTime?: string | null;
+  arrivalTime?: string | null;
   instructions: string;
+}
+
+/** A journey option other than the recommended one. */
+export interface JourneyAlternativeDto {
+  legs: JourneyLegDto[];
+  totalDistanceKm: string;
+  totalDurationMinutes: number;
+  transfersCount: number;
+  totalFare?: number | null;
+  fareIncomplete?: boolean;
+  fareSources?: string[];
 }
 
 export class JourneyResponseDto {
@@ -46,4 +63,6 @@ export class JourneyResponseDto {
   fareSources?: string[];
   confidenceScore: number;
   confidenceBadges: string[];
+  /** Other ways to make the trip, fastest first. Empty when there is only one. */
+  alternatives?: JourneyAlternativeDto[];
 }
