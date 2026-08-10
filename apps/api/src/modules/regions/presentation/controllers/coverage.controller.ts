@@ -72,14 +72,34 @@ export class CoverageController {
 
     // Operators are tied to a state through the stops they serve, which is the
     // only link the schema gives us — routes carry a provider, not a region.
+    // Counted per mode rather than as one total, because the home screen shows
+    // a tile per mode and a mode with no routes has to say so. Metro currently
+    // returns nothing here, and that absence is the honest answer.
     const rows = stateCode
-      ? await this.sequelize.query<{ routeCount: number; modes: string[] }>(
+      ? await this.sequelize.query<{ mode: string; routeCount: number; stopCount: number }>(
           `WITH operators AS (
              SELECT DISTINCT provider FROM stops WHERE state = :stateCode
            )
-           SELECT count(*)::int AS "routeCount",
-                  array_agg(DISTINCT "routeType") AS modes
-           FROM routes WHERE provider IN (SELECT provider FROM operators)`,
+           SELECT lower(r."routeType") AS mode,
+                  count(DISTINCT r.id)::int AS "routeCount",
+                  count(DISTINCT st."stopId")::int AS "stopCount"
+           FROM routes r
+           LEFT JOIN trips t ON t."routeId" = r.id
+           LEFT JOIN stop_times st ON st."tripId" = t.id
+           WHERE r.provider IN (SELECT provider FROM operators)
+             AND r."routeType" IS NOT NULL
+           GROUP BY lower(r."routeType")
+           ORDER BY count(DISTINCT r.id) DESC`,
+          { replacements: { stateCode }, type: QueryTypes.SELECT },
+        )
+      : [];
+
+    // Every stop we hold in the state, including ones no trip calls at yet —
+    // the per-mode stopCount above only sees stops with scheduled service.
+    const [totals] = stateCode
+      ? await this.sequelize.query<{ stopCount: number; lastUpdated: Date | null }>(
+          `SELECT count(*)::int AS "stopCount", max("updatedAt") AS "lastUpdated"
+           FROM stops WHERE state = :stateCode`,
           { replacements: { stateCode }, type: QueryTypes.SELECT },
         )
       : [];
@@ -88,10 +108,17 @@ export class CoverageController {
       data: {
         stateCode,
         region: stateCode ? (STATE_NAMES[stateCode] ?? stateCode) : null,
-        routeCount: rows[0]?.routeCount ?? 0,
+        routeCount: rows.reduce((sum, row) => sum + row.routeCount, 0),
+        stopCount: totals?.stopCount ?? 0,
+        lastUpdated: totals?.lastUpdated ?? null,
         // Only the modes that genuinely have routes here. Empty is a real
         // answer: it means we have stops but no services mapped yet.
-        modes: (rows[0]?.modes ?? []).filter(Boolean).map(mode => mode.toLowerCase()),
+        modes: rows.map(row => row.mode),
+        byMode: rows.map(row => ({
+          mode: row.mode,
+          routeCount: row.routeCount,
+          stopCount: row.stopCount,
+        })),
       },
     };
   }
