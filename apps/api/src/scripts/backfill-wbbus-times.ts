@@ -221,20 +221,9 @@ async function main() {
   await sequelize.close();
 }
 
-if (process.argv.includes('--selftest')) {
-  // The two formats the page mixes, plus the shapes that must not slip through.
-  const cases: Array<[string | null, string | null]> = [
-    ['5:30 AM', '05:30'], ['12:05 AM', '00:05'], ['12:05 PM', '12:05'],
-    ['4:10 PM', '16:10'], ['11:59 PM', '23:59'],
-    ['', null], [null, null], ['5:70 AM', null], ['soon', null],
-  ];
-  for (const [input, expected] of cases) {
-    if (toHHMM(input) !== expected) {
-      throw new Error(`toHHMM(${JSON.stringify(input)}) = ${toHHMM(input)}, want ${expected}`);
-    }
-  }
-  console.log(`toHHMM: ${cases.length} cases pass.`);
-} else {
+// Only when run as a script. The spec imports toHHMM, and importing this file
+// must not start a scrape.
+if (require.main === module) {
   main().catch(error => {
     console.error(error);
     process.exit(1);

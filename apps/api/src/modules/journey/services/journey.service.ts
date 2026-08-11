@@ -16,15 +16,18 @@ export class JourneyService {
       throw new BadRequestException('Both from and to location parameters are required.');
     }
 
-    const originPlace = await this.journeyRepository.findPlaceByName(from);
-    if (!originPlace) {
+    const originCandidates = await this.journeyRepository.findPlacesByName(from);
+    if (!originCandidates.length) {
       throw new NotFoundException(`Origin location '${from}' was not found in the canonical graph database.`);
     }
 
-    const destPlace = await this.journeyRepository.findPlaceByName(to);
-    if (!destPlace) {
+    const destCandidates = await this.journeyRepository.findPlacesByName(to);
+    if (!destCandidates.length) {
       throw new NotFoundException(`Destination location '${to}' was not found in the canonical graph database.`);
     }
+
+    const originPlace = originCandidates[0];
+    const destPlace = destCandidates[0];
 
     // Number(null) is 0, so a place with no coordinates would otherwise look
     // like a valid point in the Gulf of Guinea and quietly return nonsense.
@@ -41,10 +44,56 @@ export class JourneyService {
     // Missing coordinates are not fatal — the planner falls back to matching
     // stops by name, which is how places like Kolkata (no lat/lng in `places`)
     // still resolve.
-    const journeys = await this.planner.planAll(
-      { lat: originLat, lng: originLng, placeId: originPlace.id, name: originPlace.canonicalName || from },
-      { lat: destLat, lng: destLng, placeId: destPlace.id, name: destPlace.canonicalName || to },
+    // The typed name and the place's normalised form are both worth matching:
+    // operators title the same stand differently, and the canonical row keeps
+    // only one of those titles.
+    const namesFor = (place: any, typed: string) =>
+      [place.normalizedName, typed].filter(
+        (value: string | null) => !!value && value !== place.canonicalName,
+      );
+
+    let journeys = await this.planner.planAll(
+      {
+        lat: originLat,
+        lng: originLng,
+        placeId: originPlace.id,
+        name: originPlace.canonicalName || from,
+        altNames: namesFor(originPlace, from),
+      },
+      {
+        lat: destLat,
+        lng: destLng,
+        placeId: destPlace.id,
+        name: destPlace.canonicalName || to,
+        altNames: namesFor(destPlace, to),
+      },
     );
+
+    // A name can mean more than one place, and one operator's record of it may
+    // hold none of the services another operator's does. "Asansol" and
+    // "Asansol Bus Terminus" are the same bus stand under two imports; picking
+    // the wrong one reported no route where six exist. So a failed search
+    // falls through to the next reading of the name rather than becoming the
+    // answer.
+    for (const candidate of destCandidates.slice(1)) {
+      if (journeys.length) break;
+      journeys = await this.planner.planAll(
+        {
+          lat: originLat,
+          lng: originLng,
+          placeId: originPlace.id,
+          name: originPlace.canonicalName || from,
+          altNames: namesFor(originPlace, from),
+        },
+        {
+          lat: coordinate(candidate.latitude),
+          lng: coordinate(candidate.longitude),
+          placeId: candidate.id,
+          name: candidate.canonicalName || to,
+          altNames: namesFor(candidate, to),
+        },
+      );
+    }
 
     const journey = journeys[0];
 

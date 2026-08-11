@@ -7,29 +7,66 @@ export class JourneyRepository {
   constructor(private readonly sequelize: Sequelize) {}
 
   /**
+   * Places a name could mean, best first.
+   *
    * `LIKE '%name%' LIMIT 1` returned whichever row Postgres happened to reach
    * first — for "Kolkata" that was a place with no coordinates, so every
-   * journey from it was unplannable. Rank instead: usable coordinates first,
-   * then exact match, then prefix, then shortest name.
+   * journey from it was unplannable. Ranking fixed that but put coordinates
+   * above the name itself, which broke a different case: asking for "Asansol"
+   * returned "Asansol Bus Terminus", a different operator's stop with no
+   * services from the origin. The planner then reported no route between two
+   * places that six routes connect.
+   *
+   * So the name the rider actually typed wins first, and coordinates only
+   * break ties between equally good name matches. Missing coordinates are no
+   * longer fatal anyway — the planner falls back to matching stops by name.
    */
-  async findPlaceByName(name: string): Promise<any | null> {
+  async findPlacesByName(name: string, limit = 3): Promise<any[]> {
     const cleanName = name.trim().toLowerCase();
-    const search: any[] = await this.sequelize.query(
-      `SELECT * FROM "places"
-       WHERE LOWER("canonicalName") LIKE :like OR LOWER("normalizedName") LIKE :like
+    return this.sequelize.query(
+      // Aliases are searched alongside the place's own titles. Operators name
+      // the same stand differently — "ARAMBAG (NS)", "Durgapur (Muchipara)" —
+      // and `places` keeps only one of those titles, so a name the app itself
+      // printed in a journey leg failed to resolve when typed back in.
+      //
+      // An exact alias outranks a partial match on the canonical name: a rider
+      // typing an operator's exact wording means that stop, not a place that
+      // merely contains the same letters.
+      `SELECT p.*,
+              MIN(CASE WHEN LOWER(a."normalizedAlias") = :exact THEN 0
+                       WHEN LOWER(a.alias) = :exact THEN 0
+                       ELSE 1 END) AS "aliasExact"
+       FROM "places" p
+       LEFT JOIN "place_aliases" a ON a."placeId" = p.id
+       WHERE LOWER(p."canonicalName") LIKE :like
+          OR LOWER(p."normalizedName") LIKE :like
+          OR LOWER(a."normalizedAlias") LIKE :like
+          OR LOWER(a.alias) LIKE :like
+       GROUP BY p.id
        ORDER BY
-         ("latitude" IS NOT NULL AND "longitude" IS NOT NULL) DESC,
-         (LOWER("canonicalName") = :exact) DESC,
-         (LOWER("canonicalName") LIKE :prefix) DESC,
-         LENGTH("canonicalName") ASC
-       LIMIT 1;`,
+         (LOWER(p."canonicalName") = :exact) DESC,
+         (LOWER(p."normalizedName") = :exact) DESC,
+         MIN(CASE WHEN LOWER(a."normalizedAlias") = :exact
+                    OR LOWER(a.alias) = :exact THEN 0 ELSE 1 END) ASC,
+         (LOWER(p."canonicalName") LIKE :prefix) DESC,
+         (p."latitude" IS NOT NULL AND p."longitude" IS NOT NULL) DESC,
+         LENGTH(p."canonicalName") ASC
+       LIMIT :limit;`,
       {
-        replacements: { like: `%${cleanName}%`, exact: cleanName, prefix: `${cleanName}%` },
+        replacements: {
+          like: `%${cleanName}%`,
+          exact: cleanName,
+          prefix: `${cleanName}%`,
+          limit,
+        },
         type: QueryTypes.SELECT,
       }
     );
-    if (search.length > 0) return search[0];
-    return null;
+  }
+
+  async findPlaceByName(name: string): Promise<any | null> {
+    const [best] = await this.findPlacesByName(name, 1);
+    return best ?? null;
   }
 
   async findConnectingRoutes(originPlaceId: string, destPlaceId: string): Promise<Array<{ id: string; longName: string; providerCode: string }>> {

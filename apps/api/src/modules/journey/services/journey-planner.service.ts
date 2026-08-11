@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GraphStop, TransitGraphService, clockTime, haversineMeters } from './transit-graph.service';
+import { GraphRoute, GraphStop, TransitGraphService, clockTime, haversineMeters } from './transit-graph.service';
 
 /** Average speeds (km/h) used to turn distance into minutes. */
 const SPEED = { WALK: 4.5, BUS: 22, METRO: 32 } as const;
@@ -61,6 +61,12 @@ export interface JourneyEndpoint {
   placeId?: string;
   /** Free-text name, used to find stops when the place has no coordinates. */
   name?: string;
+  /**
+   * Other names for the same place. A canonical place is titled after one
+   * operator's wording — "Asansol Bus Terminus" — while other operators call
+   * the same stand "Asansol", and only some of their stops are linked to it.
+   */
+  altNames?: string[];
 }
 
 export interface PlannedJourney {
@@ -207,7 +213,7 @@ export class JourneyPlannerService {
 
           // ...and relax every stop after that boarding point.
           if (boardIndex >= 0 && i > boardIndex) {
-            const ride = this.rideMinutes(route.stopIds[i - 1], route.stopIds[i], route.mode);
+            const ride = this.rideMinutes(route.stopIds[i - 1], route.stopIds[i], route);
             // Untrustworthy geometry: stop using this route from here on rather
             // than carrying a broken cost forward to every later stop.
             if (ride === null) break;
@@ -258,25 +264,60 @@ export class JourneyPlannerService {
   }
 
   /**
-   * Stops a rider can start from, in order of preference:
-   *   1. stops tagged with the place
-   *   2. stops within walking distance of the place's coordinates
-   *   3. stops whose *name* matches the query — the fallback that matters,
-   *      because many `places` rows (Kolkata, Bankura) have no coordinates.
+   * Stops a rider can start from: everything tagged with the place, everything
+   * within walking distance of it, and everything sharing one of its names.
+   *
+   * All three, unioned — not the first that returns anything. The linkage
+   * between provider stops and canonical places is incomplete, so a place that
+   * has *some* tagged stops can still be missing the ones that carry the
+   * services. Asansol was exactly that: the canonical place held two
+   * operators' stops, the route from Telipukur called at a third operator's
+   * stop of the same stand, and the planner reported no route between two
+   * places six routes connect.
+   *
+   * Unioning is safe because the distance filter below still applies: a stop
+   * named "Asansol" elsewhere in the state is dropped for being unwalkable,
+   * not accepted for having the right name.
    */
   private accessStops(point: JourneyEndpoint) {
     const hasCoords = Number.isFinite(point.lat) && Number.isFinite(point.lng);
 
-    let ids = point.placeId ? this.graph.stopsForPlace(point.placeId) : [];
-    if (!ids.length && hasCoords) ids = this.graph.stopsNear(point.lat, point.lng, ACCESS_WALK_METERS);
-    if (!ids.length && point.name) ids = this.graph.stopsMatchingName(point.name);
+    const ids = new Set<string>();
+    if (point.placeId) {
+      for (const id of this.graph.stopsForPlace(point.placeId)) ids.add(id);
+    }
+    if (hasCoords) {
+      for (const id of this.graph.stopsNear(point.lat, point.lng, ACCESS_WALK_METERS)) {
+        ids.add(id);
+      }
+    }
+    for (const name of [point.name, ...(point.altNames ?? [])]) {
+      if (!name?.trim()) continue;
+      for (const id of this.graph.stopsMatchingName(name)) ids.add(id);
+    }
 
-    const candidates = ids
+    const candidates = [...ids]
       .map(stopId => {
         const stop = this.graph.getStop(stopId);
         if (!stop) return null;
-        // Without a coordinate for the endpoint there is no access walk to cost.
-        const meters = hasCoords ? haversineMeters(point.lat, point.lng, stop.lat, stop.lng) : 0;
+
+        // Without a coordinate at either end there is no access walk to cost.
+        //
+        // The stop's own coordinates were not checked before, so a stop with
+        // none produced NaN metres, failed the walkable test below, and was
+        // dropped — but only when some *other* match had coordinates, which
+        // made it look like a distance decision rather than missing data.
+        // Asansol's busiest record is exactly that: no coordinates, 144
+        // scheduled calls, and invisible to every journey that named it.
+        //
+        // Unknown distance is treated as no distance rather than infinite
+        // distance. We cannot measure the walk, and refusing to plan is worse
+        // than not costing a walk we have no way to cost.
+        const stopHasCoords = Number.isFinite(stop.lat) && Number.isFinite(stop.lng);
+        const meters =
+          hasCoords && stopHasCoords
+            ? haversineMeters(point.lat, point.lng, stop.lat, stop.lng)
+            : 0;
         return { stopId, meters, walkMinutes: meters ? minutesFor(meters, SPEED.WALK) : 0 };
       })
       .filter((x): x is { stopId: string; meters: number; walkMinutes: number } => x !== null);
@@ -326,15 +367,38 @@ export class JourneyPlannerService {
     return bestId;
   }
 
-  private rideMinutes(fromStopId: string, toStopId: string, mode: 'BUS' | 'METRO') {
+  /**
+   * How long one hop takes, from the operator's timetable where it exists and
+   * from geometry where it does not.
+   *
+   * The timetable comes first because it is the operator's own answer, and
+   * because geometry has nothing to say about a stop with no coordinates.
+   * That case is not rare: Asansol's busiest record has none, and a purely
+   * geometric cost returned NaN there — which is never less than an existing
+   * label, so the route died at that stop and the journey was reported as
+   * impossible while a bus ran it twice a day.
+   */
+  private rideMinutes(fromStopId: string, toStopId: string, route: GraphRoute) {
     const from = this.graph.getStop(fromStopId);
     const to = this.graph.getStop(toStopId);
     if (!from || !to) return null;
 
+    const departs = route.times.get(fromStopId);
+    const arrives = route.times.get(toStopId);
+    if (departs !== undefined && arrives !== undefined) {
+      const scheduled = arrives - departs;
+      // Only forward hops within a day. A negative or absurd gap means the two
+      // times came from opposite directions of the route, not from one run.
+      if (scheduled > 0 && scheduled <= 24 * 60) return scheduled;
+    }
+
     const meters = haversineMeters(from.lat, from.lng, to.lat, to.lng);
+    // NaN fails this test, so an unlocated stop must be caught explicitly
+    // rather than falling through to a NaN cost.
+    if (!Number.isFinite(meters)) return null;
     if (meters > MAX_PLAUSIBLE_HOP_KM * 1000) return null;
 
-    return minutesFor(meters, SPEED[mode]);
+    return minutesFor(meters, SPEED[route.mode]);
   }
 
   /** Walk the label chain back to the origin, merging consecutive same-route hops. */
@@ -386,7 +450,10 @@ export class JourneyPlannerService {
       const to = this.graph.getStop(hop.to)!;
       const route = hop.viaRouteId ? this.graph.getRoute(hop.viaRouteId) : undefined;
       const mode = route ? route.mode : 'WALK';
-      const km = haversineMeters(from.lat, from.lng, to.lat, to.lng) / 1000;
+      // Unknown where one end is, so the leg reports no distance rather than
+      // NaN. The times still come from the timetable.
+      const metres = haversineMeters(from.lat, from.lng, to.lat, to.lng);
+      const km = Number.isFinite(metres) ? metres / 1000 : 0;
 
       const previous = legs[legs.length - 1];
 

@@ -102,7 +102,11 @@ export class TransitGraphService implements OnModuleInit {
       for (let i = 1; i < route.stopIds.length; i++) {
         const a = this.stops.get(route.stopIds[i - 1]);
         const b = this.stops.get(route.stopIds[i]);
-        if (a && b) km += haversineMeters(a.lat, a.lng, b.lat, b.lng) / 1000;
+        // An unlocated stop contributes no length rather than NaN, which would
+        // poison the whole route's distance and every journey using it.
+        if (!a || !b) continue;
+        const segment = haversineMeters(a.lat, a.lng, b.lat, b.lng);
+        if (Number.isFinite(segment)) km += segment / 1000;
       }
     }
 
@@ -169,8 +173,11 @@ export class TransitGraphService implements OnModuleInit {
   private async load() {
     const startedAt = Date.now();
 
-    // lat/lng live in the metadata JSON; stops without coordinates can't take
-    // part in walking transfers, so they are dropped from the graph entirely.
+    // lat/lng live in the metadata JSON. A stop without them cannot anchor a
+    // walk, so it is kept out of the spatial grid — but it stays in the graph,
+    // because riding a bus needs no coordinates. Dropping them entirely made
+    // Asansol's busiest record, with 144 scheduled calls, invisible to every
+    // journey that named it.
     const stopRows = await this.sequelize.query<{
       id: string; placeId: string | null; name: string; lat: string | null; lng: string | null;
     }>(
@@ -193,18 +200,28 @@ export class TransitGraphService implements OnModuleInit {
     for (const row of stopRows) {
       // Number(null) is 0, not NaN — coercing first put all 524 stops with no
       // coordinates at 0,0 off West Africa, where they became each other's
-      // "nearby" stops and polluted every search.
-      if (row.lat === null || row.lng === null) continue;
+      // "nearby" stops and polluted every search. NaN keeps them out of every
+      // distance comparison instead, which is what "we do not know" means.
+      const lat = row.lat === null ? NaN : Number(row.lat);
+      const lng = row.lng === null ? NaN : Number(row.lng);
 
-      const lat = Number(row.lat);
-      const lng = Number(row.lng);
+      // Everything served here is in India; anything else is a broken record,
+      // and a broken coordinate is worth no more than a missing one.
+      const located =
+        Number.isFinite(lat) && Number.isFinite(lng) &&
+        lat >= 6 && lat <= 38 && lng >= 68 && lng <= 98;
 
-      // Everything served here is in India; anything else is a broken record.
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-      if (lat < 6 || lat > 38 || lng < 68 || lng > 98) continue;
+      this.stops.set(row.id, {
+        id: row.id,
+        placeId: row.placeId,
+        name: row.name,
+        lat: located ? lat : NaN,
+        lng: located ? lng : NaN,
+      });
 
-      this.stops.set(row.id, { id: row.id, placeId: row.placeId, name: row.name, lat, lng });
-      pushTo(this.grid, this.cellKey(lat, lng), row.id);
+      // Grid membership is what makes a stop a candidate for walking, so an
+      // unlocated stop simply never becomes one.
+      if (located) pushTo(this.grid, this.cellKey(lat, lng), row.id);
       if (row.placeId) pushTo(this.stopsByPlace, row.placeId, row.id);
     }
 

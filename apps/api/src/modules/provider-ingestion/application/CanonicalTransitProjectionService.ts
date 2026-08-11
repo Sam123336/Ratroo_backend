@@ -35,6 +35,63 @@ export class CanonicalTransitProjectionService {
         this.logger.log(`projected ${label}`);
       };
 
+      // Which bus_stops row each one publishes as.
+      //
+      // Every operator import creates its own bus_stops row, and this step used
+      // to copy each straight into `stops`. One bus stand imported by eight
+      // operators became eight stops, each holding a slice of the services —
+      // three identical rows in the app, none of them complete.
+      //
+      // Same-named stops in the same place now project as one row, and the
+      // references below are translated through this map so no service is left
+      // pointing at a stop that no longer publishes.
+      //
+      // Grid-snapped rather than radius-clustered: 0.001 degrees is about
+      // 110 m, and a set-based rule that runs in one pass is worth more here
+      // than exactness. It errs toward leaving a duplicate (two stops either
+      // side of a cell boundary) rather than merging two stops that are not the
+      // same place — the direction that cannot hide a service.
+      //
+      // `min(id)` picks the survivor because it is stable: the same input
+      // yields the same canonical id on every run, so re-projection converges
+      // instead of shuffling stop ids under the app.
+      await run(
+        'canonical stop map',
+        `
+        CREATE TEMP TABLE stop_canonical_map ON COMMIT DROP AS
+        WITH keyed AS (
+          SELECT
+            bs.id,
+            CASE
+              WHEN bs.metadata->>'latitude' IS NOT NULL
+               AND bs.metadata->>'longitude' IS NOT NULL
+               AND regexp_replace(lower(bs.name), '[^a-z0-9]', '', 'g') <> ''
+              THEN regexp_replace(lower(bs.name), '[^a-z0-9]', '', 'g')
+            END AS key,
+            bs.metadata->'geography'->>'stateCode' AS state,
+            round((bs.metadata->>'latitude')::numeric, 3) AS lat_cell,
+            round((bs.metadata->>'longitude')::numeric, 3) AS lon_cell
+          FROM bus_stops bs
+        )
+        SELECT
+          id AS "busStopId",
+          -- A stop with no name key or no coordinates cannot be shown to be
+          -- the same place as another, so it stands alone.
+          CASE
+            WHEN key IS NULL THEN id
+            -- Through text because Postgres has no min(uuid). Ids are UUID v7
+            -- in canonical lowercase hex, so text order matches uuid order.
+            ELSE (min(id::text) OVER (PARTITION BY key, state, lat_cell, lon_cell))::uuid
+          END AS "canonicalId"
+        FROM keyed
+        `,
+      );
+
+      await run(
+        'canonical stop map index',
+        `CREATE INDEX ON stop_canonical_map ("busStopId")`,
+      );
+
       // One agency per provider code. bus_routes has no agency concept, so the
       // provider stands in as the operator.
       await run(
@@ -71,6 +128,9 @@ export class CanonicalTransitProjectionService {
           bs."externalId",
           now(), now()
         FROM bus_stops bs
+        JOIN stop_canonical_map m ON m."busStopId" = bs.id
+        -- Only the row that other imports of this place resolve to.
+        WHERE m."canonicalId" = bs.id
         ON CONFLICT (id) DO UPDATE SET
           name = EXCLUDED.name,
           "normalizedName" = EXCLUDED."normalizedName",
@@ -116,11 +176,15 @@ export class CanonicalTransitProjectionService {
         FROM bus_routes br
         JOIN agencies a ON a.code = br."providerCode"
         LEFT JOIN LATERAL (
-          SELECT brs."stopId" FROM bus_route_stops brs
+          SELECT m."canonicalId" AS "stopId"
+          FROM bus_route_stops brs
+          JOIN stop_canonical_map m ON m."busStopId" = brs."stopId"
           WHERE brs."routeId" = br.id ORDER BY brs.sequence ASC LIMIT 1
         ) origin ON true
         LEFT JOIN LATERAL (
-          SELECT brs."stopId" FROM bus_route_stops brs
+          SELECT m."canonicalId" AS "stopId"
+          FROM bus_route_stops brs
+          JOIN stop_canonical_map m ON m."busStopId" = brs."stopId"
           WHERE brs."routeId" = br.id ORDER BY brs.sequence DESC LIMIT 1
         ) dest ON true
         ON CONFLICT (id) DO UPDATE SET
@@ -163,11 +227,16 @@ export class CanonicalTransitProjectionService {
         'stop_times',
         `
         INSERT INTO stop_times (id, "tripId", "stopId", "stopSequence", "arrivalTime", "departureTime", "timeSource")
-        SELECT bst.id, bst."tripId", bst."stopId", bst.sequence, bst."arrivalTime", bst."departureTime", bst."timeSource"
+        SELECT bst.id, bst."tripId", m."canonicalId", bst.sequence,
+               bst."arrivalTime", bst."departureTime", bst."timeSource"
         FROM bus_stop_times bst
         JOIN trips t ON t.id = bst."tripId"
-        JOIN stops s ON s.id = bst."stopId"
+        JOIN stop_canonical_map m ON m."busStopId" = bst."stopId"
+        JOIN stops s ON s.id = m."canonicalId"
         ON CONFLICT (id) DO UPDATE SET
+          -- Repointed too, so a stop that stopped publishing on a later run
+          -- does not leave its departures stranded.
+          "stopId" = EXCLUDED."stopId",
           "stopSequence" = EXCLUDED."stopSequence",
           "arrivalTime" = EXCLUDED."arrivalTime",
           "departureTime" = EXCLUDED."departureTime",

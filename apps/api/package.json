@@ -12,7 +12,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
+    "test": "node --require ts-node/register --test \"src/**/*.spec.ts\"",
     "migrate": "ts-node -r tsconfig-paths/register src/database/migrate.ts up",
     "migrate:down": "ts-node -r tsconfig-paths/register src/database/migrate.ts down",
     "migrate:status": "ts-node -r tsconfig-paths/register src/database/migrate.ts status",
@@ -26,7 +26,9 @@
     "providers:seed": "ts-node -r tsconfig-paths/register src/scripts/seed-providers.ts",
     "wbbus:backfill-times": "ts-node -r tsconfig-paths/register src/scripts/backfill-wbbus-times.ts",
     "stoptimes:clean": "ts-node -r tsconfig-paths/register src/scripts/clean-stop-times.ts",
-    "stops:prune-garbage": "ts-node -r tsconfig-paths/register src/scripts/prune-garbage-stops.ts"
+    "stops:prune-garbage": "ts-node -r tsconfig-paths/register src/scripts/prune-garbage-stops.ts",
+    "stops:merge-duplicates": "ts-node -r tsconfig-paths/register src/scripts/merge-duplicate-stops.ts",
+    "places:seed-aliases": "ts-node -r tsconfig-paths/register src/scripts/seed-place-aliases.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

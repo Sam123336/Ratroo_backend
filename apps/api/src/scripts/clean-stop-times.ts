@@ -4,6 +4,8 @@
  *   npm run stoptimes:clean -- --dry
  *   npm run stoptimes:clean
  *
+ * The time conversions are covered by clean-stop-times.spec.ts.
+ *
  * Two defects, both introduced by re-running ingestion over existing trips:
  *
  * 1. Duplicates. 808 trips hold two rows for the same (stop, sequence): one
@@ -63,46 +65,9 @@ export function normaliseTime(raw: string | null): string | null {
   return null;
 }
 
-/**
- * `npm run stoptimes:clean -- --selftest` — no database needed.
- *
- * The repo has no TypeScript test runner configured, and a wrong conversion
- * here moves a bus by twelve hours, so the check ships with the code.
- */
-function selfTest() {
-  const cases: Array<[string | null, string | null]> = [
-    ['4:25 AM', '04:25'],
-    ['1:05 PM', '13:05'],
-    ['12:30 AM', '00:30'], // midnight is 00, not 12
-    ['12:30 PM', '12:30'], // noon stays 12
-    ['11:59 PM', '23:59'],
-    ['05:55:00', '05:55'],
-    ['7:30:00', '07:30'],
-    ['21:15', '21:15'],
-    ['9:05', '09:05'],
-    [null, null],
-    ['_ _ : _ _', null],
-    ['25:00', null],
-    ['10:75', null],
-    ['soon', null],
-  ];
 
-  for (const [input, expected] of cases) {
-    const actual = normaliseTime(input);
-    if (actual !== expected) {
-      throw new Error(`normaliseTime(${JSON.stringify(input)}) = ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
-    }
-  }
-
-  console.log(`normaliseTime: ${cases.length} cases pass.`);
-}
 
 async function main() {
-  if (process.argv.includes('--selftest')) {
-    selfTest();
-    return;
-  }
-
   const sequelize = new Sequelize({
     dialect: 'postgres', logging: false, ...postgresConnection(processEnvLookup),
   } as never);
@@ -167,7 +132,11 @@ async function main() {
   await sequelize.close();
 }
 
-main().catch(error => {
-  console.error(error);
-  process.exit(1);
-});
+// Only when run as a script. The spec imports normaliseTime, and importing
+// this file must not open a database connection.
+if (require.main === module) {
+  main().catch(error => {
+    console.error(error);
+    process.exit(1);
+  });
+}
