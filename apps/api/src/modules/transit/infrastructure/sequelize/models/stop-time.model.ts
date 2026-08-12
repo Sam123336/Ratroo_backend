@@ -43,6 +43,15 @@ export class StopTimeModel extends Model {
   @Column({ type: DataType.STRING(20), allowNull: true })
   declare departureTime?: string;
 
+  /**
+   * SCRAPED, INTERPOLATED or OFFICIAL. The column existed but the model did
+   * not declare it, so anything writing through the ORM dropped it silently —
+   * and an estimate that loses its label becomes indistinguishable from an
+   * operator's published time.
+   */
+  @Column({ type: DataType.STRING(32), allowNull: true })
+  declare timeSource?: string;
+
   @CreatedAt
   declare createdAt: Date;
 

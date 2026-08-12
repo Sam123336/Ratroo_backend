@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { describe, test } from 'node:test';
-import { normaliseTime } from './clean-stop-times';
+import { normaliseTime } from './time-format';
 
 /**
  * Fixtures only. A wrong conversion here moves a bus by twelve hours, so every

@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { describe, test } from 'node:test';
-import { StopRow, clusterStops, nameKey } from './merge-duplicate-stops';
+import { StopRow, clusterStops, nameKey } from './stop-clustering';
 
 /**
  * Every literal in this file is a fixture — an input invented to exercise the

@@ -51,9 +51,13 @@ import { MetroModule } from './modules/metro/metro.module';
 import { TramModule } from './modules/tram/tram.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { DataQualityModule } from './modules/data-quality/data-quality.module';
+import { OperatorsModule } from './modules/operators/operators.module';
 
 @Module({
   imports: [
+    OperatorsModule,
+    DataQualityModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],

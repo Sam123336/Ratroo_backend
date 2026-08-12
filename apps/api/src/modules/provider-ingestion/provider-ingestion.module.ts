@@ -60,9 +60,31 @@ import { CoverageDashboardService } from './health/coverage-dashboard.service';
 // Removed Places & Graph imports
 
 import { InternalOpsDashboardController } from './health/internal-ops-dashboard.controller';
+import { OperatorRouteModel } from '../operators/entities/operator-route.model';
+import {
+  AgencyModel, RouteModel, StopModel, StopTimeModel, TripModel,
+} from '../transit/infrastructure/sequelize/models';
+import {
+  OperatorSubmissionFetcher,
+  OperatorSubmittedProvider,
+} from './providers/operator-submitted.provider';
 
 @Module({
-  imports: [SequelizeModule.forFeature(PROVIDER_INGESTION_SEQUELIZE_MODELS)],
+  imports: [
+    SequelizeModule.forFeature(PROVIDER_INGESTION_SEQUELIZE_MODELS),
+    // The operator provider reads submitted routes; it needs the model, not
+    // the operators module's services, so only the model is pulled in.
+    SequelizeModule.forFeature([OperatorRouteModel]),
+    // The projection writes the transit serving tables through their own
+    // models, so they have to be injectable here too.
+    SequelizeModule.forFeature([
+      AgencyModel,
+      StopModel,
+      RouteModel,
+      TripModel,
+      StopTimeModel,
+    ]),
+  ],
   controllers: [
     ProviderRegistryController,
     BengaluruJourneyController,
@@ -80,6 +102,10 @@ import { InternalOpsDashboardController } from './health/internal-ops-dashboard.
     ProviderSyncCronController,
   ],
   providers: [
+    // Registered operators, read through the same pipeline as every
+    // scraped source rather than a private path into the transit tables.
+    OperatorSubmissionFetcher,
+    OperatorSubmittedProvider,
     ProviderRegistryService,
     BengaluruJourneyPlannerService,
     BengaluruMobilityQueryService,

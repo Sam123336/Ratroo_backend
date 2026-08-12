@@ -1,6 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectConnection } from '@nestjs/sequelize';
-import { QueryTypes, Sequelize } from 'sequelize';
+import { InjectConnection, InjectModel } from '@nestjs/sequelize';
+import { Model, ModelCtor, Sequelize } from 'sequelize-typescript';
+import { Transaction } from 'sequelize';
+import {
+  AgencyModel, RouteModel, StopModel, StopTimeModel, TripModel,
+} from '../../transit/infrastructure/sequelize/models';
+import {
+  BusRouteModel, BusRouteStopModel, BusStopModel, BusStopTimeModel, BusTripModel,
+} from '../infrastructure/sequelize/models';
 
 /**
  * Projects the promoted provider-ingestion network (`bus_*`) into the canonical
@@ -11,240 +18,48 @@ import { QueryTypes, Sequelize } from 'sequelize';
  * /v1/routes, /v1/stops/nearby and /v1/journey were all served from empty
  * tables while the data sat one schema over. This is the missing publish step.
  *
- * Set-based SQL rather than the ORM: ~40k rows, and row-by-row would take
- * minutes and a lot of memory for what Postgres does in one pass.
+ * Written through the Sequelize models rather than SQL: every row shape here
+ * is one the ORM already describes, and going around it meant the projection
+ * could write columns the models did not declare — which is how `timeSource`
+ * came to exist in the database but not in `StopTimeModel`.
  *
- * Idempotent — every statement is an upsert, so re-running after each nightly
- * sync converges rather than duplicating.
- *
- * Row ids are carried across unchanged (routes.id = bus_routes.id, and so on),
- * which is what lets the foreign keys line up without an id translation table.
+ * Idempotent — every write is an upsert keyed on the id carried across from
+ * `bus_*`, so re-running after each nightly sync converges rather than
+ * duplicating.
  */
 @Injectable()
 export class CanonicalTransitProjectionService {
   private readonly logger = new Logger(CanonicalTransitProjectionService.name);
 
-  constructor(@InjectConnection() private readonly sequelize: Sequelize) {}
+  /** Rows per insert. Large enough to be few round trips, small enough to hold. */
+  private static readonly BATCH = 1000;
+
+  constructor(
+    @InjectConnection() private readonly sequelize: Sequelize,
+    @InjectModel(BusStopModel) private readonly busStops: typeof BusStopModel,
+    @InjectModel(BusRouteModel) private readonly busRoutes: typeof BusRouteModel,
+    @InjectModel(BusRouteStopModel) private readonly busRouteStops: typeof BusRouteStopModel,
+    @InjectModel(BusTripModel) private readonly busTrips: typeof BusTripModel,
+    @InjectModel(BusStopTimeModel) private readonly busStopTimes: typeof BusStopTimeModel,
+    @InjectModel(AgencyModel) private readonly agencies: typeof AgencyModel,
+    @InjectModel(StopModel) private readonly stops: typeof StopModel,
+    @InjectModel(RouteModel) private readonly routes: typeof RouteModel,
+    @InjectModel(TripModel) private readonly trips: typeof TripModel,
+    @InjectModel(StopTimeModel) private readonly stopTimes: typeof StopTimeModel,
+  ) {}
 
   async project(): Promise<Record<string, number>> {
     const startedAt = Date.now();
 
     const counts = await this.sequelize.transaction(async transaction => {
-      const run = async (label: string, sql: string) => {
-        await this.sequelize.query(sql, { transaction, type: QueryTypes.RAW });
-        this.logger.log(`projected ${label}`);
-      };
+      const busStops = await this.busStops.findAll({ transaction });
+      const canonicalStopId = buildCanonicalStopMap(busStops);
 
-      // Which bus_stops row each one publishes as.
-      //
-      // Every operator import creates its own bus_stops row, and this step used
-      // to copy each straight into `stops`. One bus stand imported by eight
-      // operators became eight stops, each holding a slice of the services —
-      // three identical rows in the app, none of them complete.
-      //
-      // Same-named stops in the same place now project as one row, and the
-      // references below are translated through this map so no service is left
-      // pointing at a stop that no longer publishes.
-      //
-      // Grid-snapped rather than radius-clustered: 0.001 degrees is about
-      // 110 m, and a set-based rule that runs in one pass is worth more here
-      // than exactness. It errs toward leaving a duplicate (two stops either
-      // side of a cell boundary) rather than merging two stops that are not the
-      // same place — the direction that cannot hide a service.
-      //
-      // `min(id)` picks the survivor because it is stable: the same input
-      // yields the same canonical id on every run, so re-projection converges
-      // instead of shuffling stop ids under the app.
-      await run(
-        'canonical stop map',
-        `
-        CREATE TEMP TABLE stop_canonical_map ON COMMIT DROP AS
-        WITH keyed AS (
-          SELECT
-            bs.id,
-            CASE
-              WHEN bs.metadata->>'latitude' IS NOT NULL
-               AND bs.metadata->>'longitude' IS NOT NULL
-               AND regexp_replace(lower(bs.name), '[^a-z0-9]', '', 'g') <> ''
-              THEN regexp_replace(lower(bs.name), '[^a-z0-9]', '', 'g')
-            END AS key,
-            bs.metadata->'geography'->>'stateCode' AS state,
-            round((bs.metadata->>'latitude')::numeric, 3) AS lat_cell,
-            round((bs.metadata->>'longitude')::numeric, 3) AS lon_cell
-          FROM bus_stops bs
-        )
-        SELECT
-          id AS "busStopId",
-          -- A stop with no name key or no coordinates cannot be shown to be
-          -- the same place as another, so it stands alone.
-          CASE
-            WHEN key IS NULL THEN id
-            -- Through text because Postgres has no min(uuid). Ids are UUID v7
-            -- in canonical lowercase hex, so text order matches uuid order.
-            ELSE (min(id::text) OVER (PARTITION BY key, state, lat_cell, lon_cell))::uuid
-          END AS "canonicalId"
-        FROM keyed
-        `,
-      );
-
-      await run(
-        'canonical stop map index',
-        `CREATE INDEX ON stop_canonical_map ("busStopId")`,
-      );
-
-      // One agency per provider code. bus_routes has no agency concept, so the
-      // provider stands in as the operator.
-      await run(
-        'agencies',
-        `
-        INSERT INTO agencies (id, name, code, country, provider, "createdAt", "updatedAt")
-        SELECT gen_random_uuid(), r."providerCode", r."providerCode", 'IN', r."providerCode", now(), now()
-        FROM (SELECT DISTINCT "providerCode" FROM bus_routes) r
-        ON CONFLICT (code) DO UPDATE SET "updatedAt" = now()
-        `,
-      );
-
-      // lat/lng live inside the metadata JSON on bus_stops.
-      await run(
-        'stops',
-        `
-        INSERT INTO stops (id, name, "normalizedName", latitude, longitude, location,
-                           city, district, state, provider, "externalId", "createdAt", "updatedAt")
-        SELECT
-          bs.id,
-          LEFT(bs.name, 255),
-          LEFT(bs."normalizedName", 255),
-          (bs.metadata->>'latitude')::numeric,
-          (bs.metadata->>'longitude')::numeric,
-          CASE
-            WHEN bs.metadata->>'longitude' IS NOT NULL AND bs.metadata->>'latitude' IS NOT NULL
-            THEN ST_SetSRID(ST_MakePoint((bs.metadata->>'longitude')::float8,
-                                         (bs.metadata->>'latitude')::float8), 4326)
-          END,
-          bs.metadata->'geography'->>'city',
-          bs.metadata->'geography'->>'district',
-          bs.metadata->'geography'->>'stateCode',
-          bs."providerCode",
-          bs."externalId",
-          now(), now()
-        FROM bus_stops bs
-        JOIN stop_canonical_map m ON m."busStopId" = bs.id
-        -- Only the row that other imports of this place resolve to.
-        WHERE m."canonicalId" = bs.id
-        ON CONFLICT (id) DO UPDATE SET
-          name = EXCLUDED.name,
-          "normalizedName" = EXCLUDED."normalizedName",
-          latitude = EXCLUDED.latitude,
-          longitude = EXCLUDED.longitude,
-          location = EXCLUDED.location,
-          city = EXCLUDED.city,
-          district = EXCLUDED.district,
-          state = EXCLUDED.state,
-          "updatedAt" = now()
-        `,
-      );
-
-      // origin/destination come from the first and last stop of the route's
-      // stop sequence; a route with no stops still projects, just without them.
-      await run(
-        'routes',
-        `
-        INSERT INTO routes (id, "agencyId", "shortName", "longName", "originStopId",
-                            "destinationStopId", "routeType", provider, "externalId",
-                            "createdAt", "updatedAt")
-        SELECT
-          br.id,
-          a.id,
-          LEFT(br.metadata->>'shortName', 255),
-          LEFT(br."longName", 255),
-          origin."stopId",
-          dest."stopId",
-          -- Mode from the operator. Everything was hardcoded 'BUS', which is why
-          -- Kolkata's 7 tram routes and 11 ferry routes were indistinguishable
-          -- from buses and the Ferry/Train/Metro screens had nothing to show.
-          CASE br."providerCode"
-            WHEN 'KOLKATA_TRAM' THEN 'TRAM'
-            WHEN 'WB_FERRY' THEN 'FERRY'
-            WHEN 'EASTERN_RAILWAY_SUBURBAN' THEN 'RAIL'
-            WHEN 'KOLKATA_METRO' THEN 'METRO'
-            WHEN 'BMRCL' THEN 'METRO'
-            ELSE 'BUS'
-          END,
-          br."providerCode",
-          br."externalId",
-          now(), now()
-        FROM bus_routes br
-        JOIN agencies a ON a.code = br."providerCode"
-        LEFT JOIN LATERAL (
-          SELECT m."canonicalId" AS "stopId"
-          FROM bus_route_stops brs
-          JOIN stop_canonical_map m ON m."busStopId" = brs."stopId"
-          WHERE brs."routeId" = br.id ORDER BY brs.sequence ASC LIMIT 1
-        ) origin ON true
-        LEFT JOIN LATERAL (
-          SELECT m."canonicalId" AS "stopId"
-          FROM bus_route_stops brs
-          JOIN stop_canonical_map m ON m."busStopId" = brs."stopId"
-          WHERE brs."routeId" = br.id ORDER BY brs.sequence DESC LIMIT 1
-        ) dest ON true
-        ON CONFLICT (id) DO UPDATE SET
-          "agencyId" = EXCLUDED."agencyId",
-          "shortName" = EXCLUDED."shortName",
-          "longName" = EXCLUDED."longName",
-          "originStopId" = EXCLUDED."originStopId",
-          "destinationStopId" = EXCLUDED."destinationStopId",
-          "routeType" = EXCLUDED."routeType",
-          "updatedAt" = now()
-        `,
-      );
-
-      // Only trips whose route projected — an orphan trip would break the FK.
-      await run(
-        'trips',
-        `
-        INSERT INTO trips (id, "routeId", direction, "vehicleName", "vehicleRegistration",
-                           provider, "externalId", "createdAt", "updatedAt")
-        SELECT
-          bt.id,
-          bt."routeId",
-          COALESCE(bt.direction, 'OUTBOUND'),
-          bt."vehicleName",
-          bt."vehicleRegistration",
-          bt."providerCode",
-          bt."externalId",
-          now(), now()
-        FROM bus_trips bt
-        JOIN routes r ON r.id = bt."routeId"
-        ON CONFLICT (id) DO UPDATE SET
-          "routeId" = EXCLUDED."routeId",
-          direction = EXCLUDED.direction,
-          "vehicleName" = EXCLUDED."vehicleName",
-          "updatedAt" = now()
-        `,
-      );
-
-      await run(
-        'stop_times',
-        `
-        INSERT INTO stop_times (id, "tripId", "stopId", "stopSequence", "arrivalTime", "departureTime", "timeSource")
-        SELECT bst.id, bst."tripId", m."canonicalId", bst.sequence,
-               bst."arrivalTime", bst."departureTime", bst."timeSource"
-        FROM bus_stop_times bst
-        JOIN trips t ON t.id = bst."tripId"
-        JOIN stop_canonical_map m ON m."busStopId" = bst."stopId"
-        JOIN stops s ON s.id = m."canonicalId"
-        ON CONFLICT (id) DO UPDATE SET
-          -- Repointed too, so a stop that stopped publishing on a later run
-          -- does not leave its departures stranded.
-          "stopId" = EXCLUDED."stopId",
-          "stopSequence" = EXCLUDED."stopSequence",
-          "arrivalTime" = EXCLUDED."arrivalTime",
-          "departureTime" = EXCLUDED."departureTime",
-          -- Carry the provenance through, or estimates arrive indistinguishable
-          -- from scraped operator times.
-          "timeSource" = EXCLUDED."timeSource"
-        `,
-      );
+      await this.projectAgencies(transaction);
+      await this.projectStops(busStops, canonicalStopId, transaction);
+      const routeIds = await this.projectRoutes(canonicalStopId, transaction);
+      const tripIds = await this.projectTrips(routeIds, transaction);
+      await this.projectStopTimes(tripIds, canonicalStopId, transaction);
 
       return this.countAll(transaction);
     });
@@ -257,17 +72,323 @@ export class CanonicalTransitProjectionService {
     return counts;
   }
 
-  private async countAll(transaction?: unknown): Promise<Record<string, number>> {
-    const counts: Record<string, number> = {};
+  /**
+   * One agency per provider code. `bus_routes` has no agency concept, so the
+   * provider stands in as the operator.
+   */
+  private async projectAgencies(transaction: Transaction): Promise<void> {
+    const rows = await this.busRoutes.findAll({
+      attributes: [
+        [Sequelize.fn('DISTINCT', Sequelize.col('providerCode')), 'providerCode'],
+      ],
+      raw: true,
+      transaction,
+    });
 
-    for (const table of ['agencies', 'stops', 'routes', 'trips', 'stop_times']) {
-      const [row] = await this.sequelize.query<{ n: number }>(
-        `SELECT count(*)::int AS n FROM ${table}`,
-        { type: QueryTypes.SELECT, transaction: transaction as never },
-      );
-      counts[table] = row.n;
+    const codes = rows
+      .map(row => (row as unknown as { providerCode: string }).providerCode)
+      .filter(Boolean);
+
+    // A handful of providers, so per-row upsert on the unique `code` is
+    // cheaper to read than a bulk conflict clause and costs nothing here.
+    for (const code of codes) {
+      const existing = await this.agencies.findOne({ where: { code }, transaction });
+      if (existing) {
+        await existing.update({ name: code, provider: code }, { transaction });
+      } else {
+        await this.agencies.create(
+          { name: code, code, country: 'IN', provider: code },
+          { transaction },
+        );
+      }
+    }
+  }
+
+  /** Only stops that other imports of the same place resolve to. */
+  private async projectStops(
+    busStops: BusStopModel[],
+    canonicalStopId: Map<string, string>,
+    transaction: Transaction,
+  ): Promise<void> {
+    const rows = busStops
+      .filter(stop => canonicalStopId.get(stop.id) === stop.id)
+      .map(stop => {
+        const metadata = (stop.metadata ?? {}) as Record<string, unknown>;
+        const geography = (metadata.geography ?? {}) as Record<string, unknown>;
+        const latitude = numberOrNull(metadata.latitude);
+        const longitude = numberOrNull(metadata.longitude);
+
+        return {
+          id: stop.id,
+          name: truncate(stop.name, 255),
+          normalizedName: truncate(stop.normalizedName, 255),
+          latitude: latitude ?? undefined,
+          longitude: longitude ?? undefined,
+          // GEOMETRY through the ORM's own GeoJSON shape, so PostGIS stays an
+          // implementation detail of the column rather than of this service.
+          location:
+            latitude != null && longitude != null
+              ? { type: 'Point' as const, coordinates: [longitude, latitude] }
+              : undefined,
+          city: asString(geography.city),
+          district: asString(geography.district),
+          state: asString(geography.stateCode),
+          provider: stop.providerCode,
+          externalId: stop.externalId,
+        };
+      });
+
+    await this.upsertInBatches(this.stops, rows, [
+      'name', 'normalizedName', 'latitude', 'longitude', 'location',
+      'city', 'district', 'state', 'updatedAt',
+    ], transaction);
+  }
+
+  /**
+   * Route endpoints come from the first and last stop of the route's sequence,
+   * translated through the canonical map so they never point at a stop that
+   * did not publish.
+   */
+  private async projectRoutes(
+    canonicalStopId: Map<string, string>,
+    transaction: Transaction,
+  ): Promise<Set<string>> {
+    const [busRoutes, routeStops, agencies] = await Promise.all([
+      this.busRoutes.findAll({ transaction }),
+      this.busRouteStops.findAll({ order: [['sequence', 'ASC']], transaction }),
+      this.agencies.findAll({ transaction }),
+    ]);
+
+    const agencyIdByCode = new Map(agencies.map(agency => [agency.code, agency.id]));
+    const endpoints = new Map<string, { first: string; last: string }>();
+    for (const routeStop of routeStops) {
+      const canonical = canonicalStopId.get(routeStop.stopId) ?? routeStop.stopId;
+      const seen = endpoints.get(routeStop.routeId);
+      if (!seen) endpoints.set(routeStop.routeId, { first: canonical, last: canonical });
+      else seen.last = canonical;
     }
 
-    return counts;
+    const rows = busRoutes
+      .map(route => {
+        const agencyId = agencyIdByCode.get(route.providerCode);
+        // A route with no agency cannot satisfy the foreign key; skipping it is
+        // better than failing the whole projection.
+        if (!agencyId) return null;
+
+        const metadata = (route.metadata ?? {}) as Record<string, unknown>;
+        const ends = endpoints.get(route.id);
+
+        return {
+          id: route.id,
+          agencyId,
+          shortName: truncate(asString(metadata.shortName), 255),
+          longName: truncate(route.longName, 255) ?? route.longName,
+          originStopId: ends?.first,
+          destinationStopId: ends?.last,
+          routeType: routeTypeFor(asString(metadata.mode), route.providerCode),
+          provider: route.providerCode,
+          externalId: route.externalId,
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
+
+    await this.upsertInBatches(this.routes, rows, [
+      'agencyId', 'shortName', 'longName', 'originStopId', 'destinationStopId',
+      'routeType', 'updatedAt',
+    ], transaction);
+
+    return new Set(rows.map(row => row.id));
   }
+
+  /** Only trips whose route projected — an orphan trip would break the FK. */
+  private async projectTrips(
+    routeIds: Set<string>,
+    transaction: Transaction,
+  ): Promise<Set<string>> {
+    const busTrips = await this.busTrips.findAll({ transaction });
+
+    const rows = busTrips
+      .filter(trip => routeIds.has(trip.routeId))
+      .map(trip => ({
+        id: trip.id,
+        routeId: trip.routeId,
+        direction: trip.direction ?? 'OUTBOUND',
+        vehicleName: trip.vehicleName,
+        vehicleRegistration: trip.vehicleRegistration,
+        provider: trip.providerCode,
+        externalId: trip.externalId,
+      }));
+
+    await this.upsertInBatches(this.trips, rows, [
+      'routeId', 'direction', 'vehicleName', 'vehicleRegistration', 'updatedAt',
+    ], transaction);
+
+    return new Set(rows.map(row => row.id));
+  }
+
+  private async projectStopTimes(
+    tripIds: Set<string>,
+    canonicalStopId: Map<string, string>,
+    transaction: Transaction,
+  ): Promise<void> {
+    const busStopTimes = await this.busStopTimes.findAll({ transaction });
+    const publishedStopIds = new Set(canonicalStopId.values());
+
+    const rows = busStopTimes
+      .map(stopTime => {
+        if (!tripIds.has(stopTime.tripId)) return null;
+        const stopId = canonicalStopId.get(stopTime.stopId) ?? stopTime.stopId;
+        if (!publishedStopIds.has(stopId)) return null;
+
+        return {
+          id: stopTime.id,
+          tripId: stopTime.tripId,
+          stopId,
+          stopSequence: stopTime.sequence,
+          arrivalTime: stopTime.arrivalTime,
+          departureTime: stopTime.departureTime,
+          // Carried through, or estimates arrive indistinguishable from
+          // scraped operator times.
+          timeSource: (stopTime as unknown as { timeSource?: string }).timeSource,
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
+
+    await this.upsertInBatches(this.stopTimes, rows, [
+      'stopId', 'stopSequence', 'arrivalTime', 'departureTime', 'timeSource', 'updatedAt',
+    ], transaction);
+  }
+
+  /**
+   * `bulkCreate` with `updateOnDuplicate` is an upsert on the primary key,
+   * which is what makes re-running the projection converge. Batched because a
+   * single statement carrying 40,000 rows exceeds what the driver will bind.
+   */
+  private async upsertInBatches(
+    model: ModelCtor<Model>,
+    rows: Record<string, unknown>[],
+    updateOnDuplicate: string[],
+    transaction: Transaction,
+  ): Promise<void> {
+    for (let index = 0; index < rows.length; index += CanonicalTransitProjectionService.BATCH) {
+      // Sequelize types bulkCreate against one model's creation attributes,
+      // which a helper shared by five models cannot satisfy. The row shapes are
+      // built from the models' own fields directly above each call.
+      await model.bulkCreate(
+        rows.slice(index, index + CanonicalTransitProjectionService.BATCH) as never,
+        { updateOnDuplicate, transaction },
+      );
+    }
+  }
+
+  private async countAll(transaction: Transaction): Promise<Record<string, number>> {
+    const [agencies, stops, routes, trips, stopTimes] = await Promise.all([
+      this.agencies.count({ transaction }),
+      this.stops.count({ transaction }),
+      this.routes.count({ transaction }),
+      this.trips.count({ transaction }),
+      this.stopTimes.count({ transaction }),
+    ]);
+
+    return { agencies, stops, routes, trips, stop_times: stopTimes };
+  }
+}
+
+/**
+ * Which `bus_stops` row each one publishes as.
+ *
+ * Every operator import creates its own row, so one bus stand imported by
+ * eight operators became eight stops, each holding a slice of the services.
+ * Same-named stops in the same place now publish as one, and every reference
+ * is translated through this map.
+ *
+ * Grid-snapped at 0.001 degrees — about 110 m. It errs toward leaving a
+ * duplicate (two stops either side of a cell boundary) rather than merging two
+ * stops that are not the same place: the direction that cannot hide a service.
+ *
+ * The survivor is the lowest id, which is stable — the same input yields the
+ * same canonical id on every run, so re-projection converges instead of
+ * shuffling stop ids under the app.
+ */
+export function buildCanonicalStopMap(busStops: BusStopModel[]): Map<string, string> {
+  const survivors = new Map<string, string>();
+
+  for (const stop of busStops) {
+    const cell = gridKey(stop);
+    if (!cell) continue;
+    const held = survivors.get(cell);
+    if (!held || stop.id < held) survivors.set(cell, stop.id);
+  }
+
+  const canonical = new Map<string, string>();
+  for (const stop of busStops) {
+    const cell = gridKey(stop);
+    // A stop with no name key or no coordinates cannot be shown to be the same
+    // place as another, so it stands alone.
+    canonical.set(stop.id, cell ? (survivors.get(cell) ?? stop.id) : stop.id);
+  }
+
+  return canonical;
+}
+
+function gridKey(stop: BusStopModel): string | null {
+  const metadata = (stop.metadata ?? {}) as Record<string, unknown>;
+  const geography = (metadata.geography ?? {}) as Record<string, unknown>;
+  const latitude = numberOrNull(metadata.latitude);
+  const longitude = numberOrNull(metadata.longitude);
+  const name = (stop.name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  if (!name || latitude == null || longitude == null) return null;
+
+  return [
+    name,
+    asString(geography.stateCode) ?? '',
+    latitude.toFixed(3),
+    longitude.toFixed(3),
+  ].join('|');
+}
+
+/**
+ * The route's own mode, then the provider's, then bus.
+ *
+ * Provider code alone was the rule, which works only while every route a
+ * provider publishes shares one mode. Registered operators break that: one
+ * owner runs a bus route and an auto route, and both would have projected as
+ * BUS.
+ */
+function routeTypeFor(mode: string | undefined, providerCode: string): string {
+  switch ((mode ?? '').toUpperCase()) {
+    case 'TRAM': return 'TRAM';
+    case 'FERRY': return 'FERRY';
+    case 'METRO': return 'METRO';
+    case 'SUBURBAN_RAIL': return 'RAIL';
+    case 'AUTO': return 'AUTO';
+    case 'SHARED_AUTO': return 'SHARED_AUTO';
+    case 'BUS':
+    case 'INTERCITY_BUS': return 'BUS';
+  }
+
+  switch (providerCode) {
+    case 'KOLKATA_TRAM': return 'TRAM';
+    case 'WB_FERRY': return 'FERRY';
+    case 'EASTERN_RAILWAY_SUBURBAN': return 'RAIL';
+    case 'KOLKATA_METRO':
+    case 'BMRCL': return 'METRO';
+    default: return 'BUS';
+  }
+}
+
+function numberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length ? value : undefined;
+}
+
+function truncate(value: string | undefined, max: number): string | undefined {
+  if (value === undefined) return undefined;
+  return value.length <= max ? value : value.slice(0, max);
 }
