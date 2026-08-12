@@ -9,9 +9,9 @@ import {
 import {
   RouteModel, StopModel, StopTimeModel,
 } from '../transit/infrastructure/sequelize/models';
-import { DataConsistencyController } from './data-consistency.controller';
-import { DataConsistencyScheduler } from './data-consistency.scheduler';
-import { DataConsistencyService } from './data-consistency.service';
+import { DataConsistencyController } from './controllers/data-consistency.controller';
+import { DataConsistencyScheduler } from './services/data-consistency.scheduler';
+import { DataConsistencyService } from './services/data-consistency.service';
 
 /**
  * Keeping ingested data coherent, as a scheduled concern rather than a drawer

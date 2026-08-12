@@ -1,5 +1,5 @@
 import { All, Controller, Headers, Query, UnauthorizedException } from '@nestjs/common';
-import { DataConsistencyService } from './data-consistency.service';
+import { DataConsistencyService } from '../services/data-consistency.service';
 
 /**
  * HTTP trigger for hosts with no resident process, matching the provider-sync

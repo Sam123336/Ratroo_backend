@@ -2,17 +2,17 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import { Op, Transaction } from 'sequelize';
 import { Model, ModelCtor, Sequelize } from 'sequelize-typescript';
-import { normaliseTime } from './time-format';
-import { StopRow, clusterStops } from './stop-clustering';
+import { normaliseTime } from '../domain/time-format';
+import { StopRow, clusterStops } from '../domain/stop-clustering';
 import {
   PlaceAliasModel, PlaceModel,
-} from '../places/infrastructure/sequelize/models/place.model';
+} from '../../places/infrastructure/sequelize/models/place.model';
 import {
   BusRouteStopModel, BusStopModel, BusStopTimeModel,
-} from '../provider-ingestion/infrastructure/sequelize/models';
+} from '../../provider-ingestion/infrastructure/sequelize/models';
 import {
   RouteModel, StopModel, StopTimeModel,
-} from '../transit/infrastructure/sequelize/models';
+} from '../../transit/infrastructure/sequelize/models';
 
 export interface ConsistencyReport {
   stopsMerged: number;
