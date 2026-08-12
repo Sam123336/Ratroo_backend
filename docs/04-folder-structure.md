@@ -96,8 +96,17 @@ modules/<feature>/
 
 ### Tier 2 — layered module
 
-For modules too big for Tier 1. Today only `provider-ingestion` qualifies
-(~60 services, many external adapters).
+For modules too big for Tier 1, or whose domain is genuinely modelled rather
+than just stored. Two qualify today:
+
+- **`provider-ingestion`** — ~60 services and many external adapters, each
+  needing its own fetcher, parser and mapper.
+- **`transit`** — the core domain. Not on service count (it has about six) but
+  on modelling: it carries value objects, domain events, and a domain
+  repository interface separate from its Sequelize implementation. Flattening
+  those into `services/` would put the network model and the code that
+  persists it in the same folder, which is the distinction the layering
+  exists to keep.
 
 ```text
 modules/<feature>/
@@ -108,9 +117,20 @@ modules/<feature>/
   <feature>.module.ts  # NestJS wiring
 ```
 
-**Graduate to Tier 2 when** a module passes ~10 services, or integrates several
-external systems that each need their own adapter. Not before — premature
-layering costs more than it saves.
+`modules/transit/` is the reference implementation — smaller than
+`provider-ingestion` and easier to read end to end.
+
+**Graduate to Tier 2 when** a module passes ~10 services, integrates several
+external systems that each need their own adapter, or models a domain with
+behaviour of its own — value objects, events, invariants that must hold
+regardless of storage. Not before: premature layering costs more than it
+saves, and most modules only ever move rows.
+
+**Everything else is Tier 1**, including modules that look big. `journey` and
+`places` both carried a full `domain/application/infrastructure/presentation`
+skeleton around four to seven files; the folders were empty and the real code
+was Tier 1 underneath. Empty layering is worse than none — it tells the next
+developer to look somewhere nothing lives.
 
 ### Layer rules
 

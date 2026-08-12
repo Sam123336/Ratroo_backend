@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
-import { TransportGraphEngine } from '../modules/graph/transport-graph.engine';
+import { TransportGraphEngine } from '../modules/graph/services/transport-graph.engine';
 import { Sequelize } from 'sequelize-typescript';
 import { QueryTypes } from 'sequelize';
 

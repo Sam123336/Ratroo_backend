@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
-import { RegionRegistryService } from '../../../regions/application/RegionRegistryService';
+import { RegionRegistryService } from '../../../regions/services/RegionRegistryService';
 import { FindNearbyStopsUseCase } from '../../application/use-cases/FindNearbyStopsUseCase';
 import { FindRoutesUseCase } from '../../application/use-cases/FindRoutesUseCase';
 import { NearbyStopsDto } from './dto/nearby-stops.dto';

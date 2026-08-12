@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { LaunchRegion } from '../domain/Region';
-import { LAUNCH_REGIONS } from '../infrastructure/launch-regions.registry';
+import { LAUNCH_REGIONS } from '../domain/launch-regions.registry';
 
 @Injectable()
 export class RegionRegistryService {

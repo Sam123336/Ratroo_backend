@@ -6,7 +6,7 @@ import { normaliseTime } from '../domain/time-format';
 import { StopRow, clusterStops } from '../domain/stop-clustering';
 import {
   PlaceAliasModel, PlaceModel,
-} from '../../places/infrastructure/sequelize/models/place.model';
+} from '../../places/entities/place.model';
 import {
   BusRouteStopModel, BusStopModel, BusStopTimeModel,
 } from '../../provider-ingestion/infrastructure/sequelize/models';

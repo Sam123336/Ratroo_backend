@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GeocodingAliasService } from '../geocoding/geocoding-alias.service';
-import { PlaceModel, PlaceType, PlaceAliasModel } from '../../places/infrastructure/sequelize/models/place.model';
+import { PlaceModel, PlaceType, PlaceAliasModel } from '../../places/entities/place.model';
 import { BusStopModel } from '../infrastructure/sequelize/models/bus-network.model';
 import * as crypto from 'crypto';
 import { Op } from 'sequelize';

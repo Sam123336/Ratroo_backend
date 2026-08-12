@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import {
   PlaceAliasModel, PlaceModel,
-} from '../places/infrastructure/sequelize/models/place.model';
+} from '../places/entities/place.model';
 import {
   BusRouteStopModel, BusStopModel, BusStopTimeModel,
 } from '../provider-ingestion/infrastructure/sequelize/models';

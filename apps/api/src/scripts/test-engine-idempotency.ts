@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { CanonicalStopResolutionEngine } from '../modules/provider-ingestion/enrichment/canonical-stop-resolution.engine';
 import { BusStopModel } from '../modules/provider-ingestion/infrastructure/sequelize/models/bus-network.model';
-import { PlaceModel, PlaceType, PlaceAliasModel } from '../modules/places/infrastructure/sequelize/models/place.model';
+import { PlaceModel, PlaceType, PlaceAliasModel } from '../modules/places/entities/place.model';
 import * as crypto from 'crypto';
 
 async function main() {

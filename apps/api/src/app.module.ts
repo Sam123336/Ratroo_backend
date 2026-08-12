@@ -8,7 +8,7 @@ import { AUTH_SEQUELIZE_MODELS } from './modules/auth/entities';
 import { FAVORITES_SEQUELIZE_MODELS } from './modules/favorites/entities/favorite.model';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { SequelizeModuleOptions } from '@nestjs/sequelize/dist/interfaces/sequelize-options.interface';
-import { HealthController } from './modules/health/health.controller';
+import { HealthController } from './modules/health/controllers/health.controller';
 import { TransitModule } from './modules/transit/transit.module';
 import { RegionsModule } from './modules/regions/regions.module';
 import { WBBusModule } from './integrations/transit-providers/wbbus/wbbus.module';

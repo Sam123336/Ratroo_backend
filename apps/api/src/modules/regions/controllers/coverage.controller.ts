@@ -1,8 +1,8 @@
 import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
 import { QueryTypes } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
-import { GetRegionUseCase } from '../../application/GetRegionUseCase';
-import { ListRegionsUseCase } from '../../application/ListRegionsUseCase';
+import { GetRegionUseCase } from '../services/GetRegionUseCase';
+import { ListRegionsUseCase } from '../services/ListRegionsUseCase';
 
 interface ProviderRow {
   code: string;

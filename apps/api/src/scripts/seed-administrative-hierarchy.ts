@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { Sequelize } from 'sequelize-typescript';
-import { PlaceModel, PlaceType } from '../modules/places/infrastructure/sequelize/models/place.model';
+import { PlaceModel, PlaceType } from '../modules/places/entities/place.model';
 import * as crypto from 'crypto';
 
 const DISTRICTS_OF_WB = [

@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { GetRegionUseCase } from './application/GetRegionUseCase';
-import { ListRegionsUseCase } from './application/ListRegionsUseCase';
-import { RegionRegistryService } from './application/RegionRegistryService';
-import { CoverageController } from './presentation/controllers/coverage.controller';
+import { GetRegionUseCase } from './services/GetRegionUseCase';
+import { ListRegionsUseCase } from './services/ListRegionsUseCase';
+import { RegionRegistryService } from './services/RegionRegistryService';
+import { CoverageController } from './controllers/coverage.controller';
 
 @Module({
   controllers: [CoverageController],
