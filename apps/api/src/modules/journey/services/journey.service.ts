@@ -129,7 +129,10 @@ export class JourneyService {
 
     const legs = toLegs(journey);
 
-    const confidence = originPlace.confidence ? parseFloat(originPlace.confidence) : 0.9;
+    // Was parseFloat() on a column the repository used to return as `any`.
+    // Typing the repository revealed it: the value is already a number, and
+    // parseFloat(number) is a type error the untyped query had been hiding.
+    const confidence = originPlace.confidence ?? 0.9;
 
     const dto: JourneyResponseDto = {
       fromInput: from,

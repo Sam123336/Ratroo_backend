@@ -1,89 +1,173 @@
 import { Injectable } from '@nestjs/common';
-import { Sequelize } from 'sequelize-typescript';
-import { QueryTypes } from 'sequelize';
+import { InjectModel } from '@nestjs/sequelize';
+import { Op } from 'sequelize';
+import {
+  PlaceAliasModel, PlaceModel,
+} from '../../places/entities/place.model';
+import {
+  BusRouteModel, BusRouteStopModel, BusStopModel,
+} from '../../provider-ingestion/infrastructure/sequelize/models';
 
 @Injectable()
 export class JourneyRepository {
-  constructor(private readonly sequelize: Sequelize) {}
+  constructor(
+    @InjectModel(PlaceModel) private readonly places: typeof PlaceModel,
+    @InjectModel(PlaceAliasModel) private readonly aliases: typeof PlaceAliasModel,
+    @InjectModel(BusStopModel) private readonly busStops: typeof BusStopModel,
+    @InjectModel(BusRouteStopModel) private readonly busRouteStops: typeof BusRouteStopModel,
+    @InjectModel(BusRouteModel) private readonly busRoutes: typeof BusRouteModel,
+  ) {}
 
   /**
    * Places a name could mean, best first.
    *
-   * `LIKE '%name%' LIMIT 1` returned whichever row Postgres happened to reach
-   * first — for "Kolkata" that was a place with no coordinates, so every
-   * journey from it was unplannable. Ranking fixed that but put coordinates
-   * above the name itself, which broke a different case: asking for "Asansol"
-   * returned "Asansol Bus Terminus", a different operator's stop with no
-   * services from the origin. The planner then reported no route between two
-   * places that six routes connect.
-   *
-   * So the name the rider actually typed wins first, and coordinates only
-   * break ties between equally good name matches. Missing coordinates are no
-   * longer fatal anyway — the planner falls back to matching stops by name.
+   * Matching is done by the ORM; the ranking is done here in TypeScript. A
+   * ranked search has no pure-ORM form — `order` would need SQL fragments
+   * through `literal()`, which is raw SQL wearing a costume. Ranking a few
+   * candidate rows in memory is both honest about that and easier to read: the
+   * rules below are a list of reasons, in priority order.
    */
-  async findPlacesByName(name: string, limit = 3): Promise<any[]> {
+  async findPlacesByName(name: string, limit = 3): Promise<PlaceModel[]> {
     const cleanName = name.trim().toLowerCase();
-    return this.sequelize.query(
-      // Aliases are searched alongside the place's own titles. Operators name
-      // the same stand differently — "ARAMBAG (NS)", "Durgapur (Muchipara)" —
-      // and `places` keeps only one of those titles, so a name the app itself
-      // printed in a journey leg failed to resolve when typed back in.
-      //
-      // An exact alias outranks a partial match on the canonical name: a rider
-      // typing an operator's exact wording means that stop, not a place that
-      // merely contains the same letters.
-      `SELECT p.*,
-              MIN(CASE WHEN LOWER(a."normalizedAlias") = :exact THEN 0
-                       WHEN LOWER(a.alias) = :exact THEN 0
-                       ELSE 1 END) AS "aliasExact"
-       FROM "places" p
-       LEFT JOIN "place_aliases" a ON a."placeId" = p.id
-       WHERE LOWER(p."canonicalName") LIKE :like
-          OR LOWER(p."normalizedName") LIKE :like
-          OR LOWER(a."normalizedAlias") LIKE :like
-          OR LOWER(a.alias) LIKE :like
-       GROUP BY p.id
-       ORDER BY
-         (LOWER(p."canonicalName") = :exact) DESC,
-         (LOWER(p."normalizedName") = :exact) DESC,
-         MIN(CASE WHEN LOWER(a."normalizedAlias") = :exact
-                    OR LOWER(a.alias) = :exact THEN 0 ELSE 1 END) ASC,
-         (LOWER(p."canonicalName") LIKE :prefix) DESC,
-         (p."latitude" IS NOT NULL AND p."longitude" IS NOT NULL) DESC,
-         LENGTH(p."canonicalName") ASC
-       LIMIT :limit;`,
-      {
-        replacements: {
-          like: `%${cleanName}%`,
-          exact: cleanName,
-          prefix: `${cleanName}%`,
-          limit,
-        },
-        type: QueryTypes.SELECT,
-      }
+    if (!cleanName) return [];
+
+    const contains = { [Op.iLike]: `%${cleanName}%` };
+
+    // Aliases first, so a place found only by an operator's wording — "ARAMBAG
+    // (NS)", "Durgapur (Muchipara)" — is a candidate alongside the rest.
+    const matchedAliases = await this.aliases.findAll({
+      where: { [Op.or]: [{ normalizedAlias: contains }, { alias: contains }] },
+      attributes: ['placeId', 'alias', 'normalizedAlias'],
+    });
+
+    const candidates = await this.places.findAll({
+      where: {
+        [Op.or]: [
+          { canonicalName: contains },
+          { normalizedName: contains },
+          { id: { [Op.in]: matchedAliases.map(alias => alias.placeId) } },
+        ],
+      },
+    });
+
+    if (!candidates.length) return [];
+
+    // Which of them buses actually leave from.
+    const linked = await this.busStops.findAll({
+      where: { placeId: { [Op.in]: candidates.map(place => place.id) } },
+      attributes: ['placeId'],
+      group: ['placeId'],
+    });
+    const hasServices = new Set(linked.map(stop => stop.placeId));
+
+    const exactAlias = new Set(
+      matchedAliases
+        .filter(
+          alias =>
+            alias.normalizedAlias?.toLowerCase() === cleanName ||
+            alias.alias?.toLowerCase() === cleanName,
+        )
+        .map(alias => alias.placeId),
     );
+
+    return candidates
+      .sort((a, b) => rank(a) - rank(b) || a.canonicalName.length - b.canonicalName.length)
+      .slice(0, limit);
+
+    /** Lower is better. Each term is a reason one place beats another. */
+    function rank(place: PlaceModel): number {
+      const canonical = place.canonicalName?.toLowerCase() ?? '';
+      const normalized = place.normalizedName?.toLowerCase() ?? '';
+
+      // The name the rider typed, exactly, wins first — including when they
+      // typed an operator's own wording.
+      if (canonical === cleanName) return 0;
+      if (normalized === cleanName) return 1;
+      if (exactAlias.has(place.id)) return 2;
+
+      // Then a place buses leave from, over one that merely shares the name.
+      // Geocoding created a second row for many towns — "Arambagh, Arambag,
+      // Hooghly, West Bengal, 712600, India" alongside "Arambagh Bus Stand" —
+      // and the address, having no stops linked to it, was winning. The
+      // planner then correctly reported no route from a postcode while forty
+      // services ran from the stand two rows over, and the rider was told
+      // their town was not mapped.
+      const serviced = hasServices.has(place.id) ? 0 : 1;
+      const prefix = canonical.startsWith(cleanName) ? 0 : 1;
+      const located = place.latitude != null && place.longitude != null ? 0 : 1;
+
+      return 3 + serviced * 4 + prefix * 2 + located;
+    }
   }
 
-  async findPlaceByName(name: string): Promise<any | null> {
+  async findPlaceByName(name: string): Promise<PlaceModel | null> {
     const [best] = await this.findPlacesByName(name, 1);
     return best ?? null;
   }
 
-  async findConnectingRoutes(originPlaceId: string, destPlaceId: string): Promise<Array<{ id: string; longName: string; providerCode: string }>> {
-    return this.sequelize.query(
-      `SELECT r."id", r."longName", r."providerCode"
-       FROM "bus_routes" r
-       JOIN "bus_route_stops" rs1 ON rs1."routeId" = r."id"
-       JOIN "bus_stops" s1 ON s1."id" = rs1."stopId"
-       JOIN "bus_route_stops" rs2 ON rs2."routeId" = r."id"
-       JOIN "bus_stops" s2 ON s2."id" = rs2."stopId"
-       WHERE s1."placeId" = :originPlaceId AND s2."placeId" = :destPlaceId
-         AND rs1."sequence" < rs2."sequence"
-       LIMIT 1;`,
-      {
-        replacements: { originPlaceId, destPlaceId },
-        type: QueryTypes.SELECT,
-      }
+  /**
+   * A route that calls at the origin and later at the destination.
+   *
+   * "Later" is the point: a route serving both places is no use if it reaches
+   * the destination first. The sequence comparison that used to be a
+   * self-join is done over the route-stop rows in memory.
+   */
+  async findConnectingRoutes(
+    originPlaceId: string,
+    destPlaceId: string,
+  ): Promise<Array<{ id: string; longName: string; providerCode: string }>> {
+    const stops = await this.busStops.findAll({
+      where: { placeId: { [Op.in]: [originPlaceId, destPlaceId] } },
+      attributes: ['id', 'placeId'],
+    });
+    if (!stops.length) return [];
+
+    const originStops = new Set(
+      stops.filter(stop => stop.placeId === originPlaceId).map(stop => stop.id),
     );
+    const destStops = new Set(
+      stops.filter(stop => stop.placeId === destPlaceId).map(stop => stop.id),
+    );
+    if (!originStops.size || !destStops.size) return [];
+
+    const routeStops = await this.busRouteStops.findAll({
+      where: { stopId: { [Op.in]: stops.map(stop => stop.id) } },
+      attributes: ['routeId', 'stopId', 'sequence'],
+    });
+
+    // Earliest call at either end, per route.
+    const earliest = new Map<string, { origin?: number; destination?: number }>();
+    for (const routeStop of routeStops) {
+      const seen = earliest.get(routeStop.routeId) ?? {};
+      if (originStops.has(routeStop.stopId)) {
+        seen.origin = Math.min(seen.origin ?? Infinity, routeStop.sequence);
+      }
+      if (destStops.has(routeStop.stopId)) {
+        seen.destination = Math.max(seen.destination ?? -Infinity, routeStop.sequence);
+      }
+      earliest.set(routeStop.routeId, seen);
+    }
+
+    const connecting = [...earliest.entries()]
+      .filter(([, seen]) =>
+        seen.origin !== undefined &&
+        seen.destination !== undefined &&
+        seen.origin < seen.destination,
+      )
+      .map(([routeId]) => routeId);
+
+    if (!connecting.length) return [];
+
+    const routes = await this.busRoutes.findAll({
+      where: { id: { [Op.in]: connecting } },
+      attributes: ['id', 'longName', 'providerCode'],
+      limit: 1,
+    });
+
+    return routes.map(route => ({
+      id: route.id,
+      longName: route.longName,
+      providerCode: route.providerCode,
+    }));
   }
 }
