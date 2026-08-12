@@ -53,9 +53,11 @@ import { FavoritesModule } from './modules/favorites/favorites.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { DataQualityModule } from './modules/data-quality/data-quality.module';
 import { OperatorsModule } from './modules/operators/operators.module';
+import { ServiceRequestsModule } from './modules/service-requests/service-requests.module';
 
 @Module({
   imports: [
+    ServiceRequestsModule,
     OperatorsModule,
     DataQualityModule,
     ConfigModule.forRoot({

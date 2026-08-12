@@ -94,6 +94,37 @@ export class CoverageController {
         )
       : [];
 
+    // The same counts, grouped by city, so the app can show what runs in
+    // Kolkata separately from what runs in Bardhaman. Trams and ferries exist
+    // in exactly one city; a state-wide list implies they run everywhere.
+    //
+    // Only cities with named stops appear. `stops.city` is sparsely filled, so
+    // the unnamed remainder stays in the state totals rather than becoming a
+    // city called "Unknown".
+    const cityRows = stateCode
+      ? await this.sequelize.query<{
+          city: string;
+          mode: string;
+          routeCount: number;
+          stopCount: number;
+        }>(
+          `SELECT s.city,
+                  lower(r."routeType") AS mode,
+                  count(DISTINCT r.id)::int AS "routeCount",
+                  count(DISTINCT s.id)::int AS "stopCount"
+           FROM stops s
+           JOIN stop_times st ON st."stopId" = s.id
+           JOIN trips t ON t.id = st."tripId"
+           JOIN routes r ON r.id = t."routeId"
+           WHERE s.state = :stateCode
+             AND s.city IS NOT NULL AND s.city <> ''
+             AND r."routeType" IS NOT NULL
+           GROUP BY s.city, lower(r."routeType")
+           ORDER BY s.city, count(DISTINCT r.id) DESC`,
+          { replacements: { stateCode }, type: QueryTypes.SELECT },
+        )
+      : [];
+
     // Every stop we hold in the state, including ones no trip calls at yet —
     // the per-mode stopCount above only sees stops with scheduled service.
     const [totals] = stateCode
@@ -119,6 +150,8 @@ export class CoverageController {
           routeCount: row.routeCount,
           stopCount: row.stopCount,
         })),
+        // Busiest city first, and inside each, the busiest mode.
+        byCity: groupByCity(cityRows),
       },
     };
   }
@@ -220,3 +253,35 @@ export class CoverageController {
   }
 }
 
+/**
+ * Flat (city, mode) rows into one entry per city.
+ *
+ * Done here rather than in SQL so the shape the app reads is written in
+ * TypeScript, where it can be read alongside the DTO it feeds.
+ */
+function groupByCity(
+  rows: Array<{ city: string; mode: string; routeCount: number; stopCount: number }>,
+) {
+  const cities = new Map<
+    string,
+    { city: string; routeCount: number; byMode: Array<{ mode: string; routeCount: number; stopCount: number }> }
+  >();
+
+  for (const row of rows) {
+    const entry = cities.get(row.city) ?? { city: row.city, routeCount: 0, byMode: [] };
+    entry.byMode.push({
+      mode: row.mode,
+      routeCount: row.routeCount,
+      stopCount: row.stopCount,
+    });
+    entry.routeCount += row.routeCount;
+    cities.set(row.city, entry);
+  }
+
+  return [...cities.values()]
+    .map(city => ({
+      ...city,
+      byMode: city.byMode.sort((a, b) => b.routeCount - a.routeCount),
+    }))
+    .sort((a, b) => b.routeCount - a.routeCount);
+}
