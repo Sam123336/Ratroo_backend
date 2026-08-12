@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npm --prefix apps/api run start:dev",
+    "test": "npm --prefix apps/api run test",
     "//api": "The API lives in apps/api. These delegate so they work from the repo root too.",
     "api": "npm --prefix apps/api run",
     "migrate": "npm --prefix apps/api run migrate",
