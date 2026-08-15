@@ -1,0 +1,14 @@
+This directory is intentionally empty.
+
+Vercel runs `npm run build` (nest build) and then looks for a static output
+directory, failing the deploy with:
+
+    No Output Directory named "public" found after the Build completed.
+
+There is no static site here — every request is served by the serverless
+function in `api/index.ts`, and `vercel.json` rewrites `/(.*)` to it, so
+nothing is ever served from this directory. It exists only to satisfy that
+check.
+
+Not solved by pointing outputDirectory at `dist/`: that is compiled server
+code, and naming it as the static root invites it being served.
