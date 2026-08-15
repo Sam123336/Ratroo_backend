@@ -33,6 +33,17 @@ function databaseConfig(config: ConfigService): SequelizeModuleOptions {
     autoLoadModels: true,
     synchronize,
     logging: config.get<string>('DB_LOGGING', 'false') === 'true' ? console.log : false,
+    // Sized for serverless, where every warm container holds its own pool and
+    // there may be hundreds of them. Sequelize defaults to max 5, which against
+    // a pooled Postgres multiplies into connection exhaustion under any load.
+    // `acquire` bounds the wait for a slot so a saturated pool errors rather
+    // than hanging the request.
+    pool: {
+      max: Number(config.get<string>('DB_POOL_MAX', '2')),
+      min: 0,
+      idle: 10_000,
+      acquire: 15_000,
+    },
     ...postgresConnection((key, fallback) => config.get<string>(key, fallback as string)),
   };
 }
