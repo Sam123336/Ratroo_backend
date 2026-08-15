@@ -20,6 +20,20 @@ export type EnvLookup = (key: string, fallback?: string) => string | undefined;
 
 export const processEnvLookup: EnvLookup = (key, fallback) => process.env[key] ?? fallback;
 
+/// Says what is wrong with a connection URL without printing the password.
+///
+/// This lands in platform logs, which are readable by anyone with project
+/// access and are retained — so it reports the *shape* only: length, and the
+/// specific placeholder characters that explain nearly every failure here.
+function describeMalformed(value: string): string {
+  const notes: string[] = [`${value.length} chars`];
+  if (/[<>]/.test(value)) notes.push('contains < > — unreplaced template placeholder');
+  if (/\[|\]/.test(value)) notes.push('contains [ ] — unreplaced password placeholder');
+  if (/\s/.test(value)) notes.push('contains whitespace');
+  if (!/^postgres(ql)?:\/\//.test(value)) notes.push('does not start with postgresql://');
+  return notes.join('; ');
+}
+
 export function postgresConnection(env: EnvLookup): PostgresConnection {
   const databaseUrl = env('DATABASE_URL');
   const sslEnabled = env('DB_SSL', databaseUrl ? 'true' : 'false') === 'true';
@@ -46,7 +60,25 @@ export function postgresConnection(env: EnvLookup): PostgresConnection {
   };
 
   if (databaseUrl) {
-    const url = new URL(databaseUrl);
+    // `new URL` throws a bare "TypeError: Invalid URL" naming neither the
+    // variable nor the value, and because this runs during module init the
+    // whole app fails to boot — so every endpoint 500s and the only clue is a
+    // stack trace three frames deep. A malformed DATABASE_URL should say which
+    // variable is wrong and what it should look like.
+    //
+    // The usual cause is a template pasted with its placeholders still in it
+    // (`<region>`, `[YOUR-PASSWORD]`): brackets are not legal in a host or
+    // userinfo, so the parse fails.
+    let url: URL;
+    try {
+      url = new URL(databaseUrl);
+    } catch {
+      throw new Error(
+        `DATABASE_URL is not a valid connection URL (${describeMalformed(databaseUrl)}). ` +
+          'Expected postgresql://user:password@host:port/database — check for unreplaced ' +
+          'placeholders, and percent-encode any @ : / or # in the password.',
+      );
+    }
 
     return {
       host: url.hostname,
