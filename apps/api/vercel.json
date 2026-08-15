@@ -14,7 +14,6 @@
   ],
   "crons": [
     {
-      "//": "Vercel cron is UTC. 20:30 UTC = 02:00 IST the next day.",
       "path": "/internal/cron/provider-sync",
       "schedule": "30 20 * * *"
     }

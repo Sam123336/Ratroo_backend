@@ -63,6 +63,14 @@ Vercel Cron  ──GET──>  /internal/cron/provider-sync   (returns immediate
                                         └─> POST /internal/providers/:code/sync
 ```
 
+**The cron schedule is UTC.** `"30 20 * * *"` in `apps/api/vercel.json` is
+20:30 UTC, which is **02:00 IST the next day** — deliberately after the day's
+traffic, not during it. This note used to live as a `"//"` key inside the cron
+entry itself, but Vercel validates `vercel.json` against a strict schema and
+rejects unknown properties there: the whole build failed with
+`crons[0] should NOT have additional property "//"`. JSON has no comments, so
+the explanation lives here instead.
+
 **The worker must run on a long-lived host** (Railway, Fly, Render, or the
 included `docker/`), not on Vercel. If the worker calls back into a Vercel-hosted
 API, heavy imports will still hit the function timeout — point `API_BASE_URL` at
