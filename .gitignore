@@ -51,3 +51,5 @@ Thumbs.db
 # Scraped output from the removed root prototype. If anything writes here
 # again it is a local artefact, not something to commit.
 data/
+.vercel
+.env*
