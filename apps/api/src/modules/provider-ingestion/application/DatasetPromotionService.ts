@@ -93,6 +93,21 @@ export class DatasetPromotionService {
   async promoteDatasetVersion(id: string) {
     try {
       const result = await this.sequelize.transaction(async transaction => {
+        // Promotion is a batch job, and managed Postgres ships a
+        // `statement_timeout` sized for API traffic — Supabase defaults the
+        // `postgres` role to 2 minutes. A full BMTC promotion deletes and
+        // rewrites ~287k route stops and ~121k stop times, and single
+        // statements in that legitimately run past two minutes; the whole
+        // transaction then rolls back with "canceling statement due to
+        // statement timeout" after ~18 minutes of work.
+        //
+        // SET LOCAL, so it reverts when this transaction ends rather than
+        // leaking a no-limit session back into the pool for request traffic.
+        const timeout = Number(process.env.PROMOTION_STATEMENT_TIMEOUT_MS || 600_000);
+        await this.sequelize.query(`SET LOCAL statement_timeout = ${Math.trunc(timeout)}`, {
+          transaction,
+        });
+
         const version = await this.datasetVersionModel.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
 
         if (!version) {
@@ -473,6 +488,10 @@ export class DatasetPromotionService {
 
     const routeIds = Array.from(routeIdsByExternalId.values());
     if (routeIds.length) {
+      // ponytail: one DELETE with a ~10k-element IN list over ~287k rows — the
+      // slowest statement in the promotion and the one that hit the 2-minute
+      // timeout. Raising the timeout is the cheap fix; if this gets slower,
+      // delete by "datasetVersionId" (indexed, no IN list) instead.
       await this.busRouteStopModel.destroy({ where: { routeId: { [Op.in]: routeIds } }, transaction });
     }
 
@@ -524,7 +543,17 @@ export class DatasetPromotionService {
         sequence: Number(payload.sequence),
         arrivalTime: payload.arrivalTime,
         departureTime: payload.departureTime,
-        timeSource: payload.timeSource || (payload.arrivalTime ? 'SCRAPED' : null),
+        // Any time at all makes this a scraped row, not just an arrival: a
+        // trip's *first* call carries a departure and no arrival, so keying on
+        // `arrivalTime` alone left every origin unlabelled. `timeIsEstimated`
+        // is honoured first so an estimate can never be filed as SCRAPED.
+        timeSource:
+          payload.timeSource ||
+          (payload.timeIsEstimated
+            ? 'INTERPOLATED'
+            : payload.arrivalTime || payload.departureTime
+              ? 'SCRAPED'
+              : null),
         datasetVersionId: version.id,
       });
     }

@@ -1,0 +1,11 @@
+{
+  "issuccess": true, "message": "Success", "responsecode": 200, "rowCount": 6,
+  "data": [
+    { "servicetypeid": 1,  "servicetype": "Ordinary" },
+    { "servicetypeid": 2,  "servicetype": "Vajra" },
+    { "servicetypeid": 3,  "servicetype": "Vayu Vajra" },
+    { "servicetypeid": 4,  "servicetype": "Metro Feeder" },
+    { "servicetypeid": 5,  "servicetype": "BIG10" },
+    { "servicetypeid": 99, "servicetype": "Chartered Contract" }
+  ]
+}

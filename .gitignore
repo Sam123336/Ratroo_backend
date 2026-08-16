@@ -53,3 +53,6 @@ Thumbs.db
 data/
 .vercel
 .env*
+
+# Raw BMTC API captures — provenance-gated, not for commit until licensed.
+.bmtc-cache/

@@ -1,0 +1,16 @@
+{
+  "issuccess": true, "message": "Success", "responsecode": 200, "rowCount": 3,
+  "data": [
+    { "tripid": 88001, "starttime": "06:15", "endtime": "07:05",
+      "servicetypeid": 1, "servicetype": "Ordinary", "vehicleno": "KA01FA1234",
+      "tripdetails": [
+        { "stationid": 5001, "stationname": "Shanthinagara Bus Station", "apptime": "06:15", "routeorder": 1 },
+        { "stationid": 5004, "stationname": "Town Hall",                 "apptime": "6:32",  "routeorder": 3 },
+        { "stationid": 5007, "stationname": "Kalasipalya",               "apptime": "0648",  "routeorder": 7 },
+        { "stationid": 5009, "stationname": "KR Market",                 "apptime": "07:05", "routeorder": 9 }
+      ] },
+    { "tripid": 88002, "starttime": "07:40", "endtime": "08:35",
+      "servicetypeid": 2, "servicetype": "Vajra", "tripdetails": [] },
+    { "tripid": 88003, "starttime": "", "endtime": "", "servicetypeid": 1, "tripdetails": [] }
+  ]
+}

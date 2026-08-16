@@ -76,7 +76,16 @@ export class GenericProviderIngestionService {
     private readonly promotion: DatasetPromotionService,
   ) {}
 
-  async runIngestionPipeline(adapter: BaseProviderAdapter): Promise<IngestionPipelineResult> {
+  /**
+   * `<any, any>` rather than the default `<Record<string, unknown>, ...>`:
+   * an adapter that gives its discovery item or raw record a real interface —
+   * as [BmtcOfficialProvider] does — is not assignable to the default, because
+   * a named interface has no string index signature. The body already casts
+   * parsed records to `Record<string, unknown>`, so it never depended on the
+   * narrower bound; the bound only rejected the typed adapters this SDK exists
+   * to support.
+   */
+  async runIngestionPipeline(adapter: BaseProviderAdapter<any, any>): Promise<IngestionPipelineResult> {
     const startTime = Date.now();
     const providerCode = adapter.providerCode;
     const run = await this.providerRunModel.create({

@@ -52,6 +52,16 @@ export class CanonicalTransitProjectionService {
     const startedAt = Date.now();
 
     const counts = await this.sequelize.transaction(async transaction => {
+      // Same reason as the promotion transaction in DatasetPromotionService:
+      // the managed `postgres` role carries a 2-minute statement_timeout meant
+      // for API traffic, and this reads ~314k route stops and rewrites ~158k
+      // stop times in one pass. SET LOCAL reverts on transaction end, so the
+      // pooled connection goes back to request traffic with its limit intact.
+      const timeout = Number(process.env.PROMOTION_STATEMENT_TIMEOUT_MS || 600_000);
+      await this.sequelize.query(`SET LOCAL statement_timeout = ${Math.trunc(timeout)}`, {
+        transaction,
+      });
+
       const busStops = await this.busStops.findAll({ transaction });
       const canonicalStopId = buildCanonicalStopMap(busStops);
 

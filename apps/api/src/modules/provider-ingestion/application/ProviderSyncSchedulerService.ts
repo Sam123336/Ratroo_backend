@@ -1,3 +1,5 @@
+import { join } from 'path';
+import { BmtcStaticImportService } from './BmtcStaticImportService';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { CanonicalTransitProjectionService } from './CanonicalTransitProjectionService';
@@ -36,6 +38,7 @@ export class ProviderSyncSchedulerService {
   constructor(
     private readonly bmrclImport: BmrclStaticImportService,
     private readonly bmtcImport: BmtcGtfsImportService,
+    private readonly bmtcStaticImport: BmtcStaticImportService,
     private readonly wbbusImport: WBBusImportService,
     private readonly governmentBusImport: GovernmentBusStaticImportService,
     private readonly kolkataMetroImport: KolkataMetroStaticImportService,
@@ -136,6 +139,14 @@ export class ProviderSyncSchedulerService {
         return () => this.kolkataMetroImport.importStaticNetwork();
       case 'BMTC':
         return () => this.bmtcImport.importGtfsFeed();
+      // The official-API network. Promotes whatever `npm run bmtc:ingest` last
+      // harvested — the harvest itself is ~5 hours across ~9,900 directional
+      // routes and belongs on the worker, not in a Vercel function capped at
+      // 60 seconds. See docs/deployment.md.
+      case 'BMTC_OFFICIAL':
+        return () => this.bmtcStaticImport.importFromFile(
+          join(process.cwd(), '.bmtc-cache', 'canonical.json'),
+        );
       case 'WBTC':
       case 'NBSTC':
       case 'SBSTC':

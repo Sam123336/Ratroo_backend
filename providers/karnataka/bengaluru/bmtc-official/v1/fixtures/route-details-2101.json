@@ -1,0 +1,13 @@
+{
+  "issuccess": true, "message": "Success", "responsecode": 200, "rowCount": 4,
+  "data": [
+    { "stationid": 5001, "stationname": "Shanthinagara Bus Station",
+      "centerlat": 12.9507, "centerlong": 77.5848, "routeorder": 1 },
+    { "stationid": 5004, "stationname": "Town Hall",
+      "centerlat": 12.9646, "centerlong": 77.5799, "routeorder": 3 },
+    { "stationid": 5007, "stationname": "Kalasipalya",
+      "centerlat": 0, "centerlong": 0, "routeorder": 7 },
+    { "stationid": 5009, "stationname": "KR Market",
+      "centerlat": 12.9634, "centerlong": 77.5771, "routeorder": 9 }
+  ]
+}

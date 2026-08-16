@@ -25,7 +25,10 @@
     "routes:repair-endpoints": "ts-node -r tsconfig-paths/register src/scripts/repair-wbbus-route-endpoints.ts",
     "providers:seed": "ts-node -r tsconfig-paths/register src/scripts/seed-providers.ts",
     "wbbus:backfill-times": "ts-node -r tsconfig-paths/register src/scripts/backfill-wbbus-times.ts",
-    "stops:prune-garbage": "ts-node -r tsconfig-paths/register src/scripts/prune-garbage-stops.ts"
+    "stops:prune-garbage": "ts-node -r tsconfig-paths/register src/scripts/prune-garbage-stops.ts",
+    "bmtc:ingest": "ts-node -r tsconfig-paths/register src/scripts/ingest-bmtc.ts",
+    "bmtc:promote": "ts-node -r tsconfig-paths/register src/scripts/promote-bmtc.ts",
+    "transit:project": "ts-node -r tsconfig-paths/register src/scripts/project-transit.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

@@ -6,6 +6,7 @@ import { BengaluruMobilityQueryService } from './application/BengaluruMobilityQu
 import { BmtcGtfsImportService } from './application/BmtcGtfsImportService';
 import { BusNetworkQueryService } from './application/BusNetworkQueryService';
 import { DatasetPromotionService } from './application/DatasetPromotionService';
+import { BmtcStaticImportService } from './application/BmtcStaticImportService';
 import { GovernmentBusStaticImportService } from './application/GovernmentBusStaticImportService';
 import { KolkataMetroStaticImportService } from './application/KolkataMetroStaticImportService';
 import { MetroNetworkQueryService } from './application/MetroNetworkQueryService';
@@ -33,6 +34,7 @@ import { PROVIDER_INGESTION_SEQUELIZE_MODELS } from './infrastructure/sequelize/
 import { RawSourceRecordRepository } from './infrastructure/sequelize/repositories/RawSourceRecordRepository';
 
 // Target Providers
+import { BmtcOfficialProvider } from './providers/bmtc/bmtc-official.provider';
 import { WBBusProvider } from './providers/wbbus.provider';
 import { WBBustimeProvider } from './providers/wbbustime.provider';
 import { BusSathiProvider } from './providers/bussathi.provider';
@@ -116,6 +118,7 @@ import {
     KolkataMetroStaticImportService,
     BmtcGtfsImportService,
     WBBusImportService,
+    BmtcStaticImportService,
     GovernmentBusStaticImportService,
     ProviderSyncSchedulerService,
     ProviderSyncQueueService,
@@ -125,6 +128,7 @@ import {
     RawSourceRecordRepository,
 
     // Target Providers
+    BmtcOfficialProvider,
     WBBusProvider,
     WBBustimeProvider,
     BusSathiProvider,
@@ -159,12 +163,14 @@ import {
     KolkataMetroStaticImportService,
     BmtcGtfsImportService,
     WBBusImportService,
+    BmtcStaticImportService,
     GovernmentBusStaticImportService,
     DatasetPromotionService,
     GenericProviderIngestionService,
     RawSourceRecordRepository,
 
     // Target Providers
+    BmtcOfficialProvider,
     WBBusProvider,
     WBBustimeProvider,
     BusSathiProvider,

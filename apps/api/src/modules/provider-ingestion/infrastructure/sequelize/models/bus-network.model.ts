@@ -170,6 +170,19 @@ export class BusStopTimeModel extends Model {
   @Column({ type: DataType.STRING(20), allowNull: true })
   declare departureTime?: string;
 
+  /**
+   * SCRAPED | INTERPOLATED | OFFICIAL — where the time came from.
+   *
+   * Declared because Sequelize silently drops any key the model does not know:
+   * `DatasetPromotionService` has always computed this value, and without the
+   * column here it was thrown away on every insert, leaving 21,713 rows null
+   * while the interpolator's own raw SQL wrote its 2,957 correctly. An
+   * unlabelled row is indistinguishable from an estimate to anything reading
+   * this column, which is exactly what the column exists to prevent.
+   */
+  @Column({ type: DataType.STRING(16), allowNull: true })
+  declare timeSource?: string;
+
   @Column({ type: DataType.UUID, allowNull: false })
   declare datasetVersionId: string;
 

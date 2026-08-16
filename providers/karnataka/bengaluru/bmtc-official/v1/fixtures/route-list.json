@@ -1,0 +1,17 @@
+{
+  "issuccess": true, "message": "Success", "responsecode": 200, "rowCount": 3,
+  "data": [
+    { "routeid": 2101, "routeparentid": 910, "routeno": "500A",
+      "routename": "Shanthinagara Bus Station to KR Market",
+      "fromstation": "Shanthinagara Bus Station", "fromstationid": 5001,
+      "tostation": "KR Market", "tostationid": 5009 },
+    { "routeid": 2102, "routeparentid": 910, "routeno": "500A",
+      "routename": "KR Market to Shanthinagara Bus Station",
+      "fromstation": "KR Market", "fromstationid": 5009,
+      "tostation": "Shanthinagara Bus Station", "tostationid": 5001 },
+    { "routeid": 2200, "routeparentid": 950, "routeno": "KIAS-8",
+      "routename": "Kempegowda Airport to Banashankari",
+      "fromstation": "Kempegowda International Airport", "fromstationid": 6001,
+      "tostation": "Banashankari TTMC", "tostationid": 6010 }
+  ]
+}

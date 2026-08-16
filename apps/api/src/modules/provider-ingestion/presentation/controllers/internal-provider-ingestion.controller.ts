@@ -8,6 +8,7 @@ import { WBBusImportService } from '../../application/WBBusImportService';
 import { GenericProviderIngestionService } from '../../application/GenericProviderIngestionService';
 
 // Target Provider Adapters
+import { BmtcOfficialProvider } from '../../providers/bmtc/bmtc-official.provider';
 import { WBBusProvider } from '../../providers/wbbus.provider';
 import { WBBustimeProvider } from '../../providers/wbbustime.provider';
 import { BusSathiProvider } from '../../providers/bussathi.provider';
@@ -26,6 +27,7 @@ export class InternalProviderIngestionController {
     private readonly governmentBusImport: GovernmentBusStaticImportService,
     private readonly kolkataMetroImport: KolkataMetroStaticImportService,
     private readonly genericIngestion: GenericProviderIngestionService,
+    private readonly bmtcOfficialProvider: BmtcOfficialProvider,
     private readonly wbbusProvider: WBBusProvider,
     private readonly wbbustimeProvider: WBBustimeProvider,
     private readonly bussathiProvider: BusSathiProvider,
@@ -73,6 +75,22 @@ export class InternalProviderIngestionController {
 
     if (upperCode === 'WBBUS') {
       return this.genericIngestion.runIngestionPipeline(this.wbbusProvider);
+    }
+
+    // The live commuter API, via the same pipeline as every other adapter.
+    //
+    // Kept on its own code rather than folded into 'BMTC_OFFICIAL' below: that
+    // one already routes to the *GTFS file* importer, and quietly repointing it
+    // would change what an existing caller gets. The two are different sources
+    // — the GTFS feed has no vehicleDetails and so no intermediate-stop times.
+    if (['BMTC_API', 'BMTC_OFFICIAL_API'].includes(upperCode)) {
+      if (this.enabled(asyncMode)) {
+        void this.genericIngestion
+          .runIngestionPipeline(this.bmtcOfficialProvider)
+          .catch(() => undefined);
+        return { providerCode: 'BMTC_OFFICIAL', status: 'QUEUED' };
+      }
+      return this.genericIngestion.runIngestionPipeline(this.bmtcOfficialProvider);
     }
 
     if (['BMRCL_METRO', 'BMRCL'].includes(upperCode)) {
