@@ -28,7 +28,8 @@
     "stops:prune-garbage": "ts-node -r tsconfig-paths/register src/scripts/prune-garbage-stops.ts",
     "bmtc:ingest": "ts-node -r tsconfig-paths/register src/scripts/ingest-bmtc.ts",
     "bmtc:promote": "ts-node -r tsconfig-paths/register src/scripts/promote-bmtc.ts",
-    "transit:project": "ts-node -r tsconfig-paths/register src/scripts/project-transit.ts"
+    "transit:project": "ts-node -r tsconfig-paths/register src/scripts/project-transit.ts",
+    "regions:build-polygons": "ts-node -r tsconfig-paths/register src/scripts/build-region-polygons.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

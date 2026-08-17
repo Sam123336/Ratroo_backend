@@ -57,18 +57,58 @@ export class CoverageController {
     const longitude = Number(lng);
     const located = Number.isFinite(latitude) && Number.isFinite(longitude);
 
-    const [nearest] = located
+    // Which region the rider is standing in, by polygon.
+    //
+    // This used to be "the nearest stop that carries a state label", which
+    // made a single mis-geocoded row able to relabel the whole home screen: two
+    // KOLKATA_TRAM stops named "Central" and "MG Road" hold Bengaluru
+    // coordinates, and until Bengaluru had stops of its own they were the
+    // closest labelled stops to a rider there — who was then told about ferries
+    // and trams in West Bengal, 1,500 km away.
+    //
+    // A polygon cannot be moved by one bad row: the builder drops sparse
+    // outliers as clustering noise before hulling. `npm run
+    // regions:build-polygons` populates it.
+    const [contained] = located
       ? await this.sequelize.query<{ state: string | null }>(
-          `SELECT state FROM stops
-           WHERE latitude IS NOT NULL AND longitude IS NOT NULL AND state IS NOT NULL
-           ORDER BY ST_DistanceSphere(
-             ST_MakePoint(longitude, latitude), ST_MakePoint(:longitude, :latitude))
+          `SELECT "stateCode" AS state FROM coverage_areas
+           WHERE "areaType" = 'STATE' AND boundary IS NOT NULL
+             AND ST_Contains(boundary, ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326))
+           -- Smallest match wins, so a city polygon added later beats the state
+           -- it sits inside rather than depending on read order.
+           ORDER BY ST_Area(boundary) ASC
            LIMIT 1`,
           { replacements: { latitude, longitude }, type: QueryTypes.SELECT },
         )
       : [];
 
-    const stateCode = nearest?.state ?? null;
+    // Outside every polygon — either genuinely uncovered, or the polygons have
+    // not been built yet. Fall back to the nearest labelled stop, but only
+    // within a radius where the answer is still plausible: an unbounded nearest
+    // is what produced the West Bengal answer in the first place.
+    const [nearest] = located && !contained?.state
+      ? await this.sequelize.query<{ state: string | null }>(
+          `SELECT state FROM stops
+           WHERE latitude IS NOT NULL AND longitude IS NOT NULL AND state IS NOT NULL
+             AND ST_DWithin(
+               ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography,
+               ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography,
+               :radiusMetres)
+           ORDER BY ST_DistanceSphere(
+             ST_MakePoint(longitude, latitude), ST_MakePoint(:longitude, :latitude))
+           LIMIT 1`,
+          {
+            replacements: {
+              latitude,
+              longitude,
+              radiusMetres: Number(process.env.COVERAGE_FALLBACK_RADIUS_M ?? 50_000),
+            },
+            type: QueryTypes.SELECT,
+          },
+        )
+      : [];
+
+    const stateCode = contained?.state ?? nearest?.state ?? null;
 
     // Operators are tied to a state through the stops they serve, which is the
     // only link the schema gives us — routes carry a provider, not a region.
