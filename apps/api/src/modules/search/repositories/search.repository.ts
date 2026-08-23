@@ -5,6 +5,7 @@ import { QueryTypes } from 'sequelize';
 export interface PlaceSearchResult {
   id: string;
   name: string;
+  type: string | null;
   latitude: number;
   longitude: number;
   aliases: string[];
@@ -14,7 +15,8 @@ export interface RouteSearchResult {
   id: string;
   longName: string;
   providerCode: string;
-  metadata: any;
+  /** Carries `shortName` — the service number riders actually use. */
+  metadata: { shortName?: string } & Record<string, unknown>;
 }
 
 @Injectable()
@@ -23,7 +25,7 @@ export class SearchRepository {
 
   async findPlaces(query: string, limit: number = 10): Promise<PlaceSearchResult[]> {
     return this.sequelize.query(
-      `SELECT p.id, p."canonicalName" as "name", p.latitude, p.longitude, 
+      `SELECT p.id, p."canonicalName" as "name", p."type", p.latitude, p.longitude, 
               COALESCE(ARRAY_AGG(DISTINCT pa.alias) FILTER (WHERE pa.alias IS NOT NULL), ARRAY[]::VARCHAR[]) as aliases
        FROM "places" p
        LEFT JOIN "place_aliases" pa ON p.id = pa."placeId"
@@ -31,7 +33,7 @@ export class SearchRepository {
           OR LOWER(p."normalizedName") LIKE :query 
           OR LOWER(pa.alias) LIKE :query
           OR LOWER(pa."normalizedAlias") LIKE :query
-       GROUP BY p.id, p."canonicalName", p.latitude, p.longitude
+       GROUP BY p.id, p."canonicalName", p."type", p.latitude, p.longitude
        LIMIT :limit;`,
       {
         replacements: { query: `%${query}%`, limit },
