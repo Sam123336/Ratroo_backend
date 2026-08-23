@@ -38,26 +38,48 @@ describe('BMRCL line status', () => {
     assert.equal(statusOf('The Yellow Line is planned to be operational soon.', 'Yellow Line'), 'PLANNED');
   });
 
-  test('silence about a line is UNKNOWN, not ACTIVE', () => {
-    // The old ternary asserted ACTIVE here for every line except Yellow.
-    assert.equal(statusOf('Green Line runs to Silk Institute.', 'Purple Line'), 'UNKNOWN');
+  test('the page overrides the maintained status when the two disagree', () => {
+    // Purple Line is maintained ACTIVE; the page here says otherwise and wins.
+    const parsed = new BmrclStaticNetworkParser().parse(page('The Purple Line is under construction.'));
+
+    assert.equal(parsed.lines.find(line => line.name === 'Purple Line')?.operationalStatus, 'UNDER_CONSTRUCTION');
+    assert.ok(parsed.warnings.some(w => w.includes('Purple Line') && w.includes('update the list')));
   });
 
-  test('a source contradicting itself leaves the line UNKNOWN and says why', () => {
+  test('silence falls back to the maintained status and records that it did', () => {
+    const parsed = new BmrclStaticNetworkParser().parse(page('Green Line runs to Silk Institute.'));
+
+    // BMRCL rarely states this in prose the parser can reach, and reporting a
+    // running metro as UNKNOWN forever is the worse of the two failures.
+    assert.equal(parsed.lines.find(line => line.name === 'Purple Line')?.operationalStatus, 'ACTIVE');
+    assert.ok(
+      parsed.warnings.some(w => w.includes('Purple Line') && w.includes('maintained status') && w.includes('checked')),
+      'the maintained claim must be auditable in the warnings',
+    );
+  });
+
+  test('a source contradicting itself does not decide, and falls back', () => {
     const body =
       'The Green Line is operational today. ' +
       `${'x'.repeat(400)} ` +
       'The Green Line extension remains under construction.';
     const parsed = new BmrclStaticNetworkParser().parse(page(body));
+    const green = parsed.lines.find(line => line.name === 'Green Line');
 
-    assert.equal(parsed.lines.find(line => line.name === 'Green Line')?.operationalStatus, 'UNKNOWN');
-    assert.ok(parsed.warnings.some(warning => warning.includes('Green Line') && warning.includes('UNKNOWN')));
+    assert.equal(green?.operationalStatus, 'ACTIVE');
+    assert.ok(parsed.warnings.some(w => w.includes('Green Line') && w.includes('maintained status')));
   });
 
   test('a distant phrase does not decide a status', () => {
-    // "under construction" here belongs to whatever the filler describes.
+    // "under construction" here belongs to whatever the filler describes, so it
+    // must not override the maintained ACTIVE.
     const body = `Yellow Line stations are listed. ${'x'.repeat(400)} under construction`;
-    assert.equal(statusOf(body, 'Yellow Line'), 'UNKNOWN');
+    assert.equal(statusOf(body, 'Yellow Line'), 'ACTIVE');
+  });
+
+  test('Yellow Line is not reported as unknown while it is running', () => {
+    // The regression this whole change exists to prevent.
+    assert.equal(statusOf('Namma Metro network.', 'Yellow Line'), 'ACTIVE');
   });
 });
 

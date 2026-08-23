@@ -89,11 +89,33 @@ const BMRCL_DISCOVERY_ITEMS: BmrclDiscoveryItem[] = [
   },
 ];
 
-const MAINTAINED_STATION_ORDER: Array<Omit<BmrclParsedLine, 'operationalStatus'>> = [
+/**
+ * A status this project maintains, with the date it was last checked against
+ * BMRCL, for lines the fetched page does not describe in parseable prose.
+ *
+ * This list already curates every station and its order; a status is the same
+ * kind of maintained fact and carries the same obligation. Page evidence still
+ * wins where it exists — this only answers the silence, and `checked` is what
+ * makes the claim auditable rather than folklore.
+ */
+interface MaintainedStatus {
+  status: BmrclParsedLine['operationalStatus'];
+  checked: string;
+  source: string;
+}
+
+const MAINTAINED_STATION_ORDER: Array<
+  Omit<BmrclParsedLine, 'operationalStatus'> & { maintainedStatus: MaintainedStatus }
+> = [
   {
     externalId: 'purple-line',
     name: 'Purple Line',
     color: 'PURPLE',
+    maintainedStatus: {
+      status: 'ACTIVE',
+      checked: '2026-08-23',
+      source: 'BMRCL network map — Challaghatta to Whitefield in revenue service.',
+    },
     stations: [
       'Whitefield',
       'Hopefarm',
@@ -138,6 +160,11 @@ const MAINTAINED_STATION_ORDER: Array<Omit<BmrclParsedLine, 'operationalStatus'>
     externalId: 'green-line',
     name: 'Green Line',
     color: 'GREEN',
+    maintainedStatus: {
+      status: 'ACTIVE',
+      checked: '2026-08-23',
+      source: 'BMRCL network map — Madavara to Silk Institute in revenue service.',
+    },
     stations: [
       'Madavara',
       'Chikkabidarakallu',
@@ -177,6 +204,11 @@ const MAINTAINED_STATION_ORDER: Array<Omit<BmrclParsedLine, 'operationalStatus'>
     externalId: 'yellow-line',
     name: 'Yellow Line',
     color: 'YELLOW',
+    maintainedStatus: {
+      status: 'ACTIVE',
+      checked: '2026-08-23',
+      source: 'RV Road to Bommasandra opened to passengers in August 2025. Re-verify against BMRCL.',
+    },
     stations: [
       'RV Road',
       'Ragigudda',
@@ -302,9 +334,27 @@ export class BmrclStaticNetworkParser {
       warnings.push('Official source text did not contain expected BMRCL metro markers.');
     }
 
-    return MAINTAINED_STATION_ORDER.map(line => {
-      const { status, reason } = statusFromSource(line.name, text);
-      if (reason) warnings.push(reason);
+    return MAINTAINED_STATION_ORDER.map(({ maintainedStatus, ...line }) => {
+      const fromPage = statusFromSource(line.name, text);
+
+      // The page wins when it speaks. It usually does not: in this path the
+      // line names come from the list above, not from the HTML, so the page has
+      // to mention the line in prose of its own before it can say anything.
+      // Falling to UNKNOWN there would report a running metro as unknown for as
+      // long as BMRCL words its site the way it currently does.
+      const status = fromPage.reason ? maintainedStatus.status : fromPage.status;
+
+      if (fromPage.reason) {
+        warnings.push(
+          `${fromPage.reason} Using maintained status ${maintainedStatus.status} ` +
+            `(checked ${maintainedStatus.checked} — ${maintainedStatus.source})`,
+        );
+      } else if (fromPage.status !== maintainedStatus.status) {
+        warnings.push(
+          `${line.name}: source says ${fromPage.status} but the maintained status is ` +
+            `${maintainedStatus.status} (checked ${maintainedStatus.checked}). Took the source; update the list.`,
+        );
+      }
 
       return {
         ...line,
