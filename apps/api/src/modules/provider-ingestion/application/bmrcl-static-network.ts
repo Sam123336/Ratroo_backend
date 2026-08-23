@@ -293,11 +293,16 @@ export class BmrclStaticNetworkParser {
       warnings.push('Official source text did not contain expected BMRCL metro markers.');
     }
 
-    return MAINTAINED_STATION_ORDER.map(line => ({
-      ...line,
-      operationalStatus: line.name === 'Yellow Line' ? 'UNKNOWN' : 'ACTIVE',
-      stations: line.stations.map(station => ({ ...station })),
-    }));
+    return MAINTAINED_STATION_ORDER.map(line => {
+      const { status, reason } = statusFromSource(line.name, text);
+      if (reason) warnings.push(reason);
+
+      return {
+        ...line,
+        operationalStatus: status,
+        stations: line.stations.map(station => ({ ...station })),
+      };
+    });
   }
 }
 
@@ -482,6 +487,72 @@ export function normalizeStationName(value: string): string {
     .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * Phrases BMRCL uses about a line, most specific first.
+ *
+ * Order matters: "planned to be operational" is a promise, not a service, so
+ * the forward-looking markers are tested before the running ones.
+ */
+const STATUS_MARKERS: Array<{ status: BmrclParsedLine['operationalStatus']; pattern: RegExp }> = [
+  {
+    status: 'UNDER_CONSTRUCTION',
+    pattern: /under construction|construction (?:is )?(?:in progress|ongoing)|works? (?:is|are) ongoing|yet to (?:open|commence)/i,
+  },
+  { status: 'PLANNED', pattern: /\bplanned\b|\bproposed\b|\bsanctioned\b|awaiting approval|\bDPR\b/i },
+  {
+    status: 'ACTIVE',
+    pattern: /operational|in operation|revenue service|commenced|inaugurated|now open|opened on|currently running/i,
+  },
+];
+
+/** How much text either side of a line's name counts as describing that line. */
+const STATUS_WINDOW = 140;
+
+/**
+ * A line's operational status, read from the fetched page instead of assumed.
+ *
+ * This replaced a ternary that pinned Yellow Line to UNKNOWN and every other
+ * line to ACTIVE. Both halves failed the same way: one withheld a fact BMRCL
+ * publishes until somebody edited code, the other asserted one the source had
+ * never been consulted for.
+ *
+ * The window is narrow deliberately. "Under construction" a paragraph away from
+ * a line's name is describing something else, and a status inferred across that
+ * distance is a guess wearing a citation. Where the page says nothing, or says
+ * two contradictory things, the answer is UNKNOWN and a warning records why — a
+ * rider is far better served by an admitted gap than a confident wrong one.
+ */
+function statusFromSource(
+  lineName: string,
+  text: string,
+): { status: BmrclParsedLine['operationalStatus']; reason?: string } {
+  const needle = new RegExp(lineName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  const found = new Set<BmrclParsedLine['operationalStatus']>();
+
+  for (const match of text.matchAll(needle)) {
+    const index = match.index ?? 0;
+    const window = text.slice(Math.max(0, index - STATUS_WINDOW), index + lineName.length + STATUS_WINDOW);
+    const marker = STATUS_MARKERS.find(entry => entry.pattern.test(window));
+    if (marker) found.add(marker.status);
+  }
+
+  if (found.size === 1) {
+    return { status: [...found][0] };
+  }
+
+  if (found.size === 0) {
+    return {
+      status: 'UNKNOWN',
+      reason: `${lineName}: source does not state an operational status; left UNKNOWN.`,
+    };
+  }
+
+  return {
+    status: 'UNKNOWN',
+    reason: `${lineName}: source describes it as ${[...found].join(' and ')}; left UNKNOWN.`,
+  };
 }
 
 function normalizeLineName(value: string): string {
