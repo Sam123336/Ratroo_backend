@@ -4,6 +4,7 @@ import {
   BmtcMapper,
   BmtcRouteRecord,
   BmtcValidator,
+  resolveBmtcCacheDir,
 } from "./bmtc-official.provider";
 import { BmtcServiceType } from "./bmtc-official.types";
 
@@ -40,12 +41,51 @@ const record = (overrides: Partial<BmtcRouteRecord> = {}): BmtcRouteRecord => ({
   },
   serviceTypes: SERVICE_TYPES,
   stops: [
-    { stationid: 20921, stationname: "Kempegowda Bus Station", vehicleDetails: [call("15:40")] },
-    { stationid: 20922, stationname: "Majestic", vehicleDetails: [call("15:43")] },
-    { stationid: 20923, stationname: "Cauvery Nagara", vehicleDetails: [call("15:46")] },
+    {
+      stationid: 20921,
+      stationname: "Kempegowda Bus Station",
+      vehicleDetails: [call("15:40")],
+    },
+    {
+      stationid: 20922,
+      stationname: "Majestic",
+      vehicleDetails: [call("15:43")],
+    },
+    {
+      stationid: 20923,
+      stationname: "Cauvery Nagara",
+      vehicleDetails: [call("15:46")],
+    },
   ],
   timetable: null,
   ...overrides,
+});
+
+describe("BMTC cache directory", () => {
+  test("uses the writable system temp directory on Vercel", () => {
+    assert.equal(
+      resolveBmtcCacheDir({ VERCEL: "1" }, "/var/task", "/tmp"),
+      "/tmp/ratroo-bmtc-cache",
+    );
+  });
+
+  test("keeps the repository cache for local development", () => {
+    assert.equal(
+      resolveBmtcCacheDir({}, "/workspace/ratroo", "/tmp"),
+      "/workspace/ratroo/.bmtc-cache",
+    );
+  });
+
+  test("honours an explicit cache directory on every platform", () => {
+    assert.equal(
+      resolveBmtcCacheDir(
+        { BMTC_CACHE_DIR: "/data/bmtc", VERCEL: "1" },
+        "/var/task",
+        "/tmp",
+      ),
+      "/data/bmtc",
+    );
+  });
 });
 
 describe("BMTC adapter mapper", () => {

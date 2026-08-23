@@ -40,9 +40,11 @@ Environment variables to set in the Vercel project:
 
 ```env
 DATABASE_URL=...
+JWT_SECRET=...             # at least 32 characters; required at API boot
 INTERNAL_INGESTION_API_KEY=...
 CRON_SECRET=...            # Vercel sends this as `Authorization: Bearer <secret>`
 REDIS_URL=...              # required for the nightly sync — see below
+BMTC_CACHE_DIR=/tmp/ratroo-bmtc-cache # optional; this is selected automatically on Vercel
 ```
 
 ### What must not run on Vercel
@@ -96,6 +98,7 @@ Required:
 
 ```env
 DATABASE_URL=...
+JWT_SECRET=...
 INTERNAL_INGESTION_API_KEY=...
 ```
 
