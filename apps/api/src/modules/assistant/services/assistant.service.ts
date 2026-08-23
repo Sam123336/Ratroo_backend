@@ -22,10 +22,13 @@ import { routeSearchUrl, routeSourceUrl } from '../../../shared/provider-links';
  * the string a user typed; `/v1/search` decides which of 5,700 real places it
  * is. That also sidesteps the model's weaker grasp of Bengali place names.
  */
-const SYSTEM_PROMPT = `You are Ratroo's transit assistant for West Bengal, India.
+const SYSTEM_PROMPT = `You are Ratroo's transit assistant for two launch networks in India:
+- Kolkata and the rest of West Bengal.
+- Bengaluru and supported Karnataka connections.
 
 You help people find buses, trams, ferries and trains. Users may write in
-English, Bengali, or transliterated Bengali ("sealdah theke bongaon").
+English, Bengali, Kannada, or transliterated local language ("sealdah theke
+bongaon").
 
 RULES — these are absolute:
 - NEVER invent a route, departure time, fare, stop name or duration. Every fact
@@ -37,11 +40,15 @@ RULES — these are absolute:
   OFFICIAL come from the operator and can be stated plainly.
 - Do not translate place names. Pass what the user typed to search_places and
   use the canonical name the tool returns.
-- For any "how do I get from A to B" question, call list_services AND
-  check_operator_timetable, not just plan_journey. list_services covers every
-  operator we hold (WBBUS, SBSTC, NBSTC, WBTC, BUSSATHI); check_operator_timetable
-  is live from WBBus.in. Merge both into one list and drop duplicates — the same
-  bus often appears in both.
+- For any "how do I get from A to B" question, call plan_journey AND
+  list_services. list_services searches every operator held in Ratroo's
+  canonical graph, including BMTC/BMRCL in Bengaluru and West Bengal operators.
+- Call check_operator_timetable only for a West Bengal journey. It is a
+  WBBus.in-specific tool and has no Bengaluru or Karnataka coverage. Never use
+  the absence of a WBBus.in result to claim that Bengaluru is unsupported.
+- When no canonical route is found, say that Ratroo has no matching published
+  route in its current data. Never claim that the available tools cover only
+  West Bengal: Bengaluru is also a launch network.
 - Every service line must carry: departure time, BUS NAME, the route it runs,
   the operator, and its link. Write the link as a bare URL at the end of the
   line so it is tappable. Omit a field only when the tool returned nothing for
@@ -114,8 +121,8 @@ const TOOLS: Groq.Chat.Completions.ChatCompletionTool[] = [
     function: {
       name: 'list_services',
       description:
-        'Every bus we hold between two places, across ALL operators (WBBUS, ' +
-        'SBSTC, NBSTC, WBTC, BUSSATHI), with the bus name, departure time and a ' +
+        'Every bus we hold between two places, across ALL canonical operators ' +
+        '(including BMTC/BMRCL and West Bengal operators), with the bus name, departure time and a ' +
         'link to its page. Call this for any "how do I get from A to B" question ' +
         'so the answer covers every operator, not only the planner\'s few options.',
       parameters: {
@@ -328,8 +335,8 @@ export class AssistantService {
    * model asks for a starting point than plans from a stop 40 km away.
    */
   private async describeLocation(lat: number, lng: number): Promise<string | null> {
-    const rows = await this.sequelize.query<{ name: string; metres: number }>(
-      `SELECT name,
+    const rows = await this.sequelize.query<{ name: string; provider: string; metres: number }>(
+      `SELECT name, provider,
               ST_DistanceSphere(
                 ST_MakePoint(longitude, latitude),
                 ST_MakePoint(:lng, :lat)
@@ -345,10 +352,16 @@ export class AssistantService {
     if (!walkable.length) return null;
 
     const list = walkable
-      .map(row => `${row.name} (${Math.round(Number(row.metres))} m away)`)
+      .map(row => `${row.name} [${row.provider}] (${Math.round(Number(row.metres))} m away)`)
       .join(', ');
 
-    return `USER LOCATION: the user is at ${lat.toFixed(5)}, ${lng.toFixed(5)}. ` +
+    const bengaluru = walkable.some(row =>
+      ['BMTC_OFFICIAL', 'BMTC', 'BMRCL_METRO', 'KSRTC_KARNATAKA'].includes(row.provider),
+    );
+    const network = bengaluru ? 'Bengaluru / Karnataka' : 'West Bengal';
+
+    return `USER LOCATION: the user is at ${lat.toFixed(5)}, ${lng.toFixed(5)} ` +
+      `inside the ${network} launch network. ` +
       `Their nearest stops are: ${list}. Use the closest one as the origin when ` +
       `the user names only a destination.`;
   }
