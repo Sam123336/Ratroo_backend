@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import { BusRouteModel, BusRouteStopModel, BusStopModel, BusStopTimeModel, BusTripModel, DatasetModel, DatasetVersionModel } from '../infrastructure/sequelize/models';
 
 @Injectable()
@@ -22,7 +22,10 @@ export class BusNetworkQueryService {
     private readonly busStopTimeModel: typeof BusStopTimeModel,
   ) {}
 
-  async listRoutes(regionSlug: string, filters: { search?: string }) {
+  async listRoutes(
+    regionSlug: string,
+    filters: { search?: string; lat?: number; lng?: number; radiusKm?: number },
+  ) {
     const activeVersions = await this.getActiveBusVersions(regionSlug);
     if (!activeVersions.length) {
       return [];
@@ -38,13 +41,92 @@ export class BusNetworkQueryService {
       where[Op.or as unknown as string] = [{ longName: { [Op.iLike]: `%${filters.search}%` } }];
     }
 
+    // A region slug covers a whole state: 'west-bengal' includes NBSTC, whose
+    // Alipurduar-Bagdogra services run 600 km from Kolkata. Given a point, only
+    // routes that actually call somewhere near it are listed, so a city heading
+    // does not carry the state's intercity network beneath it.
+    if (Number.isFinite(filters.lat) && Number.isFinite(filters.lng)) {
+      const ids = await this.routeIdsCalling(
+        datasetVersionIds,
+        filters.lat as number,
+        filters.lng as number,
+        filters.radiusKm ?? 40,
+      );
+      if (!ids.length) return [];
+      where.id = { [Op.in]: ids };
+    }
+
     const routes = await this.busRouteModel.findAll({
       where,
       order: [['longName', 'ASC']],
       limit: 200,
     });
 
-    return routes.map(route => this.routeDto(route));
+    return this.oneRowPerService(routes).map(route => this.routeDto(route));
+  }
+
+  /**
+   * One entry per service, not one per direction.
+   *
+   * Route ids are directional for several providers — BMTC pairs them with
+   * routeparentid, WBBUS marks them 'UP' and 'DOWN' — so a single service
+   * arrives as two rows with the same name, and a reader sees the same bus
+   * listed twice with nothing to tell the entries apart.
+   *
+   * Collapsing on what is displayed is deliberate. directionId cannot do this
+   * job: its meaning differs per provider, and grouping on WBBUS's literal
+   * 'UP' would fold unrelated routes into one.
+   */
+  private oneRowPerService(routes: BusRouteModel[]) {
+    const seen = new Set<string>();
+    return routes.filter(route => {
+      const shortName = String((route.metadata as { shortName?: string })?.shortName ?? '').trim();
+      const key = `${route.providerCode}|${shortName.toLowerCase()}|${(route.longName ?? '').toLowerCase()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  /**
+   * Ids of routes with at least one stop inside a box around a point.
+   *
+   * A box rather than a radius: stop coordinates live in JSONB and there is no
+   * PostGIS index to lean on here, so this stays a cheap bounded scan. The
+   * corners are slightly generous, which is the right way to be wrong — a route
+   * wrongly kept is visible and checkable, one wrongly dropped is invisible.
+   */
+  private async routeIdsCalling(
+    datasetVersionIds: string[],
+    lat: number,
+    lng: number,
+    radiusKm: number,
+  ): Promise<string[]> {
+    const latDelta = radiusKm / 111.32;
+    const lngDelta = radiusKm / (111.32 * Math.max(Math.cos((lat * Math.PI) / 180), 0.01));
+
+    const rows = await this.busRouteModel.sequelize!.query<{ routeId: string }>(
+      `SELECT DISTINCT rs."routeId"
+       FROM bus_route_stops rs
+       JOIN bus_stops s ON s.id = rs."stopId"
+       WHERE rs."datasetVersionId" IN (:datasetVersionIds)
+         AND (s.metadata->>'latitude') ~ '^-?[0-9.]+$'
+         AND (s.metadata->>'longitude') ~ '^-?[0-9.]+$'
+         AND (s.metadata->>'latitude')::float BETWEEN :minLat AND :maxLat
+         AND (s.metadata->>'longitude')::float BETWEEN :minLng AND :maxLng`,
+      {
+        replacements: {
+          datasetVersionIds,
+          minLat: lat - latDelta,
+          maxLat: lat + latDelta,
+          minLng: lng - lngDelta,
+          maxLng: lng + lngDelta,
+        },
+        type: QueryTypes.SELECT,
+      },
+    );
+
+    return rows.map(row => row.routeId);
   }
 
   async getRoute(regionSlug: string, id: string) {
