@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PlaceSearchResult, RouteSearchResult } from '../repositories/search.repository';
 import { SearchCategory, SearchResponseDto } from '../dto/search-response.dto';
+import { routeLabel } from '../../../shared/route-label';
 
 /**
  * `places.type` is the only mode signal a place row carries, and it does not
@@ -42,13 +43,14 @@ export class SearchMapper {
 
   mapRouteToDto(route: RouteSearchResult): SearchResponseDto {
     // The service number rides in metadata.shortName — DatasetPromotionService
-    // puts it there because bus_routes has no column for it. It is the first
-    // thing a rider looks for, so it leads the title.
+    // puts it there because bus_routes has no column for it. Labelled through
+    // the shared helper so search, nearby and the journey planner name the
+    // same bus the same way.
     const shortName = String(route.metadata?.shortName || '').trim();
     return {
       id: route.id,
       category: shortName ? 'BUS_NUMBER' : 'BUS_NAME',
-      title: shortName ? `${shortName} — ${route.longName}` : route.longName,
+      title: routeLabel(shortName, route.longName),
       subtitle: `${route.providerCode} route`,
       providerCode: route.providerCode,
       aliases: [],

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
+import { routeLabel } from '../../../shared/route-label';
 import { ProviderRegistryService } from './ProviderRegistryService';
 import {
   BusRouteModel,
@@ -327,7 +328,7 @@ export class BengaluruMobilityQueryService {
       type: 'BUS_ROUTE',
       mode: 'BUS',
       providerCode: 'BMTC_OFFICIAL',
-      name: route.longName,
+      name: routeLabel((route.metadata as { shortName?: string })?.shortName, route.longName),
       operationalStatus: route.operationalStatus,
       metadata: route.metadata,
     }));

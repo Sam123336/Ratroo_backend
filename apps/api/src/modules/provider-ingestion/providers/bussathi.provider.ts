@@ -201,7 +201,9 @@ export class BusSathiMapper implements IMapper {
         externalId: routeId,
         providerCode: 'BUSSATHI',
         mode: 'BUS',
-        shortName: `BS-${idx + 1}`,
+        // No shortName. BUSSATHI publishes no service number, and `BS-${idx+1}`
+        // was a loop counter — it rendered beside real numbers like 335-E as if
+        // a rider could board a "BS-7". Absent is honest; invented is not.
         longName: pair.longName,
         operationalStatus: 'ACTIVE',
         stops: routeStops,
