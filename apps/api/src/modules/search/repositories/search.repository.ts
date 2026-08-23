@@ -44,12 +44,38 @@ export class SearchRepository {
 
   async findRoutes(query: string, limit: number = 10): Promise<RouteSearchResult[]> {
     return this.sequelize.query(
+      // The service number lives in metadata.shortName, so matching longName
+      // alone meant "500D" or "KIA-8" — the thing riders actually type — found
+      // nothing. Exact matches on the number lead, then prefix, then the rest.
+      //
+      // One row per service, not one per direction. BMTC route ids are
+      // directional, so a service arrives as two rows carrying the same number
+      // and the same "A <-> B" name, which reads as the same bus listed twice.
+      // Collapsing on what is displayed is deliberate: directionId cannot do
+      // this job, because WBBUS fills it with the literal 'UP'/'DOWN' and
+      // grouping on that would fold unrelated routes into one.
       `SELECT "id", "longName", "providerCode", "metadata"
-       FROM "bus_routes"
-       WHERE LOWER("longName") LIKE :query
+       FROM (
+         SELECT DISTINCT ON ("providerCode", LOWER(COALESCE("metadata"->>'shortName', '')), LOWER("longName"))
+                "id", "longName", "providerCode", "metadata"
+         FROM "bus_routes"
+         WHERE LOWER("longName") LIKE :query
+            OR LOWER("metadata"->>'shortName') LIKE :query
+         ORDER BY "providerCode",
+                  LOWER(COALESCE("metadata"->>'shortName', '')),
+                  LOWER("longName"),
+                  "id"
+       ) AS services
+       ORDER BY
+         CASE
+           WHEN LOWER("metadata"->>'shortName') = :exact THEN 0
+           WHEN LOWER("metadata"->>'shortName') LIKE :prefix THEN 1
+           ELSE 2
+         END,
+         "longName"
        LIMIT :limit;`,
       {
-        replacements: { query: `%${query}%`, limit },
+        replacements: { query: `%${query}%`, exact: query, prefix: `${query}%`, limit },
         type: QueryTypes.SELECT,
       }
     );
