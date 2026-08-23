@@ -7,6 +7,7 @@ import { IMapper } from '../sdk/mapper.interface';
 import { CanonicalMobilityDataset } from '../domain/canonical-mobility';
 import { ProviderMappingContext, RawProviderResponse } from '../domain/mobility-provider.interface';
 import { ensureUuidV7 } from '../../../shared/ids/uuid-v7';
+import { collapseWhitespace, serviceName } from '../../../shared/route-label';
 import * as cheerio from 'cheerio';
 
 export const WBBUSTIME_CONFIG: ProviderConfig = {
@@ -71,7 +72,9 @@ export class WBBustimeMapper implements IMapper {
         const $ = cheerio.load(html);
         $('a[href*="/bus/"]').each((i, el) => {
           const href = $(el).attr('href') || '';
-          const text = $(el).text().trim();
+          // cheerio's text() keeps the markup's newlines and indentation, and
+          // .trim() only tidies the ends — the middle stayed full of them.
+          const text = collapseWhitespace($(el).text());
           if (text && href) {
             const idMatch = href.match(/\/bus\/(\d+)/);
             const busId = idMatch ? idMatch[1] : `${idx}_${i}`;
@@ -115,7 +118,7 @@ export class WBBustimeMapper implements IMapper {
         providerCode: 'WBBUSTIME',
         mode: 'BUS',
         shortName: `WBT-${bus.id}`,
-        longName: `${bus.name} (${bus.route})`,
+        longName: serviceName(bus.name, bus.route),
         operationalStatus: 'ACTIVE',
         stops: bus.stops.map((stopName, seq) => ({
           nodeExternalId: nodes.find((n) => n.name === stopName)?.externalId || ensureUuidV7(),

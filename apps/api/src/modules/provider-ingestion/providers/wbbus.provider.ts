@@ -6,6 +6,7 @@ import { StandardProviderValidator } from '../sdk/validator.interface';
 import { IMapper } from '../sdk/mapper.interface';
 import { CanonicalMobilityDataset } from '../domain/canonical-mobility';
 import { ProviderMappingContext, ProviderRunContext, RawProviderResponse } from '../domain/mobility-provider.interface';
+import { collapseWhitespace, serviceName as buildServiceName } from '../../../shared/route-label';
 import * as cheerio from 'cheerio';
 
 export const WBBUS_CONFIG: ProviderConfig = {
@@ -128,7 +129,12 @@ export class WBBusMapper implements IMapper {
         }
 
         $('a[href*="/bus/"]').each((i, el) => {
-          const text = $(el).text().trim();
+          // Normalised at the source. cheerio's text() carries the markup's
+          // newlines and indentation, and .trim() only tidies the ends — which
+          // is how a 488-character blob once reached places.canonicalName and
+          // failed a whole ingestion. The length guard further down stays as a
+          // second line of defence rather than the only one.
+          const text = collapseWhitespace($(el).text());
           if (text) {
             const parts = text.split('-');
             const name = parts[0]?.trim() || `Bus ${idx}_${i}`;
@@ -258,7 +264,7 @@ export class WBBusMapper implements IMapper {
         providerCode: 'WBBUS',
         mode: 'BUS',
         shortName: b.regNo,
-        longName: `${b.name} (${b.route})`,
+        longName: buildServiceName(b.name, b.route),
         operationalStatus: 'ACTIVE',
         stops: b.stops.map((stopName, seq) => ({
           nodeExternalId: nodes.find((n) => n.name === stopName)?.externalId || `wbbus:stop:${slug(stopName)}`,
