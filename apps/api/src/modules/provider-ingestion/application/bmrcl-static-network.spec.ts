@@ -60,3 +60,50 @@ describe('BMRCL line status', () => {
     assert.equal(statusOf(body, 'Yellow Line'), 'UNKNOWN');
   });
 });
+
+/**
+ * The structured path is the primary one — the fallback only runs when it finds
+ * nothing — and it used to stamp ACTIVE on every line it parsed.
+ */
+describe('BMRCL line status from structured markup', () => {
+  const section = (attrs: string) =>
+    page(
+      `<section data-bmrcl-line="Yellow Line" ${attrs}>` +
+        '<ol><li data-station-name="RV Road" data-sequence="1"></li>' +
+        '<li data-station-name="Bommasandra" data-sequence="2"></li></ol>' +
+        '</section>',
+    );
+
+  const parseOne = (attrs: string) => new BmrclStaticNetworkParser().parse(section(attrs));
+
+  test('data-status is taken as the source stating it', () => {
+    assert.equal(parseOne('data-status="ACTIVE"').lines[0].operationalStatus, 'ACTIVE');
+    assert.equal(parseOne('data-status="under-construction"').lines[0].operationalStatus, 'UNDER_CONSTRUCTION');
+  });
+
+  test('markup that declares no status is not assumed to be running', () => {
+    // Previously this returned ACTIVE for anything the fixture happened to hold.
+    assert.equal(parseOne('').lines[0].operationalStatus, 'UNKNOWN');
+  });
+
+  test('an unrecognised data-status becomes UNKNOWN rather than ACTIVE', () => {
+    const parsed = parseOne('data-status="probably-fine"');
+
+    assert.equal(parsed.lines[0].operationalStatus, 'UNKNOWN');
+    assert.ok(parsed.warnings.some(warning => warning.includes('probably-fine')));
+  });
+
+  test('prose beside the block answers for a line that declares nothing', () => {
+    const parsed = new BmrclStaticNetworkParser().parse(
+      page(
+        '<p>The Yellow Line is operational between RV Road and Bommasandra.</p>' +
+          '<section data-bmrcl-line="Yellow Line">' +
+          '<ol><li data-station-name="RV Road" data-sequence="1"></li>' +
+          '<li data-station-name="Bommasandra" data-sequence="2"></li></ol>' +
+          '</section>',
+      ),
+    );
+
+    assert.equal(parsed.lines[0].operationalStatus, 'ACTIVE');
+  });
+});

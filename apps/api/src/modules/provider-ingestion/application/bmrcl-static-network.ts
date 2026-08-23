@@ -217,7 +217,7 @@ export class BmrclStaticNetworkDiscovery {
 export class BmrclStaticNetworkParser {
   parse(rawPages: BmrclRawPage[]): BmrclParsedNetwork {
     const warnings: string[] = [];
-    const fixtureLines = this.parseStructuredFixture(rawPages);
+    const fixtureLines = this.parseStructuredFixture(rawPages, warnings);
     const lines = fixtureLines.length ? fixtureLines : this.parseMaintainedFallback(rawPages, warnings);
 
     if (!fixtureLines.length) {
@@ -236,11 +236,16 @@ export class BmrclStaticNetworkParser {
     };
   }
 
-  private parseStructuredFixture(rawPages: BmrclRawPage[]): BmrclParsedLine[] {
+  private parseStructuredFixture(rawPages: BmrclRawPage[], warnings: string[]): BmrclParsedLine[] {
     const lines: BmrclParsedLine[] = [];
 
     for (const page of rawPages) {
       const $ = cheerio.load(page.html);
+      // Prose around the structured block, for lines that carry no data-status.
+      // Attribute values are not part of text(), so a line named only by its
+      // attribute stays unmatched here — which is the honest answer.
+      const pageText = $('body').text().replace(/\s+/g, ' ');
+
       $('[data-bmrcl-line]').each((_, element) => {
         const lineElement = $(element);
         const lineName = lineElement.attr('data-bmrcl-line')?.trim() || lineElement.find('h1,h2,h3').first().text().trim();
@@ -269,11 +274,15 @@ export class BmrclStaticNetworkParser {
         });
 
         if (lineName && stations.length) {
+          const name = normalizeLineName(lineName);
+          const { status, reason } = declaredStatus(lineElement.attr('data-status'), name, pageText);
+          if (reason) warnings.push(reason);
+
           lines.push({
             externalId: slug(lineName),
-            name: normalizeLineName(lineName),
+            name,
             color: inferLineColor(lineName),
-            operationalStatus: 'ACTIVE',
+            operationalStatus: status,
             stations,
           });
         }
@@ -487,6 +496,42 @@ export function normalizeStationName(value: string): string {
     .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+const KNOWN_STATUSES: ReadonlySet<string> = new Set(['ACTIVE', 'PLANNED', 'UNDER_CONSTRUCTION', 'UNKNOWN']);
+
+/**
+ * Status for a line that arrived as structured markup.
+ *
+ * `data-status` on the line element is the source stating it outright, and is
+ * taken as given. Without one, the surrounding prose is read exactly as the
+ * maintained fallback reads it, so both paths answer from the page rather than
+ * from a literal — this used to be `operationalStatus: 'ACTIVE'`, which claimed
+ * every line in every fixture was running.
+ *
+ * A `data-status` this code does not recognise is not quietly downgraded to
+ * ACTIVE: it becomes UNKNOWN and says so, because an unreadable claim is not
+ * evidence of service.
+ */
+function declaredStatus(
+  declared: string | undefined,
+  lineName: string,
+  pageText: string,
+): { status: BmrclParsedLine['operationalStatus']; reason?: string } {
+  const value = (declared ?? '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+
+  if (!value) {
+    return statusFromSource(lineName, pageText);
+  }
+
+  if (KNOWN_STATUSES.has(value)) {
+    return { status: value as BmrclParsedLine['operationalStatus'] };
+  }
+
+  return {
+    status: 'UNKNOWN',
+    reason: `${lineName}: data-status="${declared}" is not a status this parser knows; left UNKNOWN.`,
+  };
 }
 
 /**
