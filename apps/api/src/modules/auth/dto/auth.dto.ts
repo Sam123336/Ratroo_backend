@@ -28,6 +28,13 @@ export class LoginDto {
   password: string;
 }
 
+export class GoogleOAuthDto {
+  @IsString()
+  @MinLength(100)
+  @MaxLength(10000)
+  idToken: string;
+}
+
 export class RefreshDto {
   @IsString()
   refreshToken: string;

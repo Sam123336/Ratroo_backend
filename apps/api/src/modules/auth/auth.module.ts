@@ -9,6 +9,7 @@ import { UserModel } from './entities/user.model';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { PasswordService } from './password.service';
 import { AdminGuard } from './admin.guard';
+import { OAuthIdentityModel } from './entities/oauth-identity.model';
 
 /**
  * Global so any feature module can `@UseGuards(JwtAuthGuard)` without importing
@@ -17,7 +18,7 @@ import { AdminGuard } from './admin.guard';
 @Global()
 @Module({
   imports: [
-    SequelizeModule.forFeature([UserModel, RefreshTokenModel]),
+    SequelizeModule.forFeature([UserModel, RefreshTokenModel, OAuthIdentityModel]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

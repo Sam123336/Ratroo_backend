@@ -3,10 +3,12 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/sequelize';
 import { createHash, randomBytes } from 'crypto';
 import { Op } from 'sequelize';
+import { OAuth2Client } from 'google-auth-library';
 import { AuthTokensDto, LoginDto, RegisterDto } from './dto/auth.dto';
 import { RefreshTokenModel } from './entities/refresh-token.model';
 import { UserModel } from './entities/user.model';
 import { PasswordService } from './password.service';
+import { OAuthIdentityModel } from './entities/oauth-identity.model';
 
 /** Payload carried inside the access token. Keep it small — it is not encrypted. */
 export interface JwtPayload {
@@ -24,6 +26,7 @@ export class AuthService {
   constructor(
     @InjectModel(UserModel) private readonly users: typeof UserModel,
     @InjectModel(RefreshTokenModel) private readonly refreshTokens: typeof RefreshTokenModel,
+    @InjectModel(OAuthIdentityModel) private readonly oauthIdentities: typeof OAuthIdentityModel,
     private readonly passwords: PasswordService,
     private readonly jwt: JwtService,
   ) {}
@@ -58,6 +61,46 @@ export class AuthService {
       throw new UnauthorizedException('Incorrect email or password.');
     }
 
+    return this.issueTokens(user);
+  }
+
+  async loginWithGoogle(idToken: string): Promise<AuthTokensDto> {
+    const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+    if (!clientId) {
+      this.logger.error('GOOGLE_OAUTH_CLIENT_ID is not configured.');
+      throw new UnauthorizedException('Google sign-in is not available right now.');
+    }
+
+    let profile;
+    try {
+      const ticket = await new OAuth2Client(clientId).verifyIdToken({ idToken, audience: clientId });
+      profile = ticket.getPayload();
+    } catch {
+      throw new UnauthorizedException('Google sign-in could not be verified.');
+    }
+    if (!profile?.sub || !profile.email || profile.email_verified !== true) {
+      throw new UnauthorizedException('Google did not provide a verified email address.');
+    }
+
+    const existingIdentity = await this.oauthIdentities.findOne({ where: { provider: 'google', subject: profile.sub } });
+    if (existingIdentity) {
+      const user = await this.users.findByPk(existingIdentity.userId);
+      if (!user) throw new UnauthorizedException('The linked Ratroo account no longer exists.');
+      return this.issueTokens(user);
+    }
+
+    const email = this.normalizeEmail(profile.email);
+    let user = await this.users.findOne({ where: { email } });
+    if (!user) {
+      user = await this.users.create({
+        email,
+        displayName: profile.name?.slice(0, 120),
+        // OAuth-only accounts cannot use this random password to log in.
+        passwordHash: await this.passwords.hash(randomBytes(48).toString('base64url')),
+      });
+    }
+
+    await this.oauthIdentities.create({ userId: user.id, provider: 'google', subject: profile.sub });
     return this.issueTokens(user);
   }
 

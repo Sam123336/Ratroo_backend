@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { ApiResult } from '../core/dto/api-response.dto';
 import { AuthService } from './auth.service';
-import { AuthTokensDto, LoginDto, RefreshDto, RegisterDto } from './dto/auth.dto';
+import { AuthTokensDto, GoogleOAuthDto, LoginDto, RefreshDto, RegisterDto } from './dto/auth.dto';
 import { AuthenticatedUser, CurrentUser, JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('v1/auth')
@@ -18,6 +18,12 @@ export class AuthController {
   @HttpCode(200)
   async login(@Body() dto: LoginDto): Promise<ApiResult<AuthTokensDto>> {
     return new ApiResult(await this.auth.login(dto));
+  }
+
+  @Post('oauth/google')
+  @HttpCode(200)
+  async google(@Body() dto: GoogleOAuthDto): Promise<ApiResult<AuthTokensDto>> {
+    return new ApiResult(await this.auth.loginWithGoogle(dto.idToken));
   }
 
   @Post('refresh')
