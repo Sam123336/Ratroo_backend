@@ -9,6 +9,8 @@ import { OperatorVehicleModel } from './entities/operator-vehicle.model';
 import { OperatorModel } from './entities/operator.model';
 import { OperatorRoutesService } from './services/operator-routes.service';
 import { OperatorsService } from './services/operators.service';
+import { AdminModerationController } from './controllers/admin-moderation.controller';
+import { AdminModerationService } from './services/admin-moderation.service';
 
 /**
  * First-party operators: businesses that tell us what they run, rather than
@@ -29,8 +31,8 @@ import { OperatorsService } from './services/operators.service';
     ]),
     AuthModule,
   ],
-  controllers: [OperatorsController, OperatorRoutesController],
-  providers: [OperatorsService, OperatorRoutesService],
+  controllers: [OperatorsController, OperatorRoutesController, AdminModerationController],
+  providers: [OperatorsService, OperatorRoutesService, AdminModerationService],
   exports: [OperatorsService, OperatorRoutesService],
 })
 export class OperatorsModule {}

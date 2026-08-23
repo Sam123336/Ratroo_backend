@@ -1,8 +1,7 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { ApiResult } from '../../core/dto/api-response.dto';
-import { canPublish } from '../domain/operator-status';
 import { CreateRouteDto, RouteStopDto } from '../dto/operator.dto';
 import { OperatorRouteStopModel } from '../entities/operator-route-stop.model';
 import { OperatorRouteModel, RoutePublishState } from '../entities/operator-route.model';
@@ -117,6 +116,12 @@ export class OperatorRoutesService {
         })),
         { transaction },
       );
+      // Any edit invalidates a previous decision. A reviewer must see the new
+      // stop list before it can return to riders.
+      await route.update(
+        { publishState: RoutePublishState.DRAFT, reviewNote: null },
+        { transaction },
+      );
     });
 
     return new ApiResult(await this.reload(route.id));
@@ -127,19 +132,18 @@ export class OperatorRoutesService {
     routeId: string,
     publishState: RoutePublishState,
   ): Promise<ApiResult<OperatorRouteModel>> {
-    const operator = await this.operators.requireOwned(userId);
     const route = await this.requireOwnedRoute(userId, routeId);
 
-    // The trust decision is the operator's verification, checked here rather
-    // than at write time — an operator verified after drafting can publish
-    // what they already wrote.
-    if (publishState === RoutePublishState.PUBLISHED && !canPublish(operator.status)) {
-      throw new ForbiddenException(
-        'This operator is not verified yet, so its routes cannot be published to riders.',
-      );
+    // Owners submit or withdraw. Only AdminModerationService can publish.
+    if (![RoutePublishState.DRAFT, RoutePublishState.SUBMITTED, RoutePublishState.WITHDRAWN].includes(publishState)) {
+      throw new BadRequestException('Operators can submit a route for review or withdraw it; only an admin can publish it.');
     }
 
-    await route.update({ publishState });
+    if (publishState === RoutePublishState.SUBMITTED && (route.stops?.length || 0) < 2) {
+      throw new BadRequestException('Add at least two stops before sending this route for review.');
+    }
+
+    await route.update({ publishState, reviewNote: null });
     return new ApiResult(await this.reload(route.id));
   }
 

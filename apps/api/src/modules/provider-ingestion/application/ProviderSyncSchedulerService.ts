@@ -8,9 +8,12 @@ import { BmtcGtfsImportService } from './BmtcGtfsImportService';
 import { GovernmentBusStaticImportService } from './GovernmentBusStaticImportService';
 import { KolkataMetroStaticImportService } from './KolkataMetroStaticImportService';
 import { WBBusImportService } from './WBBusImportService';
+import { GenericProviderIngestionService } from './GenericProviderIngestionService';
+import { OperatorSubmittedProvider } from '../providers/operator-submitted.provider';
 
 /** Every provider the scheduler knows how to import, in run order. */
 export const SYNCABLE_PROVIDER_CODES = [
+  'OPERATOR_SUBMITTED',
   'WBBUS',
   'WBTC',
   'NBSTC',
@@ -42,6 +45,8 @@ export class ProviderSyncSchedulerService {
     private readonly wbbusImport: WBBusImportService,
     private readonly governmentBusImport: GovernmentBusStaticImportService,
     private readonly kolkataMetroImport: KolkataMetroStaticImportService,
+    private readonly genericIngestion: GenericProviderIngestionService,
+    private readonly operatorSubmitted: OperatorSubmittedProvider,
     private readonly projection: CanonicalTransitProjectionService,
   ) {}
 
@@ -127,6 +132,8 @@ export class ProviderSyncSchedulerService {
   /** Single source of truth for code -> importer. Was an if-chain duplicated here and in the internal controller. */
   private importerFor(code: string): (() => Promise<unknown>) | undefined {
     switch (code) {
+      case 'OPERATOR_SUBMITTED':
+        return () => this.genericIngestion.runIngestionPipeline(this.operatorSubmitted);
       case 'WBBUS':
         return () =>
           this.wbbusImport.importAllBuses({

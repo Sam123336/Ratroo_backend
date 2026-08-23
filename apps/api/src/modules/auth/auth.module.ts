@@ -8,6 +8,7 @@ import { RefreshTokenModel } from './entities/refresh-token.model';
 import { UserModel } from './entities/user.model';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { PasswordService } from './password.service';
+import { AdminGuard } from './admin.guard';
 
 /**
  * Global so any feature module can `@UseGuards(JwtAuthGuard)` without importing
@@ -37,7 +38,7 @@ import { PasswordService } from './password.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, PasswordService, JwtAuthGuard],
-  exports: [AuthService, JwtAuthGuard, JwtModule],
+  providers: [AuthService, PasswordService, JwtAuthGuard, AdminGuard],
+  exports: [AuthService, JwtAuthGuard, AdminGuard, JwtModule],
 })
 export class AuthModule {}

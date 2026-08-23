@@ -5,6 +5,7 @@ import {
 import { ensureUuidV7 } from '../../../shared/ids/uuid-v7';
 import { VehicleType } from '../domain/vehicle-type';
 import { OperatorModel } from './operator.model';
+import { SubmissionReviewState } from '../domain/submission-review-state';
 
 /**
  * One vehicle in an operator's fleet.
@@ -40,6 +41,12 @@ export class OperatorVehicleModel extends Model {
 
   @Column({ type: DataType.INTEGER, allowNull: true })
   declare seatCapacity?: number;
+
+  @Column({ type: DataType.STRING(16), allowNull: false, defaultValue: SubmissionReviewState.PENDING })
+  declare reviewState: SubmissionReviewState;
+
+  @Column({ type: DataType.STRING(400), allowNull: true })
+  declare reviewNote?: string;
 
   @CreatedAt declare createdAt: Date;
   @UpdatedAt declare updatedAt: Date;

@@ -11,6 +11,8 @@ import { OperatorVehicleModel } from './operator-vehicle.model';
 /** Whether riders can see this route yet. */
 export enum RoutePublishState {
   DRAFT = 'DRAFT',
+  SUBMITTED = 'SUBMITTED',
+  NEEDS_CHANGES = 'NEEDS_CHANGES',
   PUBLISHED = 'PUBLISHED',
   WITHDRAWN = 'WITHDRAWN',
 }
@@ -71,6 +73,10 @@ export class OperatorRouteModel extends Model {
 
   @Column({ type: DataType.STRING(500), allowNull: true })
   declare notes?: string;
+
+  /** Plain-language feedback shown to the operator after review. */
+  @Column({ type: DataType.STRING(400), allowNull: true })
+  declare reviewNote?: string;
 
   @HasMany(() => OperatorRouteStopModel)
   declare stops?: OperatorRouteStopModel[];

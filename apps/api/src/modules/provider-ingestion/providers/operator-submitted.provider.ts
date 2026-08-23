@@ -13,6 +13,7 @@ import {
 import { OperatorModel } from '../../operators/entities/operator.model';
 import { OperatorStatus } from '../../operators/domain/operator-status';
 import { VehicleType } from '../../operators/domain/vehicle-type';
+import { OperatorVehicleModel } from '../../operators/entities/operator-vehicle.model';
 import { BaseProviderAdapter } from '../sdk/base-provider-adapter';
 import { ProviderConfig } from '../sdk/provider-config.interface';
 import { IFetcher } from '../sdk/fetcher.interface';
@@ -110,6 +111,7 @@ export class OperatorSubmissionFetcher implements IFetcher {
           required: true,
         },
         OperatorRouteStopModel,
+        OperatorVehicleModel,
       ],
       order: [
         ['createdAt', 'ASC'],

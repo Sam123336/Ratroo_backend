@@ -63,6 +63,9 @@ import { CoverageDashboardService } from './health/coverage-dashboard.service';
 
 import { InternalOpsDashboardController } from './health/internal-ops-dashboard.controller';
 import { OperatorRouteModel } from '../operators/entities/operator-route.model';
+import { OperatorModel } from '../operators/entities/operator.model';
+import { OperatorRouteStopModel } from '../operators/entities/operator-route-stop.model';
+import { OperatorVehicleModel } from '../operators/entities/operator-vehicle.model';
 import {
   AgencyModel, RouteModel, StopModel, StopTimeModel, TripModel,
 } from '../transit/infrastructure/sequelize/models';
@@ -76,7 +79,12 @@ import {
     SequelizeModule.forFeature(PROVIDER_INGESTION_SEQUELIZE_MODELS),
     // The operator provider reads submitted routes; it needs the model, not
     // the operators module's services, so only the model is pulled in.
-    SequelizeModule.forFeature([OperatorRouteModel]),
+    SequelizeModule.forFeature([
+      OperatorModel,
+      OperatorVehicleModel,
+      OperatorRouteModel,
+      OperatorRouteStopModel,
+    ]),
     // The projection writes the transit serving tables through their own
     // models, so they have to be injectable here too.
     SequelizeModule.forFeature([

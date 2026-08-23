@@ -6,6 +6,8 @@ import {
 } from 'class-validator';
 import { VehicleType } from '../domain/vehicle-type';
 import { RoutePublishState } from '../entities/operator-route.model';
+import { OperatorStatus } from '../domain/operator-status';
+import { SubmissionReviewState } from '../domain/submission-review-state';
 
 export class RegisterOperatorDto {
   @IsString() @MinLength(2) @MaxLength(160)
@@ -102,4 +104,33 @@ export class CreateRouteDto {
 export class SetPublishStateDto {
   @IsEnum(RoutePublishState)
   publishState: RoutePublishState;
+}
+
+export class ReviewOperatorDto {
+  @IsEnum(OperatorStatus)
+  status: OperatorStatus;
+
+  @IsOptional() @IsString() @MaxLength(400)
+  reviewNote?: string;
+}
+
+export class ReviewVehicleDto {
+  @IsEnum(SubmissionReviewState)
+  reviewState: SubmissionReviewState;
+
+  @IsOptional() @IsString() @MaxLength(400)
+  reviewNote?: string;
+}
+
+export enum RouteReviewDecision {
+  APPROVE = 'APPROVE',
+  NEEDS_CHANGES = 'NEEDS_CHANGES',
+}
+
+export class ReviewRouteDto {
+  @IsEnum(RouteReviewDecision)
+  decision: RouteReviewDecision;
+
+  @IsOptional() @IsString() @MaxLength(400)
+  reviewNote?: string;
 }

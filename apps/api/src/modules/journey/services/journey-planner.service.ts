@@ -7,8 +7,16 @@ const SPEED = { WALK: 4.5, BUS: 22, METRO: 32 } as const;
 /** Minutes added per boarding — waiting for the service, plus finding the stop. */
 const BOARDING_PENALTY_MINUTES = 6;
 
-/** How far a rider will walk to reach a stop, or between stops when changing. */
-const ACCESS_WALK_METERS = 1500;
+/**
+ * How far a rider will walk to reach a service.
+ * Community buses and auto stands may be sparse outside the city core, so the
+ * default is 3 km and deployments may raise it to at most 5 km. The result is
+ * still costed as an explicit WALK leg; it is never presented as door-to-door.
+ */
+const ACCESS_WALK_METERS = Math.min(
+  5000,
+  Math.max(500, Number(process.env.JOURNEY_ACCESS_WALK_METERS || 3000)),
+);
 const TRANSFER_WALK_METERS = 600;
 
 /** Legs of transit; 3 allows bus → bus → bus, i.e. two transfers. */
