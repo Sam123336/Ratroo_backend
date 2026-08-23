@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { QueryTypes } from 'sequelize';
+import { routeLabel } from '../../../shared/route-label';
 import { Sequelize } from 'sequelize-typescript';
 
 export interface GraphStop {
@@ -226,16 +227,19 @@ export class TransitGraphService implements OnModuleInit {
     }
 
     const routeRows = await this.sequelize.query<{
-      routeId: string; name: string; providerCode: string; mode: 'BUS' | 'METRO';
+      routeId: string; name: string; shortName: string | null; providerCode: string; mode: 'BUS' | 'METRO';
       stopId: string; sequence: number; fareINR: string | null; fareSource: string | null;
     }>(
-      `SELECT r.id AS "routeId", r."longName" AS name, r."providerCode", 'BUS' AS mode,
+      // shortName is the service number riders board by. A metro line has none
+      // — its name is the line — so it selects NULL to keep the union aligned.
+      `SELECT r.id AS "routeId", r."longName" AS name, r.metadata->>'shortName' AS "shortName",
+              r."providerCode", 'BUS' AS mode,
               rs."stopId", rs.sequence,
               r.metadata->>'fareINR' AS "fareINR", r.metadata->>'fareSource' AS "fareSource"
        FROM bus_routes r
        JOIN bus_route_stops rs ON rs."routeId" = r.id
        UNION ALL
-       SELECT l.id AS "routeId", l.name, l."providerCode", 'METRO' AS mode,
+       SELECT l.id AS "routeId", l.name, NULL AS "shortName", l."providerCode", 'METRO' AS mode,
               ls."stationId" AS "stopId", ls.sequence, NULL AS "fareINR", NULL AS "fareSource"
        FROM metro_lines l
        JOIN metro_line_stations ls ON ls."lineId" = l.id
@@ -252,7 +256,7 @@ export class TransitGraphService implements OnModuleInit {
       let route = this.routes.get(row.routeId);
       if (!route) {
         route = {
-          id: row.routeId, name: row.name, providerCode: row.providerCode, mode: row.mode,
+          id: row.routeId, name: routeLabel(row.shortName, row.name), providerCode: row.providerCode, mode: row.mode,
           stopIds: [],
           fareINR: row.fareINR === null ? null : Number(row.fareINR),
           fareSource: row.fareSource,
