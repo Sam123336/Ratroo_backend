@@ -33,6 +33,24 @@ const WB_PROVIDERS = [
   'EASTERN_RAILWAY_SUBURBAN', 'WB_FERRY', 'KOLKATA_TRAM', 'KOLKATA_METRO'
 ];
 
+/**
+ * Exported so a test can check these identifiers against the Sequelize models.
+ * The timetable gate previously read `stop_times.departure_time`: wrong table,
+ * and a column name Postgres folds to lower case and then cannot find.
+ */
+export const timetableCoverageSql = (providerList: string) => `
+  SELECT COUNT(*) as total,
+         COUNT(st."departureTime") as with_field
+  FROM bus_stop_times st
+  JOIN bus_trips t ON st."tripId" = t.id
+  WHERE t."providerCode" IN (${providerList})`;
+
+export const fareCoverageSql = (providerList: string) => `
+  SELECT COUNT(*) as total,
+         COUNT(COALESCE(metadata->>'fareINR', metadata->>'fare')) as with_field
+  FROM bus_routes
+  WHERE "providerCode" IN (${providerList})`;
+
 @Injectable()
 export class DataQualityGateService {
   private readonly logger = new Logger(DataQualityGateService.name);
@@ -77,9 +95,7 @@ export class DataQualityGateService {
       }
     }
 
-    // 2. Duplicate Stops
-    // Assuming duplicates are grouped by normalizedName and providerCode for simplicity here if exact logic is not specified, 
-    // or same coords. Let's use normalizedName and providerCode for grouping.
+    // 2. Duplicate stops: same normalized name twice under one provider.
     const duplicateStopsRaw = await this.sequelize.query(`
       SELECT "providerCode", "normalizedName", COUNT(*) as cnt
       FROM bus_stops
@@ -172,66 +188,35 @@ export class DataQualityGateService {
       });
     }
 
-    // 7. Timetable Coverage (Assuming bus_stop_times exists, adjust if different table name or structure. Wait, do we have stop_times? I'll use bus_stop_times if exists. Or bus_trip_stop_times? Let's check table name. Wait, the problem says "stop_times". Let's assume bus_route_stops has arrival_time/departure_time or there is a stop_times table. Let's use a safe fallback.)
-    // Actually, maybe I shouldn't guess, let's query information_schema to check table exists.
-    // For simplicity, let's assume 'bus_route_stops' has metadata with departure or something, OR we can query 'bus_trips' and 'bus_trip_stop_times'. If they don't exist, I'll catch and set 0.
-    let timetableTotal = 0;
-    let timetableWithDep = 0;
-    let timetablePctStr = '0.00';
-    try {
-      const timetableRaw = await this.sequelize.query(`
-        SELECT 
-          COUNT(*) as total,
-          COUNT(CASE WHEN departure_time IS NOT NULL THEN 1 END) as with_dep
-        FROM stop_times
-      `, { type: 'SELECT' }).catch(() => [{ total: '0', with_dep: '0' }]) as Array<{total: string, with_dep: string}>;
-      
-      timetableTotal = parseInt(timetableRaw[0]?.total || '0', 10);
-      timetableWithDep = parseInt(timetableRaw[0]?.with_dep || '0', 10);
-      timetablePctStr = timetableTotal > 0 ? ((timetableWithDep / timetableTotal) * 100).toFixed(2) : '0.00';
-      
-      if (timetableTotal > 0 && parseFloat(timetablePctStr) < 10) {
-        warnings.push({
-          rule: 'TIMETABLE_COVERAGE_LOW',
-          provider: 'ALL_WB',
-          expected: '>= 10%',
-          actual: `${timetablePctStr}%`,
-          severity: 'WARNING'
-        });
-      }
-    } catch (e) {
-      this.logger.warn('Could not check timetable coverage: ' + e.message);
-    }
+    // 7. Timetable coverage.
+    //
+    // Counts the provider-ingestion staging table, as every other check here
+    // does. `stop_times` is the canonical projection: it carries no
+    // providerCode, so it can neither be filtered to West Bengal nor reflect
+    // what is currently staged. Its columns are quoted camelCase — unquoted
+    // `departure_time` folds to lower case and the query throws.
+    const timetable = await this.coverage(
+      'TIMETABLE_COVERAGE_LOW',
+      timetableCoverageSql(providerListStr),
+      failures,
+      warnings,
+    );
+    const timetableTotal = timetable.total;
+    const timetableWithDep = timetable.withField;
+    const timetablePctStr = timetable.pct;
 
-    // 8. Fare Coverage
-    let fareTotalRoutes = 0;
-    let fareWithFare = 0;
-    let farePctStr = '0.00';
-    try {
-      const fareRaw = await this.sequelize.query(`
-        SELECT 
-          COUNT(*) as total,
-          COUNT(CASE WHEN metadata->>'fare' IS NOT NULL THEN 1 END) as with_fare
-        FROM bus_routes
-        WHERE "providerCode" IN (${providerListStr})
-      `, { type: 'SELECT' }).catch(() => [{ total: '0', with_fare: '0' }]) as Array<{total: string, with_fare: string}>;
-
-      fareTotalRoutes = parseInt(fareRaw[0]?.total || '0', 10);
-      fareWithFare = parseInt(fareRaw[0]?.with_fare || '0', 10);
-      farePctStr = fareTotalRoutes > 0 ? ((fareWithFare / fareTotalRoutes) * 100).toFixed(2) : '0.00';
-      
-      if (fareTotalRoutes > 0 && parseFloat(farePctStr) < 10) {
-        warnings.push({
-          rule: 'FARE_COVERAGE_LOW',
-          provider: 'ALL_WB',
-          expected: '>= 10%',
-          actual: `${farePctStr}%`,
-          severity: 'WARNING'
-        });
-      }
-    } catch (e) {
-      this.logger.warn('Could not check fare coverage: ' + e.message);
-    }
+    // 8. Fare coverage. `estimate-route-fares` writes metadata.fareINR; `fare`
+    // is the older key that script still counts as present when it skips a
+    // route, so both mean "this route has a fare".
+    const fare = await this.coverage(
+      'FARE_COVERAGE_LOW',
+      fareCoverageSql(providerListStr),
+      failures,
+      warnings,
+    );
+    const fareTotalRoutes = fare.total;
+    const fareWithFare = fare.withField;
+    const farePctStr = fare.pct;
 
     return {
       passed: failures.length === 0,
@@ -248,5 +233,46 @@ export class DataQualityGateService {
         fareCoverage: { totalRoutes: fareTotalRoutes, withFare: fareWithFare, pct: farePctStr },
       }
     };
+  }
+
+  /**
+   * Shared shape of the coverage gates: count rows, count those carrying the
+   * field, warn under the threshold.
+   *
+   * A check that cannot run is recorded as an ERROR rather than skipped. Both
+   * callers used to swallow their own query failure and report zero rows, which
+   * the `total > 0` threshold then read as "nothing to warn about" — so a gate
+   * querying a column that does not exist looked exactly like a clean dataset.
+   */
+  private async coverage(
+    rule: string,
+    sql: string,
+    failures: DataQualityFailure[],
+    warnings: DataQualityFailure[],
+  ): Promise<{ total: number; withField: number; pct: string }> {
+    try {
+      const [row] = (await this.sequelize.query(sql, { type: 'SELECT' })) as Array<{
+        total: string;
+        with_field: string;
+      }>;
+      const total = parseInt(row?.total || '0', 10);
+      const withField = parseInt(row?.with_field || '0', 10);
+      const pct = total > 0 ? ((withField / total) * 100).toFixed(2) : '0.00';
+
+      if (total > 0 && parseFloat(pct) < 10) {
+        warnings.push({ rule, provider: 'ALL_WB', expected: '>= 10%', actual: `${pct}%`, severity: 'WARNING' });
+      }
+      return { total, withField, pct };
+    } catch (error) {
+      this.logger.error(`${rule} could not be evaluated: ${error instanceof Error ? error.message : error}`);
+      failures.push({
+        rule: `${rule}_CHECK_FAILED`,
+        provider: 'ALL_WB',
+        expected: 'check runs',
+        actual: error instanceof Error ? error.message : String(error),
+        severity: 'ERROR',
+      });
+      return { total: 0, withField: 0, pct: '0.00' };
+    }
   }
 }
