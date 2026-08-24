@@ -10,9 +10,20 @@ export class PlanJourneyDto {
   to: string;
 }
 
+/** One way to cover a first or last mile. Mirrors the planner's own shape. */
+export interface JourneyLegOptionDto {
+  mode: 'WALK' | 'AUTO';
+  durationMinutes: number;
+  recommended: boolean;
+  label: string;
+  /** Always true: these are distance-over-speed estimates, not timetables. */
+  isEstimate: boolean;
+}
+
 export interface JourneyLegDto {
   legNumber: number;
-  mode: 'WALK' | 'BUS' | 'SUBURBAN_RAIL' | 'METRO' | 'FERRY';
+  /** AUTO is a hailed first/last mile — auto, bike taxi or cab, not a service. */
+  mode: 'WALK' | 'AUTO' | 'BUS' | 'SUBURBAN_RAIL' | 'METRO' | 'FERRY';
   fromName: string;
   toName: string;
   distanceKm: string;
@@ -29,6 +40,12 @@ export interface JourneyLegDto {
    */
   departureTime?: string | null;
   arrivalTime?: string | null;
+  /**
+   * Set on the first and last legs only: the ways to cover that mile. Present
+   * even when walking is recommended, so a rider who would rather ride can see
+   * the alternative instead of being told to walk.
+   */
+  options?: JourneyLegOptionDto[];
   instructions: string;
 }
 

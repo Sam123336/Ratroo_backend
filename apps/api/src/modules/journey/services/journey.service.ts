@@ -118,13 +118,20 @@ export class JourneyService {
         fareINR: leg.fareINR ?? null,
         departureTime: leg.departureTime ?? null,
         arrivalTime: leg.arrivalTime ?? null,
+        options: leg.options,
         instructions:
-          leg.mode === 'WALK'
-            ? `Walk ${leg.distanceKm.toFixed(1)} km to ${leg.toStop.name}`
-            : leg.departureTime
-              ? `Board ${leg.routeName} at ${leg.fromStop?.name} at ${leg.departureTime}, ` +
-                `ride to ${leg.toStop.name}`
-              : `Board ${leg.routeName} at ${leg.fromStop?.name} and ride to ${leg.toStop.name}`,
+          leg.options
+            // Both ways, in one sentence: the planner recommends, it does not
+            // decide for the rider. A 5 km "walk to the stop" with no
+            // alternative is not a usable instruction.
+            ? `${leg.options.map(option => `${option.label} (${option.durationMinutes} min)`).join(' or ')}` +
+              ` to ${leg.toStop.name}`
+            : leg.mode === 'WALK'
+              ? `Walk ${leg.distanceKm.toFixed(1)} km to ${leg.toStop.name}`
+              : leg.departureTime
+                ? `Board ${leg.routeName} at ${leg.fromStop?.name} at ${leg.departureTime}, ` +
+                  `ride to ${leg.toStop.name}`
+                : `Board ${leg.routeName} at ${leg.fromStop?.name} and ride to ${leg.toStop.name}`,
       }));
 
     const legs = toLegs(journey);

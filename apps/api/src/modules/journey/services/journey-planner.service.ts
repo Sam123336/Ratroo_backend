@@ -1,8 +1,28 @@
 import { Injectable } from '@nestjs/common';
 import { GraphRoute, GraphStop, TransitGraphService, clockTime, haversineMeters } from './transit-graph.service';
 
-/** Average speeds (km/h) used to turn distance into minutes. */
-const SPEED = { WALK: 4.5, BUS: 22, METRO: 32 } as const;
+/**
+ * Average speeds (km/h) used to turn distance into minutes.
+ *
+ * AUTO covers the hailed first/last mile — auto-rickshaw, bike taxi, cab. It
+ * is deliberately below the bus figure: those vehicles are quicker door to
+ * door but share the same congestion, and a rider stranded by an optimistic
+ * estimate is worse off than one who arrives early.
+ */
+const SPEED = { WALK: 4.5, AUTO: 18, BUS: 22, METRO: 32 } as const;
+
+/**
+ * Past this, walking stops being an answer and becomes a warning.
+ *
+ * The access radius is up to 5 km, and 5 km at 4.5 km/h is 67 minutes. Offering
+ * that as the only way to reach the first stop is not a plan a rider can use,
+ * so beyond this distance the hailed ride is recommended and the walk is kept
+ * as an option rather than the headline.
+ */
+const COMFORTABLE_WALK_METERS = Math.max(
+  300,
+  Number(process.env.JOURNEY_COMFORTABLE_WALK_METERS || 1200),
+);
 
 /** Minutes added per boarding — waiting for the service, plus finding the stop. */
 const BOARDING_PENALTY_MINUTES = 6;
@@ -42,8 +62,27 @@ interface Label {
   viaRouteId?: string;
 }
 
+/**
+ * One way to cover a first or last mile.
+ *
+ * Both ends of a journey are offered, so the rider chooses rather than being
+ * told. No fare is quoted for a hailed ride: Ratroo has no fare feed for
+ * Rapido, Ola, Uber or a metered auto, and a made-up number is worse than
+ * none. `durationMinutes` is a distance-over-speed estimate, which is why
+ * `isEstimate` is true on every option here.
+ */
+export interface FirstMileOption {
+  mode: 'WALK' | 'AUTO';
+  durationMinutes: number;
+  /** The one the leg itself reports. Exactly one option carries this. */
+  recommended: boolean;
+  /** Rider-facing wording, e.g. "Auto, bike taxi or cab (Rapido, Ola, Uber)". */
+  label: string;
+  isEstimate: true;
+}
+
 export interface PlannedLeg {
-  mode: 'WALK' | 'BUS' | 'METRO';
+  mode: 'WALK' | 'AUTO' | 'BUS' | 'METRO';
   fromStop?: GraphStop;
   toStop: GraphStop;
   distanceKm: number;
@@ -61,6 +100,12 @@ export interface PlannedLeg {
    */
   departureTime?: string | null;
   arrivalTime?: string | null;
+  /**
+   * Set only on the first and last legs — how to reach the first stop, and how
+   * to leave the last one. Present even when walking is the recommendation, so
+   * a rider carrying shopping can still see the ride.
+   */
+  options?: FirstMileOption[];
 }
 
 export interface JourneyEndpoint {
@@ -445,12 +490,7 @@ export class JourneyPlannerService {
       ? haversineMeters(origin.lat, origin.lng, firstStop.lat, firstStop.lng)
       : 0;
     if (accessMeters > 50) {
-      legs.push({
-        mode: 'WALK',
-        toStop: firstStop,
-        distanceKm: accessMeters / 1000,
-        durationMinutes: minutesFor(accessMeters, SPEED.WALK),
-      });
+      legs.push(firstMileLeg(accessMeters, { toStop: firstStop }));
     }
 
     for (const hop of hops) {
@@ -502,16 +542,14 @@ export class JourneyPlannerService {
       ? haversineMeters(lastStop.lat, lastStop.lng, destination.lat, destination.lng)
       : 0;
     if (egressMeters > 50) {
-      legs.push({
-        mode: 'WALK',
-        fromStop: lastStop,
-        toStop: lastStop,
-        distanceKm: egressMeters / 1000,
-        durationMinutes: minutesFor(egressMeters, SPEED.WALK),
-      });
+      legs.push(firstMileLeg(egressMeters, { fromStop: lastStop, toStop: lastStop }));
     }
 
-    const rides = legs.filter(leg => leg.mode !== 'WALK');
+    // Transit legs only. A first/last mile — walked or hailed — is neither a
+    // transfer nor an operator, and counting one would tell a rider they change
+    // services when they do not, and would make `fareIncomplete` true on every
+    // journey that starts more than 50 m from a stop.
+    const rides = legs.filter(leg => leg.mode !== 'WALK' && leg.mode !== 'AUTO');
     const priced = rides.filter(leg => typeof leg.fareINR === 'number');
 
     return {
@@ -530,6 +568,59 @@ export class JourneyPlannerService {
 
 function minutesFor(meters: number, speedKmh: number) {
   return Math.max(1, Math.round((meters / 1000 / speedKmh) * 60));
+}
+
+/**
+ * The leg that gets a rider between their own location and a stop.
+ *
+ * Shared by both ends rather than written twice: they had drifted already —
+ * the access leg set no `fromStop` and the egress leg set `fromStop` and
+ * `toStop` to the same stop — and any change to first-mile behaviour had to be
+ * made in two places to take effect.
+ *
+ * Walking is recommended while it is reasonable and the ride is recommended
+ * once it is not, but both are always returned. The rider decides; the planner
+ * only says which it would pick.
+ */
+export function firstMileLeg(
+  meters: number,
+  ends: { fromStop?: GraphStop; toStop: GraphStop },
+): PlannedLeg {
+  const walkMinutes = minutesFor(meters, SPEED.WALK);
+  const autoMinutes = minutesFor(meters, SPEED.AUTO);
+  const walkable = meters <= COMFORTABLE_WALK_METERS;
+
+  const options: FirstMileOption[] = [
+    {
+      mode: 'WALK',
+      durationMinutes: walkMinutes,
+      recommended: walkable,
+      label: meters < 1000
+        ? `Walk ${Math.round(meters)} m`
+        : `Walk ${(meters / 1000).toFixed(1)} km`,
+      isEstimate: true,
+    },
+    {
+      mode: 'AUTO',
+      durationMinutes: autoMinutes,
+      recommended: !walkable,
+      // Named operators, because "take a ride" is not actionable in Bengaluru
+      // and these are the apps a rider already has. No fare: Ratroo has no
+      // fare feed for any of them.
+      label: `Auto, bike taxi or cab (Rapido, Ola, Uber) · ${(meters / 1000).toFixed(1)} km`,
+      isEstimate: true,
+    },
+  ];
+
+  const recommended = options.find(option => option.recommended)!;
+
+  return {
+    ...ends,
+    mode: recommended.mode,
+    distanceKm: meters / 1000,
+    durationMinutes: recommended.durationMinutes,
+    options,
+  };
 }
 
 /** Minutes past midnight of a journey's first timed boarding, or null. */
