@@ -12,6 +12,13 @@ export class JourneyController {
     if (!dto || !dto.from || !dto.to) {
       throw new BadRequestException('Body must contain non-empty from and to parameters.');
     }
-    return this.journeyService.planJourney(dto.from, dto.to);
+    // Coordinates are passed through untouched; the service prefers a named
+    // place and only falls back to the point when the name resolves to nothing.
+    return this.journeyService.planJourney(dto.from, dto.to, {
+      fromLat: dto.fromLat,
+      fromLng: dto.fromLng,
+      toLat: dto.toLat,
+      toLng: dto.toLng,
+    });
   }
 }

@@ -4,6 +4,14 @@ import { JourneyLegDto, JourneyResponseDto } from '../dto/journey.dto';
 import { JourneyRepository } from '../repositories/journey.repository';
 import { JourneyPlannerService } from './journey-planner.service';
 
+/** Coordinates for either end, when the caller knows them. */
+export interface JourneyCoordinates {
+  fromLat?: number;
+  fromLng?: number;
+  toLat?: number;
+  toLng?: number;
+}
+
 @Injectable()
 export class JourneyService {
   constructor(
@@ -11,20 +19,21 @@ export class JourneyService {
     private readonly planner: JourneyPlannerService,
   ) {}
 
-  async planJourney(from: string, to: string): Promise<ApiResult<JourneyResponseDto>> {
+  async planJourney(
+    from: string,
+    to: string,
+    coordinates: JourneyCoordinates = {},
+  ): Promise<ApiResult<JourneyResponseDto>> {
     if (!from?.trim() || !to?.trim()) {
       throw new BadRequestException('Both from and to location parameters are required.');
     }
 
-    const originCandidates = await this.journeyRepository.findPlacesByName(from);
-    if (!originCandidates.length) {
-      throw new NotFoundException(`Origin location '${from}' was not found in the canonical graph database.`);
-    }
-
-    const destCandidates = await this.journeyRepository.findPlacesByName(to);
-    if (!destCandidates.length) {
-      throw new NotFoundException(`Destination location '${to}' was not found in the canonical graph database.`);
-    }
+    const originCandidates = await this.resolveEndpoint(
+      from, coordinates.fromLat, coordinates.fromLng, 'Origin',
+    );
+    const destCandidates = await this.resolveEndpoint(
+      to, coordinates.toLat, coordinates.toLng, 'Destination',
+    );
 
     const originPlace = originCandidates[0];
     const destPlace = destCandidates[0];
@@ -177,5 +186,56 @@ export class JourneyService {
       providers: journey.providers,
       dataSources: ['Ratroo Graph Planner'],
     });
+  }
+
+  /**
+   * One end of the journey — by name where possible, by coordinate where not.
+   *
+   * The named lookup is tried first and kept when it succeeds: a canonical
+   * place carries aliases and a normalised form that a bare point cannot, and
+   * those are what let "Asansol" reach "Asansol Bus Terminus".
+   *
+   * The coordinate is a fallback, not a preference. Without it, a
+   * reverse-geocoded label such as "Kasavanahalli, Bengaluru, Karnataka"
+   * matched no canonical place and the request failed with "was not found in
+   * the canonical graph database" — while BMTC stops stood 373 m away. The
+   * planner never needed the name: given a point it finds the stops within
+   * reach itself and emits the first and last mile as their own legs.
+   *
+   * Confidence is 0.5 against a curated place's 0.9. A dropped pin is a weaker
+   * claim about where the rider means, and the response reports that number.
+   */
+  private async resolveEndpoint(
+    name: string,
+    lat: number | undefined,
+    lng: number | undefined,
+    label: 'Origin' | 'Destination',
+  ): Promise<any[]> {
+    const candidates = await this.journeyRepository.findPlacesByName(name);
+    if (candidates.length) return candidates;
+
+    // Number(null) and Number('') are both 0, which is finite — so a missing
+    // coordinate would pass a bare isFinite check and place the rider at 0,0 in
+    // the Gulf of Guinea. Absent values are rejected before conversion, the
+    // same guard `planJourney` already applies to a place's own columns.
+    const supplied = (value: unknown) =>
+      value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+
+    if (!supplied(lat) || !supplied(lng)) {
+      throw new NotFoundException(
+        `${label} location '${name}' was not found, and no coordinates were supplied to search from.`,
+      );
+    }
+
+    return [
+      {
+        id: null,
+        canonicalName: name.trim(),
+        normalizedName: null,
+        latitude: Number(lat),
+        longitude: Number(lng),
+        confidence: 0.5,
+      },
+    ];
   }
 }

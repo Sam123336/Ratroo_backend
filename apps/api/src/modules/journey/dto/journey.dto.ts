@@ -1,4 +1,5 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsLatitude, IsLongitude } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class PlanJourneyDto {
   @IsString()
@@ -8,6 +9,38 @@ export class PlanJourneyDto {
   @IsString()
   @IsNotEmpty()
   to: string;
+
+  /**
+   * Where the rider actually is, when the name alone will not resolve.
+   *
+   * A reverse-geocoded label — "Kasavanahalli, Bengaluru, Karnataka" — is not a
+   * canonical place, so a name-only lookup 404s and the rider is told no route
+   * exists when in fact there are stops 373 m away. With a coordinate the
+   * planner snaps to the nearest stops and covers the gap with a walk or a
+   * hailed ride, which is the honest answer.
+   *
+   * Optional on purpose: a caller that has a real place name still gets the
+   * named lookup, which carries aliases the coordinate cannot.
+   */
+  @IsOptional()
+  @Type(() => Number)
+  @IsLatitude()
+  fromLat?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsLongitude()
+  fromLng?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsLatitude()
+  toLat?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsLongitude()
+  toLng?: number;
 }
 
 /** One way to cover a first or last mile. Mirrors the planner's own shape. */
