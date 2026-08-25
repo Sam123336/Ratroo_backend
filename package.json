@@ -14,7 +14,12 @@
     "migrate:create": "npm --prefix apps/api run migrate:create --",
     "gen:module": "npm --prefix apps/api run gen:module --",
     "start:api": "npm --prefix apps/api run start:dev",
-    "sync:timetables": "./scripts/fetch-timetables.sh"
+    "sync:timetables": "./scripts/fetch-timetables.sh",
+    "metro:locate-stations": "npm --prefix apps/api run metro:locate-stations --",
+    "transit:project": "npm --prefix apps/api run transit:project --",
+    "regions:build-polygons": "npm --prefix apps/api run regions:build-polygons --",
+    "bmtc:ingest": "npm --prefix apps/api run bmtc:ingest --",
+    "bmtc:promote": "npm --prefix apps/api run bmtc:promote --"
   },
   "keywords": [],
   "author": "",

@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { QueryTypes } from 'sequelize';
+import { QueryTypes, Transaction } from 'sequelize';
 import { routeLabel } from '../../../shared/route-label';
 import { Sequelize } from 'sequelize-typescript';
 
@@ -75,7 +75,7 @@ export class TransitGraphService implements OnModuleInit {
   }
 
   async ready() {
-    this.loaded ??= this.load();
+    this.loaded ??= this.withLoadTimeout(transaction => this.load(transaction));
     await this.loaded;
   }
 
@@ -171,7 +171,32 @@ export class TransitGraphService implements OnModuleInit {
     return `${Math.floor(lat / 0.01)}:${Math.floor(lng / 0.01)}`;
   }
 
-  private async load() {
+  /**
+   * Raise the statement timeout for the duration of a graph load.
+   *
+   * Postgres cancels a statement that outlives `statement_timeout`, and managed
+   * instances set that for API traffic — Supabase gives the `postgres` role two
+   * minutes. Building the graph is not API traffic: it reads every route-stop
+   * and every published time in one pass, ~450k rows once Bengaluru's BMTC
+   * network landed, and that overran the cap. The symptom is severe because
+   * this is a read path — *every* journey failed with "canceling statement due
+   * to statement timeout", not just an import.
+   *
+   * SET LOCAL, so the limit reverts with the transaction rather than leaving a
+   * limitless session in the pool for request queries. The transaction is then
+   * passed to each query below rather than relied on ambiently: SET LOCAL binds
+   * to one connection, and a query that does not name this transaction is
+   * handed a different pooled connection where the raised limit never ran.
+   */
+  private async withLoadTimeout<T>(work: (transaction: Transaction) => Promise<T>): Promise<T> {
+    return this.sequelize.transaction(async transaction => {
+      const ms = Number(process.env.GRAPH_LOAD_STATEMENT_TIMEOUT_MS || 600_000);
+      await this.sequelize.query(`SET LOCAL statement_timeout = ${Math.trunc(ms)}`, { transaction });
+      return work(transaction);
+    });
+  }
+
+  private async load(transaction: Transaction) {
     const startedAt = Date.now();
 
     // lat/lng live in the metadata JSON. A stop without them cannot anchor a
@@ -191,7 +216,7 @@ export class TransitGraphService implements OnModuleInit {
               metadata->>'latitude'  AS lat,
               metadata->>'longitude' AS lng
        FROM metro_stations`,
-      { type: QueryTypes.SELECT },
+      { type: QueryTypes.SELECT, transaction },
     );
 
     this.stops.clear();
@@ -244,7 +269,7 @@ export class TransitGraphService implements OnModuleInit {
        FROM metro_lines l
        JOIN metro_line_stations ls ON ls."lineId" = l.id
        ORDER BY "routeId", sequence`,
-      { type: QueryTypes.SELECT },
+      { type: QueryTypes.SELECT, transaction },
     );
 
     this.routes.clear();
@@ -269,7 +294,7 @@ export class TransitGraphService implements OnModuleInit {
       pushTo(this.routesByStop, row.stopId, row.routeId);
     }
 
-    await this.loadTimes();
+    await this.loadTimes(transaction);
 
     const timed = [...this.routes.values()].filter(route => route.times.size).length;
     this.logger.log(
@@ -287,7 +312,7 @@ export class TransitGraphService implements OnModuleInit {
    * different departure times and the planner would pick between them
    * arbitrarily.
    */
-  private async loadTimes(): Promise<void> {
+  private async loadTimes(transaction: Transaction): Promise<void> {
     const rows = await this.sequelize.query<{
       routeId: string;
       stopId: string;
@@ -299,7 +324,7 @@ export class TransitGraphService implements OnModuleInit {
        JOIN trips t ON t.id = st."tripId"
        WHERE st."departureTime" IS NOT NULL
        ORDER BY t."routeId", st."stopId", t.direction, t.id, st."stopSequence"`,
-      { type: QueryTypes.SELECT },
+      { type: QueryTypes.SELECT, transaction },
     );
 
     for (const row of rows) {

@@ -58,6 +58,7 @@ import { CanonicalStopResolutionEngine } from './enrichment/canonical-stop-resol
 import { ProviderHealthService } from './health/provider-health.service';
 import { ProviderDashboardController } from './health/provider-dashboard.controller';
 import { CoverageDashboardService } from './health/coverage-dashboard.service';
+import { MetroStationLocatorService } from './application/MetroStationLocatorService';
 
 // Removed Places & Graph imports
 
@@ -112,6 +113,7 @@ import {
     ProviderSyncCronController,
   ],
   providers: [
+    MetroStationLocatorService,
     // Registered operators, read through the same pipeline as every
     // scraped source rather than a private path into the transit tables.
     OperatorSubmissionFetcher,
@@ -159,6 +161,7 @@ import {
     CoverageDashboardService,
   ],
   exports: [
+    MetroStationLocatorService,
     ProviderSyncSchedulerService,
     CanonicalTransitProjectionService,
     ProviderRegistryService,
