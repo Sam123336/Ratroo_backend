@@ -214,6 +214,15 @@ export class JourneyService {
     const candidates = await this.journeyRepository.findPlacesByName(name);
     if (candidates.length) return candidates;
 
+    // A station that never became a canonical place. `places` is built from the
+    // bus imports, so a metro-only station is missing from it entirely:
+    // "Whitefield" has no row in `places` and no stop of that name, but one in
+    // `metro_stations`. Searching places alone reported it as not found while
+    // it sat in the graph the whole time. Tried before the caller's
+    // coordinates, because a named station is a better answer than a pin.
+    const stations = await this.journeyRepository.findStationsByName(name);
+    if (stations.length) return stations;
+
     // Number(null) and Number('') are both 0, which is finite — so a missing
     // coordinate would pass a bare isFinite check and place the rider at 0,0 in
     // the Gulf of Guinea. Absent values are rejected before conversion, the

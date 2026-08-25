@@ -11,9 +11,12 @@ import { JourneyService } from './journey.service';
  * nothing. Before the coordinate fallback that was a 404 and the rider was
  * told no route exists, with BMTC stops a few hundred metres away.
  */
-const service = (found: unknown[]) =>
+const service = (found: unknown[], stations: unknown[] = []) =>
   new JourneyService(
-    { findPlacesByName: async () => found } as never,
+    {
+      findPlacesByName: async () => found,
+      findStationsByName: async () => stations,
+    } as never,
     { planAll: async () => [] } as never,
   );
 
@@ -50,6 +53,36 @@ describe('journey endpoint resolution', () => {
     // A dropped pin is a weaker claim than a curated place, and the response
     // reports this number to the rider.
     assert.equal(resolved[0].confidence, 0.5);
+  });
+
+  test('falls back to a station when no place matches', async () => {
+    // `places` is built from the bus imports, so a metro-only station is absent
+    // from it: Whitefield has no place row and no stop of that name, only a
+    // metro_stations row. It was reported as not found while sitting in the
+    // graph the whole time.
+    const station = {
+      id: null, canonicalName: 'Whitefield', normalizedName: 'whitefield',
+      latitude: null, longitude: null, confidence: 0.7,
+    };
+    const resolved = await resolve(service([], [station]), 'Whitefield');
+
+    assert.equal(resolved.length, 1);
+    assert.equal(resolved[0].canonicalName, 'Whitefield');
+    // Null coordinates are not fatal: the planner matches stops by name too,
+    // so an unlocated station is still a usable endpoint.
+    assert.equal(resolved[0].latitude, null);
+  });
+
+  test('prefers a station over the callers coordinates', async () => {
+    // A named station is a better reading of intent than a dropped pin.
+    const station = {
+      id: null, canonicalName: 'Whitefield', normalizedName: 'whitefield',
+      latitude: 12.99, longitude: 77.75, confidence: 0.7,
+    };
+    const resolved = await resolve(service([], [station]), 'Whitefield', 12.90, 77.60);
+
+    assert.equal(resolved[0].canonicalName, 'Whitefield');
+    assert.equal(resolved[0].latitude, 12.99);
   });
 
   test('still refuses when there is neither a match nor a coordinate', async () => {

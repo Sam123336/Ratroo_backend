@@ -5,8 +5,23 @@ import {
   PlaceAliasModel, PlaceModel,
 } from '../../places/entities/place.model';
 import {
-  BusRouteModel, BusRouteStopModel, BusStopModel,
+  BusRouteModel, BusRouteStopModel, BusStopModel, MetroStationModel,
 } from '../../provider-ingestion/infrastructure/sequelize/models';
+
+/**
+ * A journey endpoint that is not a canonical place.
+ *
+ * Shaped like the fields [JourneyService] reads off a PlaceModel, so the two
+ * can be used interchangeably without the caller testing which it got.
+ */
+export interface StationEndpoint {
+  id: string | null;
+  canonicalName: string;
+  normalizedName: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  confidence: number;
+}
 
 @Injectable()
 export class JourneyRepository {
@@ -16,7 +31,63 @@ export class JourneyRepository {
     @InjectModel(BusStopModel) private readonly busStops: typeof BusStopModel,
     @InjectModel(BusRouteStopModel) private readonly busRouteStops: typeof BusRouteStopModel,
     @InjectModel(BusRouteModel) private readonly busRoutes: typeof BusRouteModel,
+    @InjectModel(MetroStationModel) private readonly metroStations: typeof MetroStationModel,
   ) {}
+
+  /**
+   * Endpoints that exist as a station but never became a canonical place.
+   *
+   * `places` is built from the bus imports, so a station served only by metro
+   * is absent from it — "Whitefield" has 0 rows in `places`, 0 in `stops` and 1
+   * in `metro_stations`. Searching places alone therefore made every
+   * metro-only station unreachable as an origin or destination, reported to
+   * the rider as "was not found", while the station sat in the graph the whole
+   * time.
+   *
+   * Coordinates come from the same metadata the graph reads, and are allowed to
+   * be null: the planner matches stops by name as well as by position, so a
+   * station with no surveyed point is still a usable endpoint.
+   */
+  async findStationsByName(name: string, limit = 3): Promise<StationEndpoint[]> {
+    const cleanName = name.trim().toLowerCase();
+    if (!cleanName) return [];
+
+    const stations = await this.metroStations.findAll({
+      where: {
+        [Op.or]: [
+          { name: { [Op.iLike]: `%${cleanName}%` } },
+          { normalizedName: { [Op.iLike]: `%${cleanName}%` } },
+        ],
+      },
+      limit: limit * 4,
+    });
+
+    const asNumber = (value: unknown): number | null => {
+      // Number(null) is 0 and 0,0 is a real place in the Gulf of Guinea, so an
+      // absent coordinate has to be rejected before conversion.
+      if (value === null || value === undefined || value === '') return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    return stations
+      // An exact name is a better reading than a substring: "MG Road" should
+      // not lose to "MG Road Extension" merely by being found second.
+      .sort((left, right) =>
+        Number(left.name.toLowerCase() !== cleanName) -
+        Number(right.name.toLowerCase() !== cleanName))
+      .slice(0, limit)
+      .map(station => ({
+        id: null,
+        canonicalName: station.name,
+        normalizedName: station.normalizedName ?? null,
+        latitude: asNumber(station.metadata?.latitude),
+        longitude: asNumber(station.metadata?.longitude),
+        // Below a curated place: this is a station record, not a place the
+        // geocoding pipeline verified.
+        confidence: 0.7,
+      }));
+  }
 
   /**
    * Places a name could mean, best first.

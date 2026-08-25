@@ -10,6 +10,7 @@ import {
   BusRouteModel,
   BusRouteStopModel,
   BusStopModel,
+  MetroStationModel,
 } from '../provider-ingestion/infrastructure/sequelize/models';
 
 @Module({
@@ -20,6 +21,7 @@ import {
       BusStopModel,
       BusRouteStopModel,
       BusRouteModel,
+      MetroStationModel,
     ]),
   ],
   controllers: [JourneyController],
