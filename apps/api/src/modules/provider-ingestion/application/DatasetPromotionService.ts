@@ -325,12 +325,27 @@ export class DatasetPromotionService {
     const stationIdsByExternalId = await this.materializeMetroStations(stagedNodes, version.id, providerCode, mappingConfidence, transaction);
     const lineIdsByExternalId = await this.materializeMetroLines(stagedRoutes, version.id, providerCode, mappingConfidence, transaction);
 
-    await this.metroLineStationModel.destroy({
-      where: {
-        datasetVersionId: version.id,
-      },
-      transaction,
-    });
+    // Clear by line, not by dataset version.
+    //
+    // Deleting `datasetVersionId = version.id` removes only rows this promotion
+    // wrote — and a promotion always runs against a *new* version, so that set
+    // is empty and every previous version's rows survive. Three BMRCL
+    // promotions therefore left three copies of every station on every line:
+    // 96 rows for Green Line's 32 stops, sequences reading 1,1,1,2,2,2. The
+    // graph builds ride order from that sequence, so the line became
+    // unrideable — which is why a single-line trip like Whitefield to Majestic
+    // found no route.
+    //
+    // The bus path next door already deletes by `routeId` for exactly this
+    // reason. Doing the same here also self-heals: the next promotion clears
+    // the stale copies regardless of which version wrote them.
+    const metroLineIds = Array.from(lineIdsByExternalId.values());
+    if (metroLineIds.length) {
+      await this.metroLineStationModel.destroy({
+        where: { lineId: { [Op.in]: metroLineIds } },
+        transaction,
+      });
+    }
 
     const lineStationsToCreate: Record<string, unknown>[] = [];
     for (const routeStop of stagedRouteStops) {
