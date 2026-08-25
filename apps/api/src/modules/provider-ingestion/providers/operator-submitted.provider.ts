@@ -70,6 +70,8 @@ interface OperatorRouteRecord {
     fareFromOriginINR: number | null;
     stateCode: string | null;
     stateName: string | null;
+    /** False when the pin resolved by proximity rather than containment. */
+    stateExact: boolean;
   }>;
 }
 
@@ -140,25 +142,57 @@ export class OperatorSubmissionFetcher implements IFetcher {
       })));
 
     const located = points.length
-      ? await this.sequelize.query<{ key: string; stateCode: string; stateName: string }>(
+      ? await this.sequelize.query<{ key: string; stateCode: string; stateName: string; covered: boolean }>(
+        // Raw SQL because this is PostGIS: ST_Covers/ST_DWithin have no ORM
+        // equivalent, and doing it in JavaScript would mean pulling 36 state
+        // polygons into memory per sync.
+        //
+        // ST_DWithin, not ST_Covers alone. The boundaries are the *simplified*
+        // geoBoundaries geometry, which cuts corners along coastlines and
+        // rivers — so a real stop in a coastal or border village can fall a few
+        // hundred metres outside its own state's polygon. With a strict
+        // containment test that operator's entire route was rejected as
+        // "outside India", and nothing told them it was a map artefact rather
+        // than a bad pin.
+        //
+        // A point inside a polygon has distance 0, so one predicate covers both
+        // cases; ordering puts a true containment ahead of a near miss, then
+        // the nearest state, so a pin close to a border still resolves to the
+        // side it actually sits on.
         `WITH points AS (
            SELECT * FROM jsonb_to_recordset(CAST(:points AS jsonb))
              AS p(key text, latitude double precision, longitude double precision)
          )
-         SELECT p.key, area."stateCode", area."stateName"
+         SELECT p.key, area."stateCode", area."stateName", area.covered
          FROM points p
          JOIN LATERAL (
-           SELECT c."stateCode", c."stateName"
+           SELECT c."stateCode", c."stateName",
+                  ST_Covers(c.boundary, ST_SetSRID(ST_MakePoint(p.longitude, p.latitude), 4326)) AS covered
            FROM coverage_areas c
            WHERE c."areaType" IN ('ADMIN_STATE', 'STATE')
-             AND ST_Covers(
-               c.boundary,
-               ST_SetSRID(ST_MakePoint(p.longitude, p.latitude), 4326)
+             AND ST_DWithin(
+               c.boundary::geography,
+               ST_SetSRID(ST_MakePoint(p.longitude, p.latitude), 4326)::geography,
+               :toleranceMetres
              )
-           ORDER BY CASE c."areaType" WHEN 'ADMIN_STATE' THEN 0 ELSE 1 END
+           ORDER BY
+             ST_Covers(c.boundary, ST_SetSRID(ST_MakePoint(p.longitude, p.latitude), 4326)) DESC,
+             CASE c."areaType" WHEN 'ADMIN_STATE' THEN 0 ELSE 1 END,
+             ST_Distance(
+               c.boundary::geography,
+               ST_SetSRID(ST_MakePoint(p.longitude, p.latitude), 4326)::geography
+             )
            LIMIT 1
          ) area ON true`,
-        { replacements: { points: JSON.stringify(points) }, type: QueryTypes.SELECT },
+        {
+          replacements: {
+            points: JSON.stringify(points),
+            // Wide enough to absorb simplified-geometry error on a coastline,
+            // narrow enough that a pin genuinely at sea still fails.
+            toleranceMetres: Number(process.env.OPERATOR_STATE_TOLERANCE_M ?? 2000),
+          },
+          type: QueryTypes.SELECT,
+        },
       )
       : [];
     const geographyByStop = new Map(located.map(row => [row.key, row]));
@@ -186,6 +220,7 @@ export class OperatorSubmissionFetcher implements IFetcher {
         fareFromOriginINR: stop.fareFromOriginINR ?? null,
         stateCode: geography?.stateCode ?? null,
         stateName: geography?.stateName ?? null,
+        stateExact: geography?.covered === true,
       }; }),
     }));
 
@@ -255,11 +290,30 @@ export class OperatorSubmissionValidator implements IValidator<OperatorRouteReco
         warnings.push(`${label}: no coordinates, so stops will be matched by name alone.`);
       }
 
+      // Only a pin nothing can claim is an error. Previously any stop the
+      // simplified boundary happened to exclude failed the whole route, which
+      // punished coastal and border villages for a map artefact.
       const unclassified = record.stops.filter(
         stop => stop.latitude != null && stop.longitude != null && !stop.stateCode,
       );
       if (unclassified.length) {
-        errors.push(`${label}: ${unclassified.length} pinned stop(s) are outside the imported India boundaries.`);
+        errors.push(
+          `${label}: ${unclassified.length} pinned stop(s) are not within or near any Indian state boundary. ` +
+            'Check the pin is on land and inside India.',
+        );
+      }
+
+      // Resolved, but by proximity — worth surfacing to a reviewer without
+      // blocking the operator, since the usual cause is a simplified coastline
+      // rather than a wrong pin.
+      const nearBoundary = record.stops.filter(
+        stop => stop.stateCode && !stop.stateExact,
+      );
+      if (nearBoundary.length) {
+        warnings.push(
+          `${label}: ${nearBoundary.length} stop(s) sit just outside their state's simplified boundary ` +
+            'and were matched to the nearest state.',
+        );
       }
     }
 
