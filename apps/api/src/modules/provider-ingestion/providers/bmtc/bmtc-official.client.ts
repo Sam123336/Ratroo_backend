@@ -88,9 +88,17 @@ export class BmtcClient {
   async post<T>(
     endpoint: string,
     body: Record<string, unknown> | null = null,
+    options: { live?: boolean } = {},
   ): Promise<BmtcRawResponse<T>> {
     const path = this.cachePath(endpoint, body);
-    if (existsSync(path)) {
+    // `live` skips the disk cache in both directions.
+    //
+    // The cache exists so a harvest can be re-run for free, and that is exactly
+    // wrong for a vehicle position: a cached response would report where a bus
+    // stood the first time this route was ever fetched, and keep reporting it
+    // forever. Nor is the response written back, which would poison the
+    // harvest's own cache with a one-off live read.
+    if (!options.live && existsSync(path)) {
       const cached = JSON.parse(
         readFileSync(path, "utf8"),
       ) as BmtcRawResponse<T>;
@@ -148,7 +156,10 @@ export class BmtcClient {
           contentHash: createHash("sha256").update(text).digest("hex"),
           fromCache: false,
         };
-        writeFileSync(path, JSON.stringify(record, null, 2));
+        // A live read is never written back: it would poison the harvest cache
+        // with one moment's vehicle positions, which every later run would then
+        // replay as though they were the timetable.
+        if (!options.live) writeFileSync(path, JSON.stringify(record, null, 2));
         return record;
       } catch (error) {
         clearTimeout(timer);

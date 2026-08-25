@@ -59,10 +59,12 @@ import { ProviderHealthService } from './health/provider-health.service';
 import { ProviderDashboardController } from './health/provider-dashboard.controller';
 import { CoverageDashboardService } from './health/coverage-dashboard.service';
 import { MetroStationLocatorService } from './application/MetroStationLocatorService';
+import { LiveVehicleService } from './application/LiveVehicleService';
 
 // Removed Places & Graph imports
 
 import { InternalOpsDashboardController } from './health/internal-ops-dashboard.controller';
+import { LiveVehiclesController } from './presentation/controllers/live-vehicles.controller';
 import { OperatorRouteModel } from '../operators/entities/operator-route.model';
 import { OperatorModel } from '../operators/entities/operator.model';
 import { OperatorRouteStopModel } from '../operators/entities/operator-route-stop.model';
@@ -97,6 +99,7 @@ import {
     ]),
   ],
   controllers: [
+    LiveVehiclesController,
     ProviderRegistryController,
     BengaluruJourneyController,
     BengaluruMobilityController,
@@ -114,6 +117,7 @@ import {
   ],
   providers: [
     MetroStationLocatorService,
+    LiveVehicleService,
     // Registered operators, read through the same pipeline as every
     // scraped source rather than a private path into the transit tables.
     OperatorSubmissionFetcher,
@@ -162,6 +166,7 @@ import {
   ],
   exports: [
     MetroStationLocatorService,
+    LiveVehicleService,
     ProviderSyncSchedulerService,
     CanonicalTransitProjectionService,
     ProviderRegistryService,
