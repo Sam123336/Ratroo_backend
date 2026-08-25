@@ -15,7 +15,7 @@ export interface GraphRoute {
   id: string;
   name: string;
   providerCode: string;
-  mode: 'BUS' | 'METRO';
+  mode: GraphRouteMode;
   /** Stop ids in travel order. */
   stopIds: string[];
   /** Operator fare for the whole route, where the provider publishes one. */
@@ -29,6 +29,15 @@ export interface GraphRoute {
    */
   times: Map<string, number>;
 }
+
+export type GraphRouteMode =
+  | 'BUS'
+  | 'METRO'
+  | 'AUTO'
+  | 'SHARED_AUTO'
+  | 'FERRY'
+  | 'TRAM'
+  | 'RAIL';
 
 /**
  * The route network held in memory for path-finding.
@@ -252,13 +261,23 @@ export class TransitGraphService implements OnModuleInit {
     }
 
     const routeRows = await this.sequelize.query<{
-      routeId: string; name: string; shortName: string | null; providerCode: string; mode: 'BUS' | 'METRO';
+      routeId: string; name: string; shortName: string | null; providerCode: string; mode: GraphRouteMode;
       stopId: string; sequence: number; fareINR: string | null; fareSource: string | null;
     }>(
       // shortName is the service number riders board by. A metro line has none
       // — its name is the line — so it selects NULL to keep the union aligned.
       `SELECT r.id AS "routeId", r."longName" AS name, r.metadata->>'shortName' AS "shortName",
-              r."providerCode", 'BUS' AS mode,
+              r."providerCode",
+              CASE upper(COALESCE(r.metadata->>'mode', ''))
+                WHEN 'AUTO' THEN 'AUTO'
+                WHEN 'SHARED_AUTO' THEN 'SHARED_AUTO'
+                WHEN 'FERRY' THEN 'FERRY'
+                WHEN 'TRAM' THEN 'TRAM'
+                WHEN 'SUBURBAN_RAIL' THEN 'RAIL'
+                WHEN 'RAIL' THEN 'RAIL'
+                WHEN 'METRO' THEN 'METRO'
+                ELSE 'BUS'
+              END AS mode,
               rs."stopId", rs.sequence,
               r.metadata->>'fareINR' AS "fareINR", r.metadata->>'fareSource' AS "fareSource"
        FROM bus_routes r

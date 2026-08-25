@@ -10,6 +10,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { PasswordService } from './password.service';
 import { AdminGuard } from './admin.guard';
 import { OAuthIdentityModel } from './entities/oauth-identity.model';
+import { OAuthVerifiedGuard } from './oauth-verified.guard';
 
 /**
  * Global so any feature module can `@UseGuards(JwtAuthGuard)` without importing
@@ -39,7 +40,12 @@ import { OAuthIdentityModel } from './entities/oauth-identity.model';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, PasswordService, JwtAuthGuard, AdminGuard],
-  exports: [AuthService, JwtAuthGuard, AdminGuard, JwtModule],
+  providers: [AuthService, PasswordService, JwtAuthGuard, OAuthVerifiedGuard, AdminGuard],
+  // SequelizeModule is re-exported so the repository tokens travel with the
+  // guards. A guard referenced as a class in `@UseGuards` is constructed in the
+  // *controller's* module, not the one that declared it — so exporting
+  // OAuthVerifiedGuard alone left OperatorsModule unable to resolve
+  // OAuthIdentityModelRepository, and the whole application failed to boot.
+  exports: [AuthService, JwtAuthGuard, OAuthVerifiedGuard, AdminGuard, JwtModule, SequelizeModule],
 })
 export class AuthModule {}

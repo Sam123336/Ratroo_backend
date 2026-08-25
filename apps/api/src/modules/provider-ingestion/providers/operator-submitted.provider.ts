@@ -1,6 +1,9 @@
 import { createHash } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
+import { InjectConnection } from '@nestjs/sequelize';
+import { QueryTypes } from 'sequelize';
+import { Sequelize } from 'sequelize-typescript';
 import { CanonicalMobilityDataset, NodeType, TransportMode } from '../domain/canonical-mobility';
 import {
   ProviderMappingContext, ProviderRunContext, ProviderValidationResult,
@@ -65,10 +68,18 @@ interface OperatorRouteRecord {
     longitude: number | null;
     departureTime: string | null;
     fareFromOriginINR: number | null;
+    stateCode: string | null;
+    stateName: string | null;
   }>;
 }
 
-/** Everything road-borne that is not a tram rides as a bus in the planner. */
+/**
+ * What the rider actually boards, kept distinct through to the journey.
+ *
+ * An auto and a shared taxi are not buses, and flattening them into one made
+ * the planner tell a rider to "take the bus" for a service that is neither
+ * shaped nor priced like one. Only a minibus genuinely rides as a bus here.
+ */
 function modeFor(vehicle: VehicleType): TransportMode {
   switch (vehicle) {
     case VehicleType.FERRY: return 'FERRY';
@@ -96,6 +107,7 @@ export class OperatorSubmissionFetcher implements IFetcher {
   constructor(
     @InjectModel(OperatorRouteModel)
     private readonly routes: typeof OperatorRouteModel,
+    @InjectConnection() private readonly sequelize: Sequelize,
   ) {}
 
   async fetch(url: string): Promise<RawProviderResponse> {
@@ -119,6 +131,38 @@ export class OperatorSubmissionFetcher implements IFetcher {
       ],
     });
 
+    const points = rows.flatMap(route => (route.stops ?? [])
+      .filter(stop => stop.latitude != null && stop.longitude != null)
+      .map(stop => ({
+        key: `${route.id}:${stop.sequence}`,
+        latitude: Number(stop.latitude),
+        longitude: Number(stop.longitude),
+      })));
+
+    const located = points.length
+      ? await this.sequelize.query<{ key: string; stateCode: string; stateName: string }>(
+        `WITH points AS (
+           SELECT * FROM jsonb_to_recordset(CAST(:points AS jsonb))
+             AS p(key text, latitude double precision, longitude double precision)
+         )
+         SELECT p.key, area."stateCode", area."stateName"
+         FROM points p
+         JOIN LATERAL (
+           SELECT c."stateCode", c."stateName"
+           FROM coverage_areas c
+           WHERE c."areaType" IN ('ADMIN_STATE', 'STATE')
+             AND ST_Covers(
+               c.boundary,
+               ST_SetSRID(ST_MakePoint(p.longitude, p.latitude), 4326)
+             )
+           ORDER BY CASE c."areaType" WHEN 'ADMIN_STATE' THEN 0 ELSE 1 END
+           LIMIT 1
+         ) area ON true`,
+        { replacements: { points: JSON.stringify(points) }, type: QueryTypes.SELECT },
+      )
+      : [];
+    const geographyByStop = new Map(located.map(row => [row.key, row]));
+
     const records: OperatorRouteRecord[] = rows.map(route => ({
       operatorId: route.operatorId,
       operatorName: route.operator?.name ?? 'Unknown operator',
@@ -131,14 +175,18 @@ export class OperatorSubmissionFetcher implements IFetcher {
       operatingDays: route.operatingDays ?? null,
       vehicleRegistration: route.vehicle?.registrationNumber ?? null,
       vehicleName: route.vehicle?.displayName ?? null,
-      stops: (route.stops ?? []).map(stop => ({
+      stops: (route.stops ?? []).map(stop => {
+        const geography = geographyByStop.get(`${route.id}:${stop.sequence}`);
+        return {
         sequence: stop.sequence,
         stopName: stop.stopName,
         latitude: stop.latitude == null ? null : Number(stop.latitude),
         longitude: stop.longitude == null ? null : Number(stop.longitude),
         departureTime: stop.departureTime ?? null,
         fareFromOriginINR: stop.fareFromOriginINR ?? null,
-      })),
+        stateCode: geography?.stateCode ?? null,
+        stateName: geography?.stateName ?? null,
+      }; }),
     }));
 
     const body = { records };
@@ -206,6 +254,13 @@ export class OperatorSubmissionValidator implements IValidator<OperatorRouteReco
       if (!record.stops.some(stop => stop.latitude != null && stop.longitude != null)) {
         warnings.push(`${label}: no coordinates, so stops will be matched by name alone.`);
       }
+
+      const unclassified = record.stops.filter(
+        stop => stop.latitude != null && stop.longitude != null && !stop.stateCode,
+      );
+      if (unclassified.length) {
+        errors.push(`${label}: ${unclassified.length} pinned stop(s) are outside the imported India boundaries.`);
+      }
     }
 
     return {
@@ -248,23 +303,27 @@ export class OperatorSubmissionMapper implements IMapper<OperatorRouteRecord> {
       observations: [],
     };
 
-    const geography = { countryCode: 'IN' as const, stateCode: 'WB' };
     const seenAgencies = new Set<string>();
     const seenNodes = new Set<string>();
 
     for (const record of records) {
       if (!seenAgencies.has(record.operatorId)) {
         seenAgencies.add(record.operatorId);
+        const firstLocated = record.stops.find(stop => stop.stateCode);
         dataset.agencies.push({
           externalId: record.operatorId,
           providerCode: OPERATOR_SUBMITTED_CONFIG.providerCode,
           name: record.operatorName,
-          geography,
+          geography: {
+            countryCode: 'IN',
+            stateCode: firstLocated?.stateCode ?? 'UNKNOWN',
+            stateName: firstLocated?.stateName ?? undefined,
+          },
         });
       }
 
       for (const stop of record.stops) {
-        const nodeId = `${record.operatorId}:${normalise(stop.stopName)}`;
+        const nodeId = operatorNodeId(record.operatorId, stop);
         if (seenNodes.has(nodeId)) continue;
         seenNodes.add(nodeId);
 
@@ -277,7 +336,11 @@ export class OperatorSubmissionMapper implements IMapper<OperatorRouteRecord> {
           aliases: [],
           latitude: stop.latitude ?? undefined,
           longitude: stop.longitude ?? undefined,
-          geography,
+          geography: {
+            countryCode: 'IN',
+            stateCode: stop.stateCode ?? 'UNKNOWN',
+            stateName: stop.stateName ?? undefined,
+          },
           // A pin the operator dropped themselves is the best coordinate we
           // will get for a village stop; a name alone is worth much less,
           // since resolution still has to guess which place it means.
@@ -293,7 +356,7 @@ export class OperatorSubmissionMapper implements IMapper<OperatorRouteRecord> {
         longName: record.routeName,
         operationalStatus: 'ACTIVE',
         stops: record.stops.map(stop => ({
-          nodeExternalId: `${record.operatorId}:${normalise(stop.stopName)}`,
+          nodeExternalId: operatorNodeId(record.operatorId, stop),
           name: stop.stopName,
           sequence: stop.sequence,
         })),
@@ -309,7 +372,7 @@ export class OperatorSubmissionMapper implements IMapper<OperatorRouteRecord> {
         serviceDays: record.operatingDays ?? undefined,
         operationalStatus: 'ACTIVE',
         stopTimes: record.stops.map(stop => ({
-          stopExternalId: `${record.operatorId}:${normalise(stop.stopName)}`,
+          stopExternalId: operatorNodeId(record.operatorId, stop),
           stopName: stop.stopName,
           sequence: stop.sequence,
           departureTime: stop.departureTime ?? undefined,
@@ -333,8 +396,8 @@ export class OperatorSubmissionMapper implements IMapper<OperatorRouteRecord> {
         dataset.fares.push({
           currency: 'INR',
           amount: stop.fareFromOriginINR,
-          fromNodeExternalId: `${record.operatorId}:${normalise(origin.stopName)}`,
-          toNodeExternalId: `${record.operatorId}:${normalise(stop.stopName)}`,
+          fromNodeExternalId: operatorNodeId(record.operatorId, origin),
+          toNodeExternalId: operatorNodeId(record.operatorId, stop),
           fareType: 'FIXED',
         });
       }
@@ -374,6 +437,21 @@ function nodeTypeFor(mode: TransportMode): NodeType {
 
 function normalise(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Stop names repeat across India—and even inside one operator's network.
+ * State and a rounded pin prevent "Central" in two cities becoming one node,
+ * while keeping a corrected pin stable enough for later syncs.
+ */
+function operatorNodeId(
+  operatorId: string,
+  stop: Pick<OperatorRouteRecord['stops'][number], 'stopName' | 'stateCode' | 'latitude' | 'longitude'>,
+): string {
+  const point = stop.latitude != null && stop.longitude != null
+    ? `${stop.latitude.toFixed(5)}:${stop.longitude.toFixed(5)}`
+    : 'unlocated';
+  return `${operatorId}:${stop.stateCode ?? 'IN'}:${normalise(stop.stopName)}:${point}`;
 }
 
 /**

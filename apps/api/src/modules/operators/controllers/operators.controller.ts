@@ -2,6 +2,7 @@ import {
   Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards,
 } from '@nestjs/common';
 import { AuthenticatedUser, CurrentUser, JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { OAuthVerifiedGuard } from '../../auth/oauth-verified.guard';
 import { CreateVehicleDto, RegisterOperatorDto, UpdateOperatorDto } from '../dto/operator.dto';
 import { OperatorsService } from '../services/operators.service';
 
@@ -13,7 +14,7 @@ import { OperatorsService } from '../services/operators.service';
  * there is no route here that can reach someone else's business.
  */
 @Controller('v1/operators')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, OAuthVerifiedGuard)
 export class OperatorsController {
   constructor(private readonly operators: OperatorsService) {}
 

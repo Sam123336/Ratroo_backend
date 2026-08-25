@@ -30,6 +30,7 @@
     "bmtc:promote": "ts-node -r tsconfig-paths/register src/scripts/promote-bmtc.ts",
     "transit:project": "ts-node -r tsconfig-paths/register src/scripts/project-transit.ts",
     "regions:build-polygons": "ts-node -r tsconfig-paths/register src/scripts/build-region-polygons.ts",
+    "regions:import-india-states": "ts-node -r tsconfig-paths/register src/scripts/import-india-admin-boundaries.ts",
     "metro:locate-stations": "ts-node -r tsconfig-paths/register src/scripts/locate-metro-stations.ts"
   },
   "dependencies": {

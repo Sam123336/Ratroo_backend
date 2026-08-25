@@ -55,8 +55,8 @@ export interface JourneyLegOptionDto {
 
 export interface JourneyLegDto {
   legNumber: number;
-  /** AUTO is a hailed first/last mile — auto, bike taxi or cab, not a service. */
-  mode: 'WALK' | 'AUTO' | 'BUS' | 'SUBURBAN_RAIL' | 'METRO' | 'FERRY';
+  /** AUTO without routeId is hailed; AUTO with routeId is an approved fixed service. */
+  mode: 'WALK' | 'AUTO' | 'SHARED_AUTO' | 'BUS' | 'SUBURBAN_RAIL' | 'RAIL' | 'METRO' | 'FERRY' | 'TRAM';
   fromName: string;
   toName: string;
   distanceKm: string;

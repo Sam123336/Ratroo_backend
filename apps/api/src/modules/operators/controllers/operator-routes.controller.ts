@@ -2,12 +2,13 @@ import {
   Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, UseGuards,
 } from '@nestjs/common';
 import { AuthenticatedUser, CurrentUser, JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { OAuthVerifiedGuard } from '../../auth/oauth-verified.guard';
 import { CreateRouteDto, RouteStopDto, SetPublishStateDto } from '../dto/operator.dto';
 import { OperatorRoutesService } from '../services/operator-routes.service';
 
 /** The services an operator runs, scoped to the signed-in account's business. */
 @Controller('v1/operators/me/routes')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, OAuthVerifiedGuard)
 export class OperatorRoutesController {
   constructor(private readonly routes: OperatorRoutesService) {}
 

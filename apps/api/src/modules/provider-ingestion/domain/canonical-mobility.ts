@@ -68,6 +68,7 @@ export type ServiceClass =
 export interface CanonicalGeography {
   countryCode: 'IN';
   stateCode: 'WB' | 'KA' | string;
+  stateName?: string;
   district?: string;
   metropolitanArea?: string;
   localAuthority?: string;

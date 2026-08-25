@@ -18,6 +18,7 @@
     "metro:locate-stations": "npm --prefix apps/api run metro:locate-stations --",
     "transit:project": "npm --prefix apps/api run transit:project --",
     "regions:build-polygons": "npm --prefix apps/api run regions:build-polygons --",
+    "regions:import-india-states": "npm --prefix apps/api run regions:import-india-states --",
     "bmtc:ingest": "npm --prefix apps/api run bmtc:ingest --",
     "bmtc:promote": "npm --prefix apps/api run bmtc:promote --"
   },

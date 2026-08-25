@@ -41,7 +41,8 @@ type BusProviderCode =
   | 'SBSTC'
   | 'KOLKATA_TRAM'
   | 'WB_FERRY'
-  | 'EASTERN_RAILWAY_SUBURBAN';
+  | 'EASTERN_RAILWAY_SUBURBAN'
+  | 'OPERATOR_SUBMITTED';
 type MetroProviderCode = 'BMRCL_METRO' | 'KOLKATA_METRO';
 
 @Injectable()
@@ -208,7 +209,8 @@ export class DatasetPromotionService {
       providerCode === 'SBSTC' ||
       providerCode === 'KOLKATA_TRAM' ||
       providerCode === 'WB_FERRY' ||
-      providerCode === 'EASTERN_RAILWAY_SUBURBAN'
+      providerCode === 'EASTERN_RAILWAY_SUBURBAN' ||
+      providerCode === 'OPERATOR_SUBMITTED'
     );
   }
 
@@ -384,6 +386,7 @@ export class DatasetPromotionService {
       KOLKATA_TRAM: 'Kolkata Tram',
       WB_FERRY: 'West Bengal Ferry',
       EASTERN_RAILWAY_SUBURBAN: 'Eastern Railway Suburban',
+      OPERATOR_SUBMITTED: 'Verified Ratroo operators',
     };
     const mappingConfidenceByCode: Record<BusProviderCode, number> = {
       WBBUS: 0.65,
@@ -400,6 +403,12 @@ export class DatasetPromotionService {
       KOLKATA_TRAM: 0.68,
       WB_FERRY: 0.78,
       EASTERN_RAILWAY_SUBURBAN: 0.7,
+      // Admin review raises this above an unreviewed scrape (WBBUS 0.65), but
+      // the coordinates are still a driver's phone pin rather than a survey —
+      // so it sits alongside an operator's own feed (BMTC 0.78) rather than
+      // above it. At 0.95 it outranked the transit authority's published data
+      // and matched OpenStreetMap, which a self-reported pin has not earned.
+      OPERATOR_SUBMITTED: 0.8,
     };
     const providerLabel = providerLabelByCode[providerCode];
     const mappingConfidence = mappingConfidenceByCode[providerCode];

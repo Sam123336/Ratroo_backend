@@ -9,7 +9,16 @@ import { GraphRoute, GraphStop, TransitGraphService, clockTime, haversineMeters 
  * door but share the same congestion, and a rider stranded by an optimistic
  * estimate is worse off than one who arrives early.
  */
-const SPEED = { WALK: 4.5, AUTO: 18, BUS: 22, METRO: 32 } as const;
+const SPEED = {
+  WALK: 4.5,
+  AUTO: 18,
+  SHARED_AUTO: 18,
+  BUS: 22,
+  METRO: 32,
+  FERRY: 18,
+  TRAM: 16,
+  RAIL: 35,
+} as const;
 
 /**
  * Past this, walking stops being an answer and becomes a warning.
@@ -82,7 +91,7 @@ export interface FirstMileOption {
 }
 
 export interface PlannedLeg {
-  mode: 'WALK' | 'AUTO' | 'BUS' | 'METRO';
+  mode: 'WALK' | 'AUTO' | 'SHARED_AUTO' | 'BUS' | 'METRO' | 'FERRY' | 'TRAM' | 'RAIL';
   fromStop?: GraphStop;
   toStop: GraphStop;
   distanceKm: number;
@@ -549,7 +558,10 @@ export class JourneyPlannerService {
     // transfer nor an operator, and counting one would tell a rider they change
     // services when they do not, and would make `fareIncomplete` true on every
     // journey that starts more than 50 m from a stop.
-    const rides = legs.filter(leg => leg.mode !== 'WALK' && leg.mode !== 'AUTO');
+    // A fixed-route AUTO has a routeId; a hailed first/last-mile AUTO does not.
+    // Counting by mode erased registered auto routes from transfers, providers
+    // and fares even though the rider actually boarded that service.
+    const rides = legs.filter(leg => Boolean(leg.routeId));
     const priced = rides.filter(leg => typeof leg.fareINR === 'number');
 
     return {
