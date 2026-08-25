@@ -40,6 +40,11 @@ async function main() {
       console.log(`  unmatched: ${result.unmatched.slice(0, 12).join(', ')}`);
     }
 
+    // Name matching supplies the anchors; interpolation fills between them.
+    const filled = await app.get(MetroStationLocatorService).interpolateFromLines({ dryRun });
+    console.log(`interpolated     ${filled.interpolated}   (between two located stations on a line)`);
+    console.log(`extrapolated     ${filled.extrapolated}   (past a line end — a weaker claim)`);
+
     console.log('');
     if (dryRun) {
       console.log('Dry run — nothing written.');

@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { BusStopModel, MetroStationModel } from '../infrastructure/sequelize/models';
+import {
+  BusStopModel,
+  MetroLineModel,
+  MetroLineStationModel,
+  MetroStationModel,
+} from '../infrastructure/sequelize/models';
 
 /**
  * Give metro stations coordinates, derived from the bus stops of the same name.
@@ -205,7 +210,84 @@ export class MetroStationLocatorService {
     private readonly metroStations: typeof MetroStationModel,
     @InjectModel(BusStopModel)
     private readonly busStops: typeof BusStopModel,
+    @InjectModel(MetroLineModel)
+    private readonly metroLines: typeof MetroLineModel,
+    @InjectModel(MetroLineStationModel)
+    private readonly metroLineStations: typeof MetroLineStationModel,
   ) {}
+
+  /**
+   * Fill stations that name matching could not reach, from the geometry of the
+   * line they sit on.
+   *
+   * Run after `locate`: interpolation needs anchors, and name matching is what
+   * supplies them. A line is only as usable as its least-located station —
+   * `rideMinutes` returns null for a hop with an unlocated end and the search
+   * abandons the route there, so a single gap severs everything beyond it.
+   * Whitefield sits at sequence 1 of the Purple Line, which is why a metro trip
+   * to it found no route at all.
+   *
+   * Everything written here is marked INTERPOLATED_FROM_LINE, never mixed with
+   * the surveyed positions name matching produced.
+   */
+  async interpolateFromLines(options: { dryRun?: boolean } = {}) {
+    const [lines, memberships, stations] = await Promise.all([
+      this.metroLines.findAll(),
+      this.metroLineStations.findAll(),
+      this.metroStations.findAll(),
+    ]);
+
+    const stationById = new Map(stations.map(station => [station.id, station]));
+    const coordinate = (value: unknown): number | null => {
+      if (value === null || value === undefined || value === '') return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    let interpolated = 0;
+    let extrapolated = 0;
+
+    for (const line of lines) {
+      const slots: LineSlot[] = memberships
+        .filter(row => row.lineId === line.id)
+        .map(row => {
+          const station = stationById.get(row.stationId);
+          return {
+            stationId: row.stationId,
+            sequence: row.sequence,
+            latitude: coordinate(station?.metadata?.latitude),
+            longitude: coordinate(station?.metadata?.longitude),
+          };
+        });
+
+      for (const fill of interpolateLine(slots)) {
+        const station = stationById.get(fill.stationId);
+        if (!station) continue;
+        fill.extrapolated ? (extrapolated += 1) : (interpolated += 1);
+        if (options.dryRun) continue;
+
+        await station.update({
+          metadata: {
+            ...(station.metadata ?? {}),
+            latitude: fill.latitude,
+            longitude: fill.longitude,
+            coordinateSource: 'INTERPOLATED_FROM_LINE',
+            coordinateLine: line.name,
+            // Extrapolation has nothing bounding it on the far side, so it is
+            // recorded separately rather than folded into one label.
+            coordinateExtrapolated: fill.extrapolated,
+          },
+        });
+      }
+    }
+
+    if (!options.dryRun) {
+      this.logger.log(
+        `Interpolated ${interpolated} metro stations between anchors, extrapolated ${extrapolated} past a line end.`,
+      );
+    }
+    return { interpolated, extrapolated };
+  }
 
   async locate(options: { dryRun?: boolean; maxSpreadKm?: number } = {}): Promise<LocateResult> {
     const maxSpreadKm = options.maxSpreadKm ?? DEFAULT_MAX_SPREAD_KM;
@@ -268,4 +350,79 @@ export class MetroStationLocatorService {
       written,
     };
   }
+}
+
+
+/** One station's place on a line, for interpolation. */
+export interface LineSlot {
+  stationId: string;
+  sequence: number;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+/**
+ * Fill the gaps along one line from the stations either side of them.
+ *
+ * A metro line is a near-straight run of evenly spaced stations, so a station
+ * between two known points is well approximated by its share of the distance
+ * between them. This is the same bargain `timetables:interpolate` already
+ * strikes for times: a derived value beats no value, provided it is labelled
+ * and never confused with a surveyed one.
+ *
+ * Stations *beyond* the last known point are extrapolated along the bearing of
+ * the two nearest anchors. That is a weaker claim than interpolation — nothing
+ * bounds it on the far side — and it is reported separately for that reason.
+ *
+ * Returns only the slots it filled; anything it cannot reach is left alone.
+ */
+export function interpolateLine(
+  slots: LineSlot[],
+): Array<{ stationId: string; latitude: number; longitude: number; extrapolated: boolean }> {
+  const ordered = [...slots].sort((a, b) => a.sequence - b.sequence);
+  const anchors = ordered
+    .map((slot, index) => ({ slot, index }))
+    .filter(({ slot }) => slot.latitude !== null && slot.longitude !== null);
+
+  // One anchor gives a position but no direction, so nothing can be derived.
+  if (anchors.length < 2) return [];
+
+  const filled: Array<{ stationId: string; latitude: number; longitude: number; extrapolated: boolean }> = [];
+
+  for (let i = 0; i < ordered.length; i += 1) {
+    const slot = ordered[i];
+    if (slot.latitude !== null && slot.longitude !== null) continue;
+
+    const before = [...anchors].reverse().find(a => a.index < i);
+    const after = anchors.find(a => a.index > i);
+
+    if (before && after) {
+      const span = after.index - before.index;
+      const step = (i - before.index) / span;
+      filled.push({
+        stationId: slot.stationId,
+        latitude: before.slot.latitude! + (after.slot.latitude! - before.slot.latitude!) * step,
+        longitude: before.slot.longitude! + (after.slot.longitude! - before.slot.longitude!) * step,
+        extrapolated: false,
+      });
+      continue;
+    }
+
+    // Past an end: continue the line using the two anchors nearest this side,
+    // one station-gap at a time.
+    const [near, far] = before ? [anchors[anchors.length - 1], anchors[anchors.length - 2]] : [anchors[0], anchors[1]];
+    const gaps = Math.abs(near.index - far.index) || 1;
+    const stepLat = (near.slot.latitude! - far.slot.latitude!) / gaps;
+    const stepLng = (near.slot.longitude! - far.slot.longitude!) / gaps;
+    const distance = i - near.index;
+
+    filled.push({
+      stationId: slot.stationId,
+      latitude: near.slot.latitude! + stepLat * distance,
+      longitude: near.slot.longitude! + stepLng * distance,
+      extrapolated: true,
+    });
+  }
+
+  return filled;
 }
