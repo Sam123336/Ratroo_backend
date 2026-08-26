@@ -72,6 +72,8 @@ export interface JourneyLegDto {
   stopCount?: number;
   /** Minutes waiting at this leg's boarding stop. Only from published times. */
   waitMinutes?: number;
+  /** True when the wait is an estimate, not a published timetable gap. */
+  waitIsEstimated?: boolean;
   /** Fare for this leg's service, where the operator publishes one. */
   fareINR?: number | null;
   /**

@@ -126,6 +126,7 @@ export class JourneyService {
         routeId: leg.routeId,
         stopCount: leg.stopCount,
         waitMinutes: leg.waitMinutes,
+        waitIsEstimated: leg.waitIsEstimated,
         fareINR: leg.fareINR ?? null,
         departureTime: leg.departureTime ?? null,
         arrivalTime: leg.arrivalTime ?? null,

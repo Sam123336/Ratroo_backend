@@ -116,6 +116,8 @@ export interface PlannedLeg {
    * stop and a rider standing at the wrong one.
    */
   waitMinutes?: number;
+  /** True when the wait is the generic boarding estimate, not a timetable gap. */
+  waitIsEstimated?: boolean;
   /** Whole-route fare, where the operator publishes one. */
   fareINR?: number | null;
   fareSource?: string | null;
@@ -551,9 +553,12 @@ export class JourneyPlannerService {
         fromStop: from,
         toStop: to,
         distanceKm: km,
-        durationMinutes:
-          minutesFor(km * 1000, mode === 'WALK' ? SPEED.WALK : SPEED[mode]) +
-          (route ? BOARDING_PENALTY_MINUTES : 0),
+        // Riding time only. The boarding penalty used to be folded in here,
+        // which made the leg say "23 min" for a 17-minute ride and put six
+        // minutes of waiting somewhere the rider could not see — so the total
+        // never equalled the steps on screen. Waiting is now its own line
+        // below, and the arithmetic is checkable.
+        durationMinutes: minutesFor(km * 1000, mode === 'WALK' ? SPEED.WALK : SPEED[mode]),
         routeId: route?.id,
         routeName: route?.name,
         providerCode: route?.providerCode,
@@ -588,21 +593,24 @@ export class JourneyPlannerService {
     // measured wait on top would count the same minutes twice in the total.
     // This surfaces the real number beside the leg while leaving the arithmetic
     // alone.
-    for (let index = 1; index < legs.length; index += 1) {
+    for (let index = 0; index < legs.length; index += 1) {
       const leg = legs[index];
       // Only a boarded service is worth waiting for; nobody waits to walk.
       if (!leg.routeId) continue;
 
-      const arrives = minutesOfDay(legs[index - 1].arrivalTime);
+      const arrives = index > 0 ? minutesOfDay(legs[index - 1].arrivalTime) : null;
       const departs = minutesOfDay(leg.departureTime);
-      if (arrives === null || departs === null) continue;
+      const measured = arrives !== null && departs !== null ? departs - arrives : null;
 
-      const wait = departs - arrives;
       // Negative means the two times came from opposite directions of a route
       // rather than one journey; a gap over three hours is a data artefact, not
-      // a connection a rider would make. Both are dropped rather than shown.
-      if (wait < 0 || wait > 180) continue;
-      leg.waitMinutes = wait;
+      // a connection a rider would make. Neither is a wait a rider will have.
+      const usable = measured !== null && measured >= 0 && measured <= 180;
+
+      leg.waitMinutes = usable ? measured! : BOARDING_PENALTY_MINUTES;
+      // Says which kind of number this is. An estimate a rider believes is a
+      // timetable is how someone misses the last bus of the night.
+      leg.waitIsEstimated = !usable;
     }
 
     const rides = legs.filter(leg => Boolean(leg.routeId));
@@ -611,7 +619,14 @@ export class JourneyPlannerService {
     return {
       legs,
       totalDistanceKm: legs.reduce((sum, leg) => sum + leg.distanceKm, 0),
-      totalDurationMinutes: legs.reduce((sum, leg) => sum + leg.durationMinutes, 0),
+      // Every minute in this total appears as a step or a wait on screen.
+      // Moovit ships journeys whose stated duration contradicts its own
+      // departure and arrival times; a rider cannot check that, and should not
+      // have to.
+      totalDurationMinutes: legs.reduce(
+        (sum, leg) => sum + leg.durationMinutes + (leg.waitMinutes ?? 0),
+        0,
+      ),
       transfersCount: Math.max(0, rides.length - 1),
       providers: [...new Set(rides.map(leg => leg.providerCode).filter(Boolean) as string[])],
       // Null rather than 0 when nothing is priced — 0 reads as "free".
