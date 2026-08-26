@@ -70,13 +70,13 @@ export class CoverageController {
     // outliers as clustering noise before hulling. `npm run
     // regions:build-polygons` populates it.
     const [contained] = located
-      ? await this.sequelize.query<{ state: string | null }>(
-          `SELECT "stateCode" AS state FROM coverage_areas
-           WHERE "areaType" = 'STATE' AND boundary IS NOT NULL
-             AND ST_Contains(boundary, ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326))
-           -- Smallest match wins, so a city polygon added later beats the state
-           -- it sits inside rather than depending on read order.
-           ORDER BY ST_Area(boundary) ASC
+      ? await this.sequelize.query<{ state: string | null; stateName: string | null; areaType: string }>(
+          `SELECT "stateCode" AS state, "stateName", "areaType" FROM coverage_areas
+           WHERE "areaType" IN ('STATE', 'ADMIN_STATE') AND boundary IS NOT NULL
+             AND ST_Covers(boundary, ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326))
+           -- Real service coverage wins. ADMIN_STATE is only the fallback that
+           -- names the state; it never claims the whole state has transport.
+           ORDER BY CASE "areaType" WHEN 'STATE' THEN 0 ELSE 1 END, ST_Area(boundary) ASC
            LIMIT 1`,
           { replacements: { latitude, longitude }, type: QueryTypes.SELECT },
         )
@@ -117,16 +117,14 @@ export class CoverageController {
     // returns nothing here, and that absence is the honest answer.
     const rows = stateCode
       ? await this.sequelize.query<{ mode: string; routeCount: number; stopCount: number }>(
-          `WITH operators AS (
-             SELECT DISTINCT provider FROM stops WHERE state = :stateCode
-           )
-           SELECT lower(r."routeType") AS mode,
+          `SELECT lower(r."routeType") AS mode,
                   count(DISTINCT r.id)::int AS "routeCount",
-                  count(DISTINCT st."stopId")::int AS "stopCount"
+                  count(DISTINCT s.id)::int AS "stopCount"
            FROM routes r
-           LEFT JOIN trips t ON t."routeId" = r.id
-           LEFT JOIN stop_times st ON st."tripId" = t.id
-           WHERE r.provider IN (SELECT provider FROM operators)
+           JOIN trips t ON t."routeId" = r.id
+           JOIN stop_times st ON st."tripId" = t.id
+           JOIN stops s ON s.id = st."stopId"
+           WHERE s.state = :stateCode
              AND r."routeType" IS NOT NULL
            GROUP BY lower(r."routeType")
            ORDER BY count(DISTINCT r.id) DESC`,
@@ -178,13 +176,20 @@ export class CoverageController {
     return {
       data: {
         stateCode,
-        region: stateCode ? (STATE_NAMES[stateCode] ?? stateCode) : null,
+        region: stateCode ? (contained?.stateName ?? STATE_NAMES[stateCode] ?? stateCode) : null,
         routeCount: rows.reduce((sum, row) => sum + row.routeCount, 0),
         stopCount: totals?.stopCount ?? 0,
         lastUpdated: totals?.lastUpdated ?? null,
         // Only the modes that genuinely have routes here. Empty is a real
         // answer: it means we have stops but no services mapped yet.
         modes: rows.map(row => row.mode),
+        coverageMethod: contained?.areaType === 'STATE'
+          ? 'service-coverage-polygon'
+          : contained?.areaType === 'ADMIN_STATE'
+            ? 'administrative-state-boundary'
+            : nearest?.state
+              ? 'nearby-transit-stop'
+              : null,
         byMode: rows.map(row => ({
           mode: row.mode,
           routeCount: row.routeCount,
