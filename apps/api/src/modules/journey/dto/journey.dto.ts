@@ -65,6 +65,13 @@ export interface JourneyLegDto {
   serviceName?: string;
   /** Set on transit legs so the client can open Route Details for that leg. */
   routeId?: string;
+  /**
+   * Stops travelled on this leg. Absent on walking and hailed legs.
+   * A rider counts stops out of the window; they cannot count minutes.
+   */
+  stopCount?: number;
+  /** Minutes waiting at this leg's boarding stop. Only from published times. */
+  waitMinutes?: number;
   /** Fare for this leg's service, where the operator publishes one. */
   fareINR?: number | null;
   /**

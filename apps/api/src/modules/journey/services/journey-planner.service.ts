@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GraphRoute, GraphStop, TransitGraphService, clockTime, haversineMeters } from './transit-graph.service';
+import { GraphRoute, GraphStop, TransitGraphService, clockTime, haversineMeters, minutesOfDay } from './transit-graph.service';
 
 /**
  * Average speeds (km/h) used to turn distance into minutes.
@@ -99,6 +99,23 @@ export interface PlannedLeg {
   routeId?: string;
   routeName?: string;
   providerCode?: string;
+  /**
+   * Stops travelled on this leg — the count a rider actually uses to know when
+   * to get off, because they can watch stops go past but cannot watch a clock
+   * count down. One means the very next stop. Absent on walking and hailed
+   * legs, which pass no stops.
+   */
+  stopCount?: number;
+  /**
+   * Minutes spent waiting at this leg's boarding stop, from the published
+   * arrival of the previous leg to this one's departure.
+   *
+   * Only ever computed from two real timetable entries. A journey whose
+   * services publish no times reports nothing rather than a guess — an
+   * invented wait is the difference between a rider standing at the right
+   * stop and a rider standing at the wrong one.
+   */
+  waitMinutes?: number;
   /** Whole-route fare, where the operator publishes one. */
   fareINR?: number | null;
   fareSource?: string | null;
@@ -520,6 +537,8 @@ export class JourneyPlannerService {
       // one leg, summing their distances into thousands of kilometres.
       if (previous && route && previous.routeId === route.id) {
         previous.toStop = to;
+        // Each merged hop is one more stop the rider passes before alighting.
+        previous.stopCount = (previous.stopCount ?? 1) + 1;
         previous.distanceKm += km;
         previous.durationMinutes += minutesFor(km * 1000, SPEED[mode]);
         // Riding further means alighting later; the boarding time is unchanged.
@@ -538,6 +557,7 @@ export class JourneyPlannerService {
         routeId: route?.id,
         routeName: route?.name,
         providerCode: route?.providerCode,
+        stopCount: route ? 1 : undefined,
         fareINR: this.proratedFare(route, km),
         fareSource: route?.fareSource ?? null,
         departureTime: route ? this.timeAt(route, from.id) : null,
@@ -561,6 +581,30 @@ export class JourneyPlannerService {
     // A fixed-route AUTO has a routeId; a hailed first/last-mile AUTO does not.
     // Counting by mode erased registered auto routes from transfers, providers
     // and fares even though the rider actually boarded that service.
+    // Waiting, where both sides of the gap are published.
+    //
+    // Deliberately not folded into `durationMinutes`: a ride already carries
+    // BOARDING_PENALTY_MINUTES as a generic stand-in for waiting, and adding a
+    // measured wait on top would count the same minutes twice in the total.
+    // This surfaces the real number beside the leg while leaving the arithmetic
+    // alone.
+    for (let index = 1; index < legs.length; index += 1) {
+      const leg = legs[index];
+      // Only a boarded service is worth waiting for; nobody waits to walk.
+      if (!leg.routeId) continue;
+
+      const arrives = minutesOfDay(legs[index - 1].arrivalTime);
+      const departs = minutesOfDay(leg.departureTime);
+      if (arrives === null || departs === null) continue;
+
+      const wait = departs - arrives;
+      // Negative means the two times came from opposite directions of a route
+      // rather than one journey; a gap over three hours is a data artefact, not
+      // a connection a rider would make. Both are dropped rather than shown.
+      if (wait < 0 || wait > 180) continue;
+      leg.waitMinutes = wait;
+    }
+
     const rides = legs.filter(leg => Boolean(leg.routeId));
     const priced = rides.filter(leg => typeof leg.fareINR === 'number');
 

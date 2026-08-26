@@ -124,6 +124,8 @@ export class JourneyService {
         providerCode: leg.providerCode,
         serviceName: leg.routeName,
         routeId: leg.routeId,
+        stopCount: leg.stopCount,
+        waitMinutes: leg.waitMinutes,
         fareINR: leg.fareINR ?? null,
         departureTime: leg.departureTime ?? null,
         arrivalTime: leg.arrivalTime ?? null,
